@@ -1,19 +1,19 @@
 <?php
 /**
- * Sistema JEM - Production Configuration File
- * Settings specific for Hostgator production environment
+ * Sistema JEM - Production Configuration
+ * Hostinger Server Configuration
  */
 
-// Database Configuration - Hostgator
+// Database Configuration - Hostinger
 define('DB_HOST', 'localhost');
-define('DB_NAME', 'itama742_jogos');      // ALTERE AQUI
-define('DB_USER', 'itama742_1409');       // ALTERE AQUI
-define('DB_PASS', 'admin1409');           // ALTERE AQUI
+define('DB_NAME', 'u19967l261_database');
+define('DB_USER', 'u19967l261_admdatabase');
+define('DB_PASS', 'I@nna2111');
 define('DB_CHARSET', 'utf8mb4');
 
 // System Configuration
 define('SITE_NAME', 'Sistema JEM');
-define('SITE_URL', 'http://jgsescolares.online'); // ALTERE AQUI
+define('SITE_URL', 'https://sistemajem.online');
 define('BASE_PATH', __DIR__ . '/..');
 
 // Upload Configuration
@@ -32,8 +32,8 @@ define('ITEMS_PER_PAGE', 10);
 // Timezone
 date_default_timezone_set('America/Sao_Paulo');
 
-// Error Reporting (ENABLED FOR DEBUGGING)
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
+// Error Reporting (Production)
+error_reporting(E_ALL & ~E_NOTICE & ~E_DEPRECATED);
+ini_set('display_errors', 0);
 ini_set('log_errors', 1);
-ini_set('error_log', BASE_PATH . '/error_log');
+ini_set('error_log', BASE_PATH . '/logs/php-errors.log');
