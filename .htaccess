@@ -26,13 +26,15 @@
 </DirectoryMatch>
 
 # Configurações PHP
-<IfModule mod_php.c>
-    php_value upload_max_filesize 5M
-    php_value post_max_size 5M
-    php_value max_execution_time 300
-    php_value max_input_time 300
-    php_value memory_limit 128M
-</IfModule>
+# Configurações PHP (Comentado para evitar Erro 500 na HostGator)
+# Para alterar estes valores na HostGator, use o "MultiPHP INI Editor" no cPanel
+# <IfModule mod_php.c>
+#     php_value upload_max_filesize 5M
+#     php_value post_max_size 5M
+#     php_value max_execution_time 300
+#     php_value max_input_time 300
+#     php_value memory_limit 128M
+# </IfModule>
 
 # Habilitar compressão (melhor performance)
 <IfModule mod_deflate.c>
