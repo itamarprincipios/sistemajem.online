@@ -4,42 +4,39 @@
  * Database and system configuration
  */
 
-// Check for production configuration first
-if (file_exists(__DIR__ . '/config.production.php')) {
-    require_once __DIR__ . '/config.production.php';
-} else {
-    // Local Development Configuration
-    define('DB_HOST', 'localhost');
-    define('DB_NAME', 'jem_database');
-    define('DB_USER', 'root');
-    define('DB_PASS', '');
-    define('DB_CHARSET', 'utf8mb4');
-    
-    // System Configuration
-    define('SITE_NAME', 'Sistema JEM');
-    define('SITE_URL', 'http://localhost:8000');
-    define('BASE_PATH', __DIR__ . '/..');
+// Database Configuration - Hostinger Production
+define('DB_HOST', 'localhost');
+define('DB_NAME', 'u19967l261_database');
+define('DB_USER', 'u19967l261_admdatabase');
+define('DB_PASS', 'yv!B6+Lp');
+define('DB_CHARSET', 'utf8mb4');
 
-    // Upload Configuration
-    define('UPLOAD_DIR', BASE_PATH . '/uploads');
-    define('STUDENT_PHOTOS_DIR', UPLOAD_DIR . '/students');
-    define('MAX_FILE_SIZE', 5 * 1024 * 1024); // 5MB
-    define('ALLOWED_EXTENSIONS', ['jpg', 'jpeg', 'png', 'gif']);
+// System Configuration
+define('SITE_NAME', 'Sistema JEM');
+define('SITE_URL', 'https://sistemajem.online');
+define('BASE_PATH', __DIR__ . '/..');
 
-    // Session Configuration
-    define('SESSION_LIFETIME', 3600 * 8); // 8 hours
-    define('SESSION_NAME', 'JEM_SESSION');
+// Upload Configuration
+define('UPLOAD_DIR', BASE_PATH . '/uploads');
+define('STUDENT_PHOTOS_DIR', UPLOAD_DIR . '/students');
+define('MAX_FILE_SIZE', 5 * 1024 * 1024); // 5MB
+define('ALLOWED_EXTENSIONS', ['jpg', 'jpeg', 'png', 'gif']);
 
-    // Pagination
-    define('ITEMS_PER_PAGE', 10);
+// Session Configuration
+define('SESSION_LIFETIME', 3600 * 8); // 8 hours
+define('SESSION_NAME', 'JEM_SESSION');
 
-    // Timezone
-    date_default_timezone_set('America/Sao_Paulo');
+// Pagination
+define('ITEMS_PER_PAGE', 10);
 
-    // Error Reporting (Development)
-    error_reporting(E_ALL);
-    ini_set('display_errors', 1);
-}
+// Timezone
+date_default_timezone_set('America/Sao_Paulo');
+
+// Error Reporting (Production)
+error_reporting(E_ALL & ~E_NOTICE & ~E_DEPRECATED);
+ini_set('display_errors', 0);
+ini_set('log_errors', 1);
+ini_set('error_log', BASE_PATH . '/logs/php-errors.log');
 
 // Start session if not already started
 if (session_status() === PHP_SESSION_NONE) {
