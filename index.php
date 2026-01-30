@@ -127,9 +127,9 @@
     <div class="hero">
         <div class="hero-content">
             <img src="assets/images/ncircuits-logo.png" alt="N Circuits Technologies" style="max-width: 250px; margin-bottom: 2rem; animation: fadeInUp 0.8s ease;">
-            <h1 class="hero-title">Sistema JEM</h1>
+            <h1 class="hero-title">Gestão de Jogos Escolares e Campeonatos Esportivos</h1>
             <p class="hero-subtitle">
-                Gerenciamento completo dos Jogos Escolares Municipais
+                Plataforma completa para organização e gerenciamento de eventos esportivos escolares
             </p>
             <div class="hero-buttons">
                 <a href="login.php" class="btn btn-primary btn-lg">Acessar Sistema</a>
