@@ -1,0 +1,9 @@
+/vendor
+/node_modules
+.env
+.DS_Store
+*.log
+jem_deploy.zip
+test.php
+config/config.production.php
+.htaccess.bak
