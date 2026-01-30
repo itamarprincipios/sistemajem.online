@@ -8,7 +8,7 @@
 define('DB_HOST', 'localhost');
 define('DB_NAME', 'u19967l261_database');
 define('DB_USER', 'u19967l261_admdatabase');
-define('DB_PASS', 'I@nna2111');
+define('DB_PASS', 'yv!B6+Lp');
 define('DB_CHARSET', 'utf8mb4');
 
 // System Configuration
