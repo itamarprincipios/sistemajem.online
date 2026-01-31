@@ -516,6 +516,9 @@ function renderTeams(teams) {
                     <button class="btn btn-sm btn-primary" onclick="manageAthletes(${team.id})" style="flex: 1;">
                         👥 Atletas
                     </button>
+                    <button class="btn btn-sm btn-info" onclick="printTeam(${team.id})" title="Imprimir Ficha">
+                        🖨️
+                    </button>
                     ${team.status === 'pending' ? `
                         <button class="btn btn-sm btn-warning" onclick="editTeam(${team.id})" title="Editar Equipe">
                             ✏️
@@ -527,6 +530,9 @@ function renderTeams(teams) {
                 ` : `
                     <button class="btn btn-sm btn-secondary" onclick="manageAthletes(${team.id})" style="flex: 1;">
                         👁️ Visualizar
+                    </button>
+                    <button class="btn btn-sm btn-info" onclick="printTeam(${team.id})" title="Imprimir Ficha">
+                        🖨️
                     </button>
                 `}
             </div>
@@ -770,6 +776,11 @@ async function editTeam(id) {
         console.error('Error:', error);
         Toast.error('Erro ao carregar dados da equipe');
     }
+}
+
+// Print team sheet
+function printTeam(id) {
+    window.open(`print-team.php?id=${id}`, '_blank');
 }
 
 // Delete team
