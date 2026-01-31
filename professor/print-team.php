@@ -37,7 +37,26 @@ $team = queryOne("
 ", [$teamId]);
 
 if (!$team) {
-    die("Equipe não encontrada. Team ID: $teamId, School ID do Professor: $schoolId");
+    echo "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Equipe não encontrada</title></head><body>";
+    echo "<h2>❌ Equipe não encontrada</h2>";
+    echo "<p><strong>Team ID:</strong> $teamId</p>";
+    echo "<p><strong>School ID do Professor:</strong> $schoolId</p>";
+    echo "<hr>";
+    echo "<p>A equipe que você está tentando imprimir não foi encontrada no banco de dados.</p>";
+    echo "<p><strong>Possíveis causas:</strong></p>";
+    echo "<ul>";
+    echo "<li>A equipe foi excluída</li>";
+    echo "<li>Você está visualizando dados em cache (antigos)</li>";
+    echo "<li>O ID da equipe está incorreto</li>";
+    echo "</ul>";
+    echo "<p><strong>Solução:</strong></p>";
+    echo "<ol>";
+    echo "<li>Volte para a página <a href='teams.php'>Minhas Equipes</a></li>";
+    echo "<li>Pressione <strong>Ctrl + Shift + R</strong> para recarregar sem cache</li>";
+    echo "<li>Tente imprimir novamente</li>";
+    echo "</ol>";
+    echo "</body></html>";
+    die();
 }
 
 // Debug: show team school_id
