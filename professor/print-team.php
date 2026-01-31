@@ -23,54 +23,33 @@ error_log("Print Team - Team ID: $teamId, School ID: $schoolId");
 $teamExists = queryOne("SELECT id, school_id FROM registrations WHERE id = ?", [$teamId]);
 error_log("Team exists check: " . ($teamExists ? "YES - School ID: " . $teamExists['school_id'] : "NO"));
 
-// Get team details with all information
-$team = queryOne("
-    SELECT 
-        r.*,
-        m.name as modality_name,
-        c.name as category_name,
-        s.name as school_name,
-        s.address as school_address,
-        s.city as school_city,
-        s.phone as school_phone
-    FROM registrations r
-    LEFT JOIN modalities m ON r.modality_id = m.id
-    LEFT JOIN categories c ON r.category_id = c.id
-    LEFT JOIN schools s ON r.school_id = s.id
-    WHERE r.id = ?
-", [$teamId]);
+// Get team basic data
+$team = queryOne("SELECT * FROM registrations WHERE id = ?", [$teamId]);
 
 if (!$team) {
     echo "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Equipe não encontrada</title></head><body>";
     echo "<h2>❌ Equipe não encontrada</h2>";
     echo "<p><strong>Team ID:</strong> $teamId</p>";
     echo "<p><strong>School ID do Professor:</strong> $schoolId</p>";
-    
-    if ($teamExists) {
-        echo "<p><strong>⚠️ A equipe existe no banco (ID: {$teamExists['id']}, School: {$teamExists['school_id']}), mas houve erro ao buscar detalhes.</strong></p>";
-        echo "<p>Possível problema com JOINs nas tabelas modalities, categories ou schools.</p>";
-    } else {
-        echo "<p><strong>❌ A equipe não existe no banco de dados.</strong></p>";
-    }
-    
+    echo "<p><strong>❌ A equipe não existe no banco de dados.</strong></p>";
     echo "<hr>";
-    echo "<p>A equipe que você está tentando imprimir não foi encontrada no banco de dados.</p>";
-    echo "<p><strong>Possíveis causas:</strong></p>";
-    echo "<ul>";
-    echo "<li>A equipe foi excluída</li>";
-    echo "<li>Você está visualizando dados em cache (antigos)</li>";
-    echo "<li>O ID da equipe está incorreto</li>";
-    echo "<li>Problema com dados relacionados (modalidade, categoria ou escola)</li>";
-    echo "</ul>";
-    echo "<p><strong>Solução:</strong></p>";
-    echo "<ol>";
-    echo "<li>Volte para a página <a href='teams.php'>Minhas Equipes</a></li>";
-    echo "<li>Pressione <strong>Ctrl + Shift + R</strong> para recarregar sem cache</li>";
-    echo "<li>Tente imprimir novamente</li>";
-    echo "</ol>";
+    echo "<p><a href='teams.php'>← Voltar para Minhas Equipes</a></p>";
     echo "</body></html>";
     die();
 }
+
+// Get related data separately
+$modality = queryOne("SELECT name FROM modalities WHERE id = ?", [$team['modality_id']]);
+$category = queryOne("SELECT name FROM categories WHERE id = ?", [$team['category_id']]);
+$school = queryOne("SELECT name, address, city, phone FROM schools WHERE id = ?", [$team['school_id']]);
+
+// Add related data to team array
+$team['modality_name'] = $modality['name'] ?? 'N/A';
+$team['category_name'] = $category['name'] ?? 'N/A';
+$team['school_name'] = $school['name'] ?? 'N/A';
+$team['school_address'] = $school['address'] ?? 'N/A';
+$team['school_city'] = $school['city'] ?? 'N/A';
+$team['school_phone'] = $school['phone'] ?? 'N/A';
 
 // Debug: show team school_id
 error_log("Team school_id: " . $team['school_id'] . ", Professor school_id: $schoolId");
