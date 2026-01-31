@@ -34,9 +34,9 @@ $team = queryOne("
         s.city as school_city,
         s.phone as school_phone
     FROM registrations r
-    JOIN modalities m ON r.modality_id = m.id
-    JOIN categories c ON r.category_id = c.id
-    JOIN schools s ON r.school_id = s.id
+    LEFT JOIN modalities m ON r.modality_id = m.id
+    LEFT JOIN categories c ON r.category_id = c.id
+    LEFT JOIN schools s ON r.school_id = s.id
     WHERE r.id = ?
 ", [$teamId]);
 
