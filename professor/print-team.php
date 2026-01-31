@@ -37,12 +37,15 @@ $team = queryOne("
 ", [$teamId]);
 
 if (!$team) {
-    die("Equipe não encontrada. Team ID: $teamId, School ID: $schoolId");
+    die("Equipe não encontrada. Team ID: $teamId, School ID do Professor: $schoolId");
 }
+
+// Debug: show team school_id
+error_log("Team school_id: " . $team['school_id'] . ", Professor school_id: $schoolId");
 
 // Verify school ownership
 if ($team['school_id'] != $schoolId) {
-    die('Você não tem permissão para visualizar esta equipe');
+    die("Você não tem permissão para visualizar esta equipe. Equipe pertence à escola ID {$team['school_id']}, mas você está na escola ID $schoolId");
 }
 
 // Get professor responsible
