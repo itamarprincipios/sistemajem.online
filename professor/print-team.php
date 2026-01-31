@@ -43,19 +43,26 @@ $modality = queryOne("SELECT name FROM modalities WHERE id = ?", [$team['modalit
 $category = queryOne("SELECT name FROM categories WHERE id = ?", [$team['category_id']]);
 $school = queryOne("SELECT name, address, city, phone FROM schools WHERE id = ?", [$team['school_id']]);
 
-// Debug school
+// Debug VISUAL para identificar problema da escola
+echo "<!-- DEBUG INFO: 
+School ID from Team: " . ($team['school_id'] ?? 'NULL') . "
+School ID from Session: " . ($schoolId ?? 'NULL') . "
+School Data Found: " . ($school ? 'YES' : 'NO') . "
+-->";
+
+// Force hardcoded check just to verify connectivity
 if (!$school) {
-    // Fallback: try using professor's school ID
-    $school = queryOne("SELECT name, address, city, phone FROM schools WHERE id = ?", [$schoolId]);
+    if ($team['school_id']) {
+        $testSchool = queryOne("SELECT * FROM schools WHERE id = " . intval($team['school_id']));
+        if ($testSchool) {
+             $school = $testSchool;
+             error_log("School found via hardcoded query!");
+        }
+    }
 }
 
-// Add related data to team array
-$team['modality_name'] = $modality['name'] ?? 'Não informada';
-$team['category_name'] = $category['name'] ?? 'Não informada';
-$modalityName = strtoupper($team['modality_name']); // Force uppercase for display
-
 // Ensure school data exists
-$team['school_name'] = isset($school['name']) ? $school['name'] : 'ESCOLA NÃO IDENTIFICADA';
+$team['school_name'] = isset($school['name']) ? $school['name'] : 'ESCOLA ID: ' . ($team['school_id'] ?? 'N/A');
 $team['school_address'] = isset($school['address']) ? $school['address'] : 'Endereço não informado';
 $team['school_city'] = isset($school['city']) ? $school['city'] : 'Cidade não informada';
 $team['school_phone'] = isset($school['phone']) ? $school['phone'] : 'Telefone não informado';
