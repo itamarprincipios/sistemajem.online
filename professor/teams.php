@@ -399,8 +399,10 @@ async function loadData() {
         
         if (categories.success) {
             const select = document.getElementById('categoryId');
+            const currentYear = new Date().getFullYear();
             categories.data.forEach(c => {
-                select.innerHTML += `<option value="${c.id}">${c.name} (até ${c.max_age} anos)</option>`;
+                const maxAge = currentYear - c.max_birth_year;
+                select.innerHTML += `<option value="${c.id}">${c.name} (até ${maxAge} anos)</option>`;
             });
         }
         
