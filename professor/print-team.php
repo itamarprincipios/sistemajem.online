@@ -16,6 +16,9 @@ if (!$teamId) {
 
 $schoolId = getCurrentSchoolId();
 
+// Debug info
+error_log("Print Team - Team ID: $teamId, School ID: $schoolId");
+
 // Get team details with all information
 $team = queryOne("
     SELECT 
@@ -30,11 +33,16 @@ $team = queryOne("
     JOIN modalities m ON r.modality_id = m.id
     JOIN categories c ON r.category_id = c.id
     JOIN schools s ON r.school_id = s.id
-    WHERE r.id = ? AND r.school_id = ?
-", [$teamId, $schoolId]);
+    WHERE r.id = ?
+", [$teamId]);
 
 if (!$team) {
-    die('Equipe não encontrada');
+    die("Equipe não encontrada. Team ID: $teamId, School ID: $schoolId");
+}
+
+// Verify school ownership
+if ($team['school_id'] != $schoolId) {
+    die('Você não tem permissão para visualizar esta equipe');
 }
 
 // Get professor responsible
