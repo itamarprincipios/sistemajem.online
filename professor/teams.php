@@ -517,7 +517,10 @@ function renderTeams(teams) {
                         👥 Atletas
                     </button>
                     ${team.status === 'pending' ? `
-                        <button class="btn btn-sm btn-danger" onclick="deleteTeam(${team.id})">
+                        <button class="btn btn-sm btn-warning" onclick="editTeam(${team.id})" title="Editar Equipe">
+                            ✏️
+                        </button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteTeam(${team.id})" title="Excluir Equipe">
                             🗑️
                         </button>
                     ` : ''}
@@ -565,9 +568,17 @@ async function saveTeam() {
         return;
     }
     
+    // Check if editing or creating
+    const teamId = document.getElementById('teamModal').dataset.teamId;
+    const isEditing = !!teamId;
+    
     try {
-        const response = await fetch('../api/professor-teams-api.php?action=create', {
-            method: 'POST',
+        const url = isEditing 
+            ? `../api/professor-teams-api.php?action=update&id=${teamId}`
+            : '../api/professor-teams-api.php?action=create';
+            
+        const response = await fetch(url, {
+            method: isEditing ? 'PUT' : 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
                 modality_id: modalityId, 
@@ -585,15 +596,15 @@ async function saveTeam() {
         const result = await response.json();
         
         if (result.success) {
-            Toast.success('Equipe criada com sucesso!');
+            Toast.success(isEditing ? 'Equipe atualizada com sucesso!' : 'Equipe criada com sucesso!');
             closeTeamModal();
             loadTeams();
         } else {
-            Toast.error(result.error || 'Erro ao criar equipe');
+            Toast.error(result.error || (isEditing ? 'Erro ao atualizar equipe' : 'Erro ao criar equipe'));
         }
     } catch (error) {
         console.error('Error:', error);
-        Toast.error('Erro ao criar equipe');
+        Toast.error(isEditing ? 'Erro ao atualizar equipe' : 'Erro ao criar equipe');
     }
 }
 
@@ -721,6 +732,43 @@ async function removeAthlete(enrollmentId) {
     } catch (error) {
         console.error('Error:', error);
         Toast.error('Erro ao remover atleta');
+    }
+}
+
+// Edit team
+async function editTeam(id) {
+    try {
+        const response = await fetch(`../api/professor-teams-api.php?action=details&id=${id}`);
+        const result = await response.json();
+        
+        if (result.success) {
+            const team = result.data;
+            
+            // Populate modal fields
+            document.getElementById('modalityId').value = team.modality_id;
+            document.getElementById('categoryId').value = team.category_id;
+            document.getElementById('gender').value = team.gender;
+            document.getElementById('tecnicoNome').value = team.tecnico_nome || '';
+            document.getElementById('tecnicoCelular').value = team.tecnico_celular || '';
+            document.getElementById('auxiliarTecnicoNome').value = team.auxiliar_tecnico_nome || '';
+            document.getElementById('auxiliarTecnicoCelular').value = team.auxiliar_tecnico_celular || '';
+            document.getElementById('chefeDelegacaoNome').value = team.chefe_delegacao_nome || '';
+            document.getElementById('chefeDelegacaoCelular').value = team.chefe_delegacao_celular || '';
+            
+            // Store team ID for update
+            document.getElementById('teamModal').dataset.teamId = id;
+            
+            // Change modal title
+            document.getElementById('teamModalTitle').textContent = 'Editar Equipe';
+            
+            // Open modal
+            document.getElementById('teamModal').classList.add('active');
+        } else {
+            Toast.error(result.error || 'Erro ao carregar dados da equipe');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        Toast.error('Erro ao carregar dados da equipe');
     }
 }
 
@@ -996,6 +1044,9 @@ function openTeamModal() {
 }
 function closeTeamModal() {
     document.getElementById('teamModal').classList.remove('active');
+    delete document.getElementById('teamModal').dataset.teamId;
+    document.getElementById('teamModalTitle').textContent = 'Nova Equipe';
+    document.getElementById('teamForm').reset();
 }
 function closeAthletesModal() {
     document.getElementById('athletesModal').classList.remove('active');

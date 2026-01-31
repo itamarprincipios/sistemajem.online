@@ -223,6 +223,86 @@ try {
             }
             break;
             
+        case 'PUT':
+            // Update team
+            $id = $_GET['id'] ?? null;
+            if (!$id) throw new Exception('ID não fornecido');
+            
+            $data = json_decode(file_get_contents('php://input'), true);
+            
+            // Verify team ownership and status
+            $team = queryOne("SELECT status, created_by_user_id FROM registrations WHERE id = ? AND school_id = ?", [$id, $schoolId]);
+            
+            if (!$team) throw new Exception('Equipe não encontrada');
+            
+            $userId = getCurrentUserId();
+            if ($team['created_by_user_id'] && $team['created_by_user_id'] != $userId) {
+                throw new Exception('Você não tem permissão para editar esta equipe');
+            }
+            
+            if ($team['status'] !== 'pending') {
+                throw new Exception('Apenas equipes pendentes podem ser editadas');
+            }
+            
+            // Validate required fields
+            if (empty($data['modality_id']) || empty($data['category_id']) || empty($data['gender'])) {
+                throw new Exception('Preencha todos os campos obrigatórios');
+            }
+            
+            // Validate team staff fields
+            if (empty($data['tecnico_nome']) || empty($data['tecnico_celular'])) {
+                throw new Exception('Preencha os dados do Técnico');
+            }
+            
+            if (empty($data['auxiliar_tecnico_nome']) || empty($data['auxiliar_tecnico_celular'])) {
+                throw new Exception('Preencha os dados do Auxiliar Técnico');
+            }
+            
+            if (empty($data['chefe_delegacao_nome']) || empty($data['chefe_delegacao_celular'])) {
+                throw new Exception('Preencha os dados do Chefe de Delegação');
+            }
+            
+            // Check if team already exists with same criteria (excluding current team)
+            $exists = queryOne("
+                SELECT id FROM registrations 
+                WHERE school_id = ? AND modality_id = ? AND category_id = ? AND gender = ? AND id != ?
+            ", [$schoolId, $data['modality_id'], $data['category_id'], $data['gender'], $id]);
+            
+            if ($exists) {
+                throw new Exception('Já existe uma equipe com essa modalidade, categoria e gênero');
+            }
+            
+            $sql = "UPDATE registrations SET 
+                    modality_id = ?, 
+                    category_id = ?, 
+                    gender = ?,
+                    tecnico_nome = ?,
+                    tecnico_celular = ?,
+                    auxiliar_tecnico_nome = ?,
+                    auxiliar_tecnico_celular = ?,
+                    chefe_delegacao_nome = ?,
+                    chefe_delegacao_celular = ?
+                    WHERE id = ? AND school_id = ?";
+            
+            if (execute($sql, [
+                $data['modality_id'],
+                $data['category_id'],
+                $data['gender'],
+                $data['tecnico_nome'],
+                $data['tecnico_celular'],
+                $data['auxiliar_tecnico_nome'],
+                $data['auxiliar_tecnico_celular'],
+                $data['chefe_delegacao_nome'],
+                $data['chefe_delegacao_celular'],
+                $id,
+                $schoolId
+            ])) {
+                echo json_encode(['success' => true]);
+            } else {
+                throw new Exception('Erro ao atualizar equipe');
+            }
+            break;
+            
         case 'DELETE':
             $id = $_GET['id'] ?? null;
             $type = $_GET['type'] ?? 'team';
