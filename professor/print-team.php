@@ -19,6 +19,10 @@ $schoolId = getCurrentSchoolId();
 // Debug info
 error_log("Print Team - Team ID: $teamId, School ID: $schoolId");
 
+// First, check if team exists at all
+$teamExists = queryOne("SELECT id, school_id FROM registrations WHERE id = ?", [$teamId]);
+error_log("Team exists check: " . ($teamExists ? "YES - School ID: " . $teamExists['school_id'] : "NO"));
+
 // Get team details with all information
 $team = queryOne("
     SELECT 
@@ -41,6 +45,14 @@ if (!$team) {
     echo "<h2>❌ Equipe não encontrada</h2>";
     echo "<p><strong>Team ID:</strong> $teamId</p>";
     echo "<p><strong>School ID do Professor:</strong> $schoolId</p>";
+    
+    if ($teamExists) {
+        echo "<p><strong>⚠️ A equipe existe no banco (ID: {$teamExists['id']}, School: {$teamExists['school_id']}), mas houve erro ao buscar detalhes.</strong></p>";
+        echo "<p>Possível problema com JOINs nas tabelas modalities, categories ou schools.</p>";
+    } else {
+        echo "<p><strong>❌ A equipe não existe no banco de dados.</strong></p>";
+    }
+    
     echo "<hr>";
     echo "<p>A equipe que você está tentando imprimir não foi encontrada no banco de dados.</p>";
     echo "<p><strong>Possíveis causas:</strong></p>";
@@ -48,6 +60,7 @@ if (!$team) {
     echo "<li>A equipe foi excluída</li>";
     echo "<li>Você está visualizando dados em cache (antigos)</li>";
     echo "<li>O ID da equipe está incorreto</li>";
+    echo "<li>Problema com dados relacionados (modalidade, categoria ou escola)</li>";
     echo "</ul>";
     echo "<p><strong>Solução:</strong></p>";
     echo "<ol>";
