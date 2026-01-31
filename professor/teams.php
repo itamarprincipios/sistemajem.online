@@ -57,7 +57,7 @@ include '../includes/sidebar.php';
 <div class="modal-overlay" id="teamModal">
     <div class="modal">
         <div class="modal-header">
-            <h3 class="modal-title">Nova Equipe</h3>
+            <h3 class="modal-title" id="teamModalTitle">Nova Equipe</h3>
             <button class="modal-close" onclick="closeTeamModal()">×</button>
         </div>
         <div class="modal-body">
