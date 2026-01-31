@@ -269,14 +269,19 @@ async function viewDetails(id) {
             
             let athletesHtml = '<p style="color: var(--text-secondary);">Nenhum atleta inscrito</p>';
             if (reg.athletes && reg.athletes.length > 0) {
-                athletesHtml = '<div class="table-container"><table class="table"><thead><tr><th>Nome</th><th>CPF</th><th>Data Nascimento</th><th>Idade</th></tr></thead><tbody>';
+                athletesHtml = '<div class="table-container"><table class="table"><thead><tr><th>Nome</th><th>CPF</th><th>Data Nascimento</th><th>Idade</th><th>Documento</th></tr></thead><tbody>';
                 reg.athletes.forEach(athlete => {
+                    const documentBtn = athlete.document_path 
+                        ? `<a href="../${athlete.document_path}" target="_blank" class="btn btn-sm btn-info" style="text-decoration: none;">📄 Ver Documento</a>` 
+                        : '<span style="color: var(--text-secondary);">Não enviado</span>';
+                        
                     athletesHtml += `
                         <tr>
                             <td>${athlete.name}</td>
-                            <td>${athlete.cpf}</td>
+                            <td>${athlete.cpf || athlete.document_number || 'N/A'}</td>
                             <td>${new Date(athlete.birth_date).toLocaleDateString('pt-BR')}</td>
                             <td>${athlete.age} anos</td>
+                            <td>${documentBtn}</td>
                         </tr>
                     `;
                 });
