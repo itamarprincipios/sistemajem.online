@@ -531,7 +531,11 @@ function renderTeams(teams) {
                         <button class="btn btn-sm btn-danger" onclick="deleteTeam(${team.id})" title="Excluir Equipe">
                             🗑️
                         </button>
-                    ` : ''}
+                    ` : `
+                        <button class="btn btn-sm btn-success" disabled title="Equipe Aprovada - Não pode ser editada">
+                            ✅ Aprovada
+                        </button>
+                    `}
                 ` : `
                     <button class="btn btn-sm btn-secondary" onclick="manageAthletes(${team.id})" style="flex: 1;">
                         👁️ Visualizar
