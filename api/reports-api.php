@@ -67,6 +67,64 @@ try {
                 'byCategory' => $byCategory
             ]
         ]);
+        
+    } elseif ($action === 'detailed_report') {
+        // Detailed report with filters
+        $schoolId = $_GET['school_id'] ?? '';
+        $modalityId = $_GET['modality_id'] ?? '';
+        $categoryId = $_GET['category_id'] ?? '';
+        $gender = $_GET['gender'] ?? '';
+        $status = $_GET['status'] ?? '';
+
+        $params = [];
+        $where = ["1=1"];
+
+        if ($schoolId) {
+            $where[] = "r.school_id = ?";
+            $params[] = $schoolId;
+        }
+        if ($modalityId) {
+            $where[] = "r.modality_id = ?";
+            $params[] = $modalityId;
+        }
+        if ($categoryId) {
+            $where[] = "r.category_id = ?";
+            $params[] = $categoryId;
+        }
+        if ($gender) {
+            $where[] = "r.gender = ?";
+            $params[] = $gender;
+        }
+        if ($status) {
+            $where[] = "r.status = ?";
+            $params[] = $status;
+        }
+
+        $whereSql = implode(' AND ', $where);
+
+        $sql = "
+            SELECT 
+                r.id,
+                r.gender,
+                r.status,
+                s.name as school_name,
+                m.name as modality_name,
+                c.name as category_name,
+                u.name as professor_name,
+                (SELECT COUNT(*) FROM enrollments e WHERE e.registration_id = r.id) as athlete_count
+            FROM registrations r
+            JOIN schools s ON r.school_id = s.id
+            JOIN modalities m ON r.modality_id = m.id
+            JOIN categories c ON r.category_id = c.id
+            LEFT JOIN users u ON r.created_by_user_id = u.id
+            WHERE $whereSql
+            ORDER BY s.name, m.name, c.name
+        ";
+
+        $results = query($sql, $params);
+
+        echo json_encode(['success' => true, 'data' => $results]);
+
     } else {
         throw new Exception('Ação inválida');
     }
