@@ -61,7 +61,13 @@ try {
                         r.*,
                         m.name as modality_name,
                         c.name as category_name,
-                        s.name as school_name
+                        s.name as school_name,
+                        r.tecnico_nome,
+                        r.tecnico_celular,
+                        r.auxiliar_tecnico_nome,
+                        r.auxiliar_tecnico_celular,
+                        r.chefe_delegacao_nome,
+                        r.chefe_delegacao_celular
                     FROM registrations r
                     JOIN modalities m ON r.modality_id = m.id
                     JOIN categories c ON r.category_id = c.id
