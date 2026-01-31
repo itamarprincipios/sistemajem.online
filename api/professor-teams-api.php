@@ -98,6 +98,17 @@ try {
                     throw new Exception('Preencha todos os campos obrigatórios');
                 }
                 
+                // Validate team staff fields (required)
+                if (empty($data['tecnico_nome']) || empty($data['tecnico_celular'])) {
+                    throw new Exception('Preencha os dados do Técnico (nome e celular)');
+                }
+                if (empty($data['auxiliar_tecnico_nome']) || empty($data['auxiliar_tecnico_celular'])) {
+                    throw new Exception('Preencha os dados do Auxiliar Técnico (nome e celular)');
+                }
+                if (empty($data['chefe_delegacao_nome']) || empty($data['chefe_delegacao_celular'])) {
+                    throw new Exception('Preencha os dados do Chefe de Delegação (nome e celular)');
+                }
+                
                 // Check if team already exists
                 $exists = queryOne("
                     SELECT id FROM registrations 
@@ -110,10 +121,26 @@ try {
                 
                 $userId = getCurrentUserId();
                 
-                $sql = "INSERT INTO registrations (school_id, modality_id, category_id, gender, created_by_user_id, status) 
-                        VALUES (?, ?, ?, ?, ?, 'pending')";
+                $sql = "INSERT INTO registrations (
+                    school_id, modality_id, category_id, gender, created_by_user_id, status,
+                    tecnico_nome, tecnico_celular,
+                    auxiliar_tecnico_nome, auxiliar_tecnico_celular,
+                    chefe_delegacao_nome, chefe_delegacao_celular
+                ) VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?)";
                 
-                if (execute($sql, [$schoolId, $data['modality_id'], $data['category_id'], $data['gender'], $userId])) {
+                if (execute($sql, [
+                    $schoolId, 
+                    $data['modality_id'], 
+                    $data['category_id'], 
+                    $data['gender'], 
+                    $userId,
+                    $data['tecnico_nome'],
+                    $data['tecnico_celular'],
+                    $data['auxiliar_tecnico_nome'],
+                    $data['auxiliar_tecnico_celular'],
+                    $data['chefe_delegacao_nome'],
+                    $data['chefe_delegacao_celular']
+                ])) {
                     echo json_encode(['success' => true, 'id' => lastInsertId()]);
                 } else {
                     throw new Exception('Erro ao criar equipe');

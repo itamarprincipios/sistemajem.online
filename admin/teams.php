@@ -439,6 +439,30 @@ async function viewTeamDetails(id) {
                         <div><strong>Data de Aprovação:</strong> ${new Date(team.updated_at).toLocaleDateString('pt-BR')}</div>
                     </div>
                 </div>
+                
+                ${team.tecnico_nome ? `
+                    <div style="margin-bottom: 2rem;">
+                        <h4 style="margin-bottom: 1rem;">👥 Equipe Técnica</h4>
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
+                            <div style="padding: 1rem; background: var(--bg-tertiary); border-radius: var(--radius-md); border-left: 3px solid var(--primary);">
+                                <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.5rem; text-transform: uppercase; font-weight: 600;">👤 Técnico</div>
+                                <div style="font-weight: 600; margin-bottom: 0.25rem;">${team.tecnico_nome}</div>
+                                <div style="color: var(--text-secondary); font-size: 0.875rem;">📱 ${team.tecnico_celular}</div>
+                            </div>
+                            <div style="padding: 1rem; background: var(--bg-tertiary); border-radius: var(--radius-md); border-left: 3px solid var(--success);">
+                                <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.5rem; text-transform: uppercase; font-weight: 600;">🤝 Auxiliar Técnico</div>
+                                <div style="font-weight: 600; margin-bottom: 0.25rem;">${team.auxiliar_tecnico_nome}</div>
+                                <div style="color: var(--text-secondary); font-size: 0.875rem;">📱 ${team.auxiliar_tecnico_celular}</div>
+                            </div>
+                            <div style="padding: 1rem; background: var(--bg-tertiary); border-radius: var(--radius-md); border-left: 3px solid var(--warning);">
+                                <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.5rem; text-transform: uppercase; font-weight: 600;">👔 Chefe de Delegação</div>
+                                <div style="font-weight: 600; margin-bottom: 0.25rem;">${team.chefe_delegacao_nome}</div>
+                                <div style="color: var(--text-secondary); font-size: 0.875rem;">📱 ${team.chefe_delegacao_celular}</div>
+                            </div>
+                        </div>
+                    </div>
+                ` : ''}
+                
                 <div>
                     <h4 style="margin-bottom: 1rem;">Lista de Atletas Convocados</h4>
                     ${athletesHtml}

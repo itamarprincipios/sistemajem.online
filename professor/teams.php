@@ -85,6 +85,40 @@ include '../includes/sidebar.php';
                         <option value="mixed">Misto</option>
                     </select>
                 </div>
+                
+                <hr style="margin: 1.5rem 0; border: none; border-top: 1px solid var(--border);">
+                
+                <h4 style="margin-bottom: 1rem; color: var(--text-primary); font-size: 1rem;">👥 Equipe Técnica</h4>
+                
+                <div class="form-group">
+                    <label class="form-label">👤 Técnico - Nome *</label>
+                    <input type="text" id="tecnicoNome" class="form-input" placeholder="Nome completo do técnico" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">📱 Técnico - Celular *</label>
+                    <input type="tel" id="tecnicoCelular" class="form-input" placeholder="(00) 00000-0000" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">🤝 Auxiliar Técnico - Nome *</label>
+                    <input type="text" id="auxiliarTecnicoNome" class="form-input" placeholder="Nome completo do auxiliar técnico" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">📱 Auxiliar Técnico - Celular *</label>
+                    <input type="tel" id="auxiliarTecnicoCelular" class="form-input" placeholder="(00) 00000-0000" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">👔 Chefe de Delegação (Diretor) - Nome *</label>
+                    <input type="text" id="chefeDelegacaoNome" class="form-input" placeholder="Nome completo do diretor" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">📱 Chefe de Delegação - Celular *</label>
+                    <input type="tel" id="chefeDelegacaoCelular" class="form-input" placeholder="(00) 00000-0000" required>
+                </div>
             </form>
         </div>
         <div class="modal-footer">
@@ -446,7 +480,36 @@ function renderTeams(teams) {
                 </div>
             </div>
             
-            <div style="display: flex; gap: 0.5rem;">
+            ${team.tecnico_nome ? `
+                <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+                    <div style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.5rem; text-transform: uppercase;">Equipe Técnica</div>
+                    <div style="display: grid; gap: 0.5rem; font-size: 0.875rem;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <span>👤</span>
+                            <div>
+                                <div style="font-weight: 500;">${team.tecnico_nome}</div>
+                                <div style="color: var(--text-secondary); font-size: 0.75rem;">📱 ${team.tecnico_celular}</div>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <span>🤝</span>
+                            <div>
+                                <div style="font-weight: 500;">${team.auxiliar_tecnico_nome}</div>
+                                <div style="color: var(--text-secondary); font-size: 0.75rem;">📱 ${team.auxiliar_tecnico_celular}</div>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <span>👔</span>
+                            <div>
+                                <div style="font-weight: 500;">${team.chefe_delegacao_nome}</div>
+                                <div style="color: var(--text-secondary); font-size: 0.75rem;">📱 ${team.chefe_delegacao_celular}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            ` : ''}
+            
+            <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
                 ${isOwner ? `
                     <button class="btn btn-sm btn-primary" onclick="manageAthletes(${team.id})" style="flex: 1;">
                         👥 Atletas
@@ -473,9 +536,30 @@ async function saveTeam() {
     const modalityId = document.getElementById('modalityId').value;
     const categoryId = document.getElementById('categoryId').value;
     const gender = document.getElementById('gender').value;
+    const tecnicoNome = document.getElementById('tecnicoNome').value;
+    const tecnicoCelular = document.getElementById('tecnicoCelular').value;
+    const auxiliarTecnicoNome = document.getElementById('auxiliarTecnicoNome').value;
+    const auxiliarTecnicoCelular = document.getElementById('auxiliarTecnicoCelular').value;
+    const chefeDelegacaoNome = document.getElementById('chefeDelegacaoNome').value;
+    const chefeDelegacaoCelular = document.getElementById('chefeDelegacaoCelular').value;
     
     if (!modalityId || !categoryId || !gender) {
-        Toast.error('Preencha todos os campos');
+        Toast.error('Preencha todos os campos da equipe');
+        return;
+    }
+    
+    if (!tecnicoNome || !tecnicoCelular) {
+        Toast.error('Preencha os dados do Técnico');
+        return;
+    }
+    
+    if (!auxiliarTecnicoNome || !auxiliarTecnicoCelular) {
+        Toast.error('Preencha os dados do Auxiliar Técnico');
+        return;
+    }
+    
+    if (!chefeDelegacaoNome || !chefeDelegacaoCelular) {
+        Toast.error('Preencha os dados do Chefe de Delegação');
         return;
     }
     
@@ -483,7 +567,17 @@ async function saveTeam() {
         const response = await fetch('../api/professor-teams-api.php?action=create', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ modality_id: modalityId, category_id: categoryId, gender })
+            body: JSON.stringify({ 
+                modality_id: modalityId, 
+                category_id: categoryId, 
+                gender,
+                tecnico_nome: tecnicoNome,
+                tecnico_celular: tecnicoCelular,
+                auxiliar_tecnico_nome: auxiliarTecnicoNome,
+                auxiliar_tecnico_celular: auxiliarTecnicoCelular,
+                chefe_delegacao_nome: chefeDelegacaoNome,
+                chefe_delegacao_celular: chefeDelegacaoCelular
+            })
         });
         
         const result = await response.json();
