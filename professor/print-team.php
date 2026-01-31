@@ -43,13 +43,22 @@ $modality = queryOne("SELECT name FROM modalities WHERE id = ?", [$team['modalit
 $category = queryOne("SELECT name FROM categories WHERE id = ?", [$team['category_id']]);
 $school = queryOne("SELECT name, address, city, phone FROM schools WHERE id = ?", [$team['school_id']]);
 
+// Debug school
+if (!$school) {
+    // Fallback: try using professor's school ID
+    $school = queryOne("SELECT name, address, city, phone FROM schools WHERE id = ?", [$schoolId]);
+}
+
 // Add related data to team array
-$team['modality_name'] = $modality['name'] ?? 'N/A';
-$team['category_name'] = $category['name'] ?? 'N/A';
-$team['school_name'] = $school['name'] ?? 'N/A';
-$team['school_address'] = $school['address'] ?? 'N/A';
-$team['school_city'] = $school['city'] ?? 'N/A';
-$team['school_phone'] = $school['phone'] ?? 'N/A';
+$team['modality_name'] = $modality['name'] ?? 'Não informada';
+$team['category_name'] = $category['name'] ?? 'Não informada';
+$modalityName = strtoupper($team['modality_name']); // Force uppercase for display
+
+// Ensure school data exists
+$team['school_name'] = isset($school['name']) ? $school['name'] : 'ESCOLA NÃO IDENTIFICADA';
+$team['school_address'] = isset($school['address']) ? $school['address'] : 'Endereço não informado';
+$team['school_city'] = isset($school['city']) ? $school['city'] : 'Cidade não informada';
+$team['school_phone'] = isset($school['phone']) ? $school['phone'] : 'Telefone não informado';
 
 // Debug: show team school_id
 error_log("Team school_id: " . $team['school_id'] . ", Professor school_id: $schoolId");
