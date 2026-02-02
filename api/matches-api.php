@@ -133,6 +133,47 @@ try {
                 echo json_encode(['success' => true, 'message' => "$generatedCount partidas geradas com sucesso!"]);
             }
             break;
+
+        case 'PUT':
+            // Update Match (Schedule, Venue)
+            $data = json_decode(file_get_contents('php://input'), true);
+            $id = $data['id'] ?? null;
+            
+            if (!$id) throw new Exception('ID da partida obrigatório');
+            
+            // Build Update Query dynamic
+            $fields = [];
+            $params = [];
+            
+            if (isset($data['scheduled_time'])) {
+                $fields[] = "scheduled_time = ?";
+                $params[] = $data['scheduled_time'];
+            }
+            
+            if (isset($data['venue'])) {
+                $fields[] = "venue = ?";
+                $params[] = $data['venue'];
+            }
+            
+            if (isset($data['status'])) {
+                $fields[] = "status = ?";
+                $params[] = $data['status'];
+            }
+
+            if (empty($fields)) {
+                echo json_encode(['success' => true, 'message' => 'Nada a atualizar']);
+                exit;
+            }
+            
+            $params[] = $id;
+            $sql = "UPDATE matches SET " . implode(', ', $fields) . " WHERE id = ?";
+            
+            if (execute($sql, $params)) {
+                echo json_encode(['success' => true]);
+            } else {
+                throw new Exception('Erro ao atualizar partida');
+            }
+            break;
             
         case 'DELETE':
              if (!isAdmin()) throw new Exception('Apenas admin pode excluir');

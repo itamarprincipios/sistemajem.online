@@ -175,6 +175,9 @@ async function handleGenerate(e) {
     }
 }
 
+// Store matches globally to access them for edit
+let currentMatches = [];
+
 async function loadMatches() {
     const eventId = document.getElementById('eventSelect').value;
     const tbody = document.getElementById('matchesTable');
@@ -189,6 +192,7 @@ async function loadMatches() {
         const res = await fetch(`../api/matches-api.php?action=list&event_id=${eventId}`);
         const data = await res.json();
         
+        currentMatches = data.data; // Store
         tbody.innerHTML = '';
         
         if (data.data.length === 0) {
@@ -206,7 +210,10 @@ async function loadMatches() {
                 <td style="font-weight:bold">${m.team_b_name}</td>
                 <td>${m.venue || '-'}</td>
                 <td><span class="badge">${m.status}</span></td>
-                <td><button class="btn btn-sm btn-danger" onclick="deleteMatch(${m.id})">🗑️</button></td>
+                <td>
+                    <button class="btn btn-sm btn-secondary" onclick="openEditModal(${m.id})">✏️</button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteMatch(${m.id})">🗑️</button>
+                </td>
             `;
             tbody.appendChild(row);
         });
@@ -216,19 +223,84 @@ async function loadMatches() {
     }
 }
 
-async function deleteMatch(id) {
-    if (!confirm('Excluir partida?')) return;
-    await fetch(`../api/matches-api.php?id=${id}`, { method: 'DELETE' });
-    loadMatches();
+// Edit Modal Logic
+let currentMatchId = null;
+
+function openEditModal(id) {
+    const match = currentMatches.find(m => m.id == id);
+    if (!match) return;
+    
+    currentMatchId = match.id;
+    
+    // Format datetime for input (YYYY-MM-DDTHH:MM)
+    const date = new Date(match.scheduled_time);
+    date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+    const dateStr = date.toISOString().slice(0, 16);
+    
+    document.getElementById('editTime').value = dateStr;
+    document.getElementById('editVenue').value = match.venue || '';
+    document.getElementById('editModalTitle').textContent = `Editar Jogo #${match.id}: ${match.team_a_name} x ${match.team_b_name}`;
+    
+    document.getElementById('editModal').classList.add('active');
 }
 
-async function clearAllMatches() {
-   if (!confirm('ATENÇÃO: Isso excluirá TODAS as partidas listadas abaixo. Continuar?')) return;
-   // For now, implementing simplistic client-side loop deletion. 
-   // In prod, should have a bulk delete endpoint.
-   // Or just warn user to delete one by one or implementing a "delete event matches" endpoint later.
-   alert('Função de limpar tudo em desenvolvimento. Exclua individualmente por segurança.');
+function closeEditModal() {
+    document.getElementById('editModal').classList.remove('active');
+}
+
+async function handleEditSave(e) {
+    e.preventDefault();
+    
+    const time = document.getElementById('editTime').value;
+    const venue = document.getElementById('editVenue').value;
+    
+    try {
+        const res = await fetch('../api/matches-api.php', {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                id: currentMatchId,
+                scheduled_time: time,
+                venue: venue
+            })
+        });
+        
+        const result = await res.json();
+        
+        if (result.success) {
+            Toast.success('Partida atualizada!');
+            closeEditModal();
+            loadMatches();
+        } else {
+            Toast.error('Erro ao atualizar');
+        }
+    } catch(err) {
+        Toast.error('Erro de conexão');
+    }
 }
 </script>
+
+<!-- Edit Modal -->
+<div class="modal-overlay" id="editModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 class="modal-title" id="editModalTitle">Editar Partida</h3>
+            <button class="modal-close" onclick="closeEditModal()">×</button>
+        </div>
+        <div class="modal-body">
+            <form onsubmit="handleEditSave(event)">
+                <div class="form-group">
+                    <label class="form-label">Data e Horário</label>
+                    <input type="datetime-local" id="editTime" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Local (Quadra/Campo)</label>
+                    <input type="text" id="editVenue" class="form-input" placeholder="Ex: Quadra 1">
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Salvar Alterações</button>
+            </form>
+        </div>
+    </div>
+</div>
 
 <?php include '../includes/footer.php'; ?>
