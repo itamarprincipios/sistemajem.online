@@ -177,6 +177,8 @@ function getRedirectUrl($role) {
             return SITE_URL . '/admin/dashboard.php';
         case 'professor':
             return SITE_URL . '/professor/dashboard.php';
+        case 'operator':
+            return SITE_URL . '/operator/dashboard.php';
         default:
             return SITE_URL . '/index.php';
     }
