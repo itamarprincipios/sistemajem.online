@@ -57,14 +57,27 @@ try {
             } else {
                 // Return filters for UI (Modalities/Cats available in competition)
                  $eventId = $_GET['event_id'] ?? 0;
+                 
                  $modalities = query("
                     SELECT DISTINCT m.id, m.name 
                     FROM competition_teams ct
                     JOIN modalities m ON ct.modality_id = m.id
                     WHERE ct.competition_event_id = ?
+                    ORDER BY m.name
                  ", [$eventId]);
                  
-                 echo json_encode(['success' => true, 'data' => ['modalities' => $modalities]]);
+                 $categories = query("
+                    SELECT DISTINCT c.id, c.name 
+                    FROM competition_teams ct
+                    JOIN categories c ON ct.category_id = c.id
+                    WHERE ct.competition_event_id = ?
+                    ORDER BY c.name
+                 ", [$eventId]);
+                 
+                 echo json_encode(['success' => true, 'data' => [
+                     'modalities' => $modalities, 
+                     'categories' => $categories
+                 ]]);
             }
             break;
 

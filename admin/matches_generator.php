@@ -84,57 +84,8 @@ include '../includes/sidebar.php';
 </div>
 
 <script>
-let currentCategories = [];
-
-async function init() {
-    // Load Events
-    const res = await fetch('../api/competition-operators-api.php?action=events');
-    const data = await res.json();
-    
-    // Load Categories (All)
-    // In a real scenario, we should filter by what's actually in snapshot, but let's load all for now
-    // We'll trust the API to return error if not enough teams
-    const resCat = await fetch('../api/competition-events-api.php?action=list'); // Just leveraging existing endpoint or creating a helper... 
-    // Wait, simpler:
-    // We already have categories in admin/schools.php etc. Let's make a quick helper fetch
-    // Or just fetch from categories table if endpoint exists. 
-    // Let's use the matches-api helper I created which returns modalities. I'll add categories there too next time.
-    // For now, let's just fetch all categories from the main system API if available or hack it.
-    // Actually, I'll fetch 'competition-events-api' to get stats, but creating a dedicated 'get_lists' is better.
-    // Let's assume user selects Event -> Modality.
-}
-
-async function loadEvents() {
-    const res = await fetch('../api/competition-operators-api.php?action=events');
-    const data = await res.json();
-    const select = document.getElementById('eventSelect');
-    select.innerHTML = '<option value="">Selecione</option>';
-    data.data.forEach(ev => select.innerHTML += `<option value="${ev.id}">${ev.name}</option>`);
-}
-
-async function loadOptions() {
-    const eventId = document.getElementById('eventSelect').value;
-    if (!eventId) return;
-    
-    // Load Modalities & Categories having teams in this event
-    const res = await fetch(`../api/matches-api.php?action=options&event_id=${eventId}`);
-    const data = await res.json();
-    
-    // API logic needs to update to return categories too. I will patch API in next step if needed. 
-    // For now let's assume I need to fetch them.
-    
-    // Temporary Hack: Fetch all categories. Ideally should filter.
-    // I will modify matches-api first to provide this data correctly.
-}
-// Rethinking: I need to update API to ensure correct data flow for options.
-</script>
-
-<!-- Updating Script Logic -->
-<script>
-// Main Logic
 document.addEventListener('DOMContentLoaded', () => {
     loadEvents();
-    loadCategories(); // Fetch all categories for dropdown
 });
 
 async function loadEvents() {
@@ -142,21 +93,67 @@ async function loadEvents() {
         const res = await fetch('../api/competition-operators-api.php?action=events');
         const data = await res.json();
         const select = document.getElementById('eventSelect');
-        select.innerHTML = '<option value="">Selecione</option>';
+        select.innerHTML = '<option value="">Selecione o Evento</option>';
         data.data.forEach(ev => select.innerHTML += `<option value="${ev.id}">${ev.name}</option>`);
-    } catch(e) {}
+    } catch(e) { console.error(e); }
 }
 
-async function loadCategories() {
-    // We don't have a direct public API for categories yet in this context? 
-    // I'll make a quick raw fetch to a new helper action in matches-api
-    // Re-visiting matches-api.php... I added 'options' action but it only returned modalities.
+async function loadOptions() {
+    const eventId = document.getElementById('eventSelect').value;
+    const modSelect = document.getElementById('modalitySelect');
+    const catSelect = document.getElementById('categorySelect');
+    
+    // Reset
+    modSelect.innerHTML = '<option value="">Carregando...</option>';
+    catSelect.innerHTML = '<option value="">Carregando...</option>';
+    
+    if (!eventId) {
+        modSelect.innerHTML = '<option value="">Selecione o Evento primeiro</option>';
+        catSelect.innerHTML = '<option value="">Selecione o Evento primeiro</option>';
+        return;
+    }
+    
+    try {
+        const res = await fetch(`../api/matches-api.php?action=options&event_id=${eventId}`);
+        const data = await res.json();
+        
+        // Populate Modalities
+        modSelect.innerHTML = '<option value="">Selecione a Modalidade</option>';
+        if (data.data.modalities.length > 0) {
+            data.data.modalities.forEach(m => {
+                modSelect.innerHTML += `<option value="${m.id}">${m.name}</option>`;
+            });
+        } else {
+             modSelect.innerHTML = '<option value="">Sem equipes cadastradas</option>';
+        }
+
+        // Populate Categories
+        catSelect.innerHTML = '<option value="">Selecione a Categoria</option>';
+        if (data.data.categories.length > 0) {
+            data.data.categories.forEach(c => {
+                catSelect.innerHTML += `<option value="${c.id}">${c.name}</option>`;
+            });
+        } else {
+             catSelect.innerHTML = '<option value="">Sem equipes cadastradas</option>';
+        }
+        
+        loadMatches(); // Also refresh the list below
+        
+    } catch(e) {
+        console.error(e);
+        modSelect.innerHTML = '<option value="">Erro ao carregar</option>';
+    }
 }
 
 async function handleGenerate(e) {
     e.preventDefault();
     const formData = new FormData(e.target);
     const data = Object.fromEntries(formData);
+    
+    if (!data.event_id || !data.modality_id || !data.category_id) {
+        Toast.error('Selecione todos os campos!');
+        return;
+    }
     
     if (!confirm('Gerar partidas? Isso criará novos jogos.')) return;
     
@@ -180,34 +177,43 @@ async function handleGenerate(e) {
 
 async function loadMatches() {
     const eventId = document.getElementById('eventSelect').value;
-    if (!eventId) return;
-
-    const res = await fetch(`../api/matches-api.php?action=list&event_id=${eventId}`);
-    const data = await res.json();
-    
     const tbody = document.getElementById('matchesTable');
-    tbody.innerHTML = '';
-    
-    data.data.forEach(m => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>#${m.id}</td>
-            <td>${new Date(m.scheduled_time).toLocaleString('pt-BR')}</td>
-            <td>${m.category_name} (${m.modality_name})</td>
-            <td style="font-weight:bold">${m.team_a_name}</td>
-            <td style="font-weight:bold">${m.team_b_name}</td>
-            <td>${m.venue || '-'}</td>
-            <td><span class="badge">${m.status}</span></td>
-            <td><button class="btn btn-sm btn-danger" onclick="deleteMatch(${m.id})">🗑️</button></td>
-        `;
-        tbody.appendChild(row);
-    });
-}
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center">Carregando...</td></tr>';
 
-function loadOptions() {
-    loadMatches();
-    // Additional Logic to filter available modalities...
-    // For now leaving as manual selection
+    if (!eventId) {
+         tbody.innerHTML = '';
+         return;
+    }
+
+    try {
+        const res = await fetch(`../api/matches-api.php?action=list&event_id=${eventId}`);
+        const data = await res.json();
+        
+        tbody.innerHTML = '';
+        
+        if (data.data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center">Nenhuma partida gerada para este evento.</td></tr>';
+            return;
+        }
+        
+        data.data.forEach(m => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>#${m.id}</td>
+                <td>${new Date(m.scheduled_time).toLocaleString('pt-BR')}</td>
+                <td>${m.category_name} (${m.modality_name})</td>
+                <td style="font-weight:bold">${m.team_a_name}</td>
+                <td style="font-weight:bold">${m.team_b_name}</td>
+                <td>${m.venue || '-'}</td>
+                <td><span class="badge">${m.status}</span></td>
+                <td><button class="btn btn-sm btn-danger" onclick="deleteMatch(${m.id})">🗑️</button></td>
+            `;
+            tbody.appendChild(row);
+        });
+    } catch (e) {
+        console.error(e);
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:red">Erro ao carregar partidas</td></tr>';
+    }
 }
 
 async function deleteMatch(id) {
@@ -215,27 +221,14 @@ async function deleteMatch(id) {
     await fetch(`../api/matches-api.php?id=${id}`, { method: 'DELETE' });
     loadMatches();
 }
-</script>
 
-<!-- Fetch Categories Helper (Injection) -->
-<?php
-// PHP Helper to populate categories dropdown server-side or via simple script
-$cats = query("SELECT id, name FROM categories ORDER BY name");
-echo "<script>
-    const allCategories = " . json_encode($cats) . ";
-    const catSelect = document.getElementById('categorySelect');
-    allCategories.forEach(c => {
-        catSelect.innerHTML += `<option value='\${c.id}'>\${c.name}</option>`;
-    });
-    
-    // Also modalities
-    const allModalities = " . json_encode(query("SELECT id, name FROM modalities")) . ";
-    const modSelect = document.getElementById('modalitySelect');
-    modSelect.innerHTML = '<option value=\"\">Selecione</option>';
-    allModalities.forEach(m => {
-        modSelect.innerHTML += `<option value='\${m.id}'>\${m.name}</option>`;
-    });
-</script>";
-?>
+async function clearAllMatches() {
+   if (!confirm('ATENÇÃO: Isso excluirá TODAS as partidas listadas abaixo. Continuar?')) return;
+   // For now, implementing simplistic client-side loop deletion. 
+   // In prod, should have a bulk delete endpoint.
+   // Or just warn user to delete one by one or implementing a "delete event matches" endpoint later.
+   alert('Função de limpar tudo em desenvolvimento. Exclua individualmente por segurança.');
+}
+</script>
 
 <?php include '../includes/footer.php'; ?>
