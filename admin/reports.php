@@ -26,7 +26,7 @@ include '../includes/sidebar.php';
         <div style="display: grid; grid-template-columns: 300px 1fr; gap: 2rem; align-items: start;">
             
             <!-- Filters Sidebar -->
-            <div class="glass-card" style="padding: 1.5rem; position: sticky; top: 2rem;">
+            <div class="glass-card" id="filtersPanel" style="padding: 1.5rem; position: sticky; top: 2rem;">
                 <h3 style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
                     <span>🔍</span> Filtros de Relatório
                 </h3>
@@ -84,6 +84,22 @@ include '../includes/sidebar.php';
 
             <!-- Results Area -->
             <div>
+                 <!-- Print Header (Hidden on screen) -->
+                <div id="printHeader" style="display: none; margin-bottom: 2rem; border-bottom: 2px solid #ddd; padding-bottom: 1rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+                        <div>
+                            <h2 style="margin: 0; font-size: 1.5rem; color: #333;" id="printSchoolName">Relatório Geral</h2>
+                            <p style="margin: 0.5rem 0 0 0; color: #666; font-size: 1.1rem;">
+                                <strong>Diretor(a):</strong> <span id="printDirectorName">N/A</span>
+                            </p>
+                        </div>
+                        <div style="text-align: right;">
+                            <p style="margin: 0; color: #666;">Jogos Escolares Municipais</p>
+                            <p style="margin: 0; font-size: 0.9rem; color: #888;"><?php echo date('d/m/Y H:i'); ?></p>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Header Actions -->
                 <div class="glass-card" style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem;">
                     <div>
@@ -131,9 +147,20 @@ include '../includes/sidebar.php';
 
 <style>
 @media print {
-    .sidebar, .top-bar, .filters-sidebar, .btn {
+    .sidebar, .top-bar, .btn {
         display: none !important;
     }
+    
+    /* Hide filters panel explicitly */
+    #filtersPanel {
+        display: none !important;
+    }
+
+    /* Show Print Header */
+    #printHeader {
+        display: block !important;
+    }
+
     .main-content {
         margin-left: 0 !important;
         padding: 0 !important;
@@ -169,6 +196,8 @@ include '../includes/sidebar.php';
 </style>
 
 <script>
+let availableSchools = [];
+
 // Load filter options
 async function loadOptions() {
     try {
@@ -176,6 +205,7 @@ async function loadOptions() {
         const schoolsRes = await fetch('../api/schools-api.php');
         const schoolsData = await schoolsRes.json();
         if (schoolsData.success) {
+            availableSchools = schoolsData.data; // Store for valid usage
             populateSelect('filterSchool', schoolsData.data);
         }
 
@@ -207,14 +237,18 @@ function populateSelect(id, data) {
 
 // Generate Report
 async function generateReport() {
+    const schoolId = document.getElementById('filterSchool').value;
     const params = new URLSearchParams({
         action: 'detailed_report',
-        school_id: document.getElementById('filterSchool').value,
+        school_id: schoolId,
         modality_id: document.getElementById('filterModality').value,
         category_id: document.getElementById('filterCategory').value,
         gender: document.getElementById('filterGender').value,
         status: document.getElementById('filterStatus').value
     });
+
+    // Update Print Header logic
+    updatePrintHeader(schoolId);
 
     try {
         // Show loading
@@ -231,6 +265,26 @@ async function generateReport() {
     } catch (error) {
         console.error('Error:', error);
         Toast.error('Erro ao gerar relatório');
+    }
+}
+
+function updatePrintHeader(schoolId) {
+    const headerSchool = document.getElementById('printSchoolName');
+    const headerDirector = document.getElementById('printDirectorName');
+    
+    if (schoolId) {
+        const school = availableSchools.find(s => s.id == schoolId);
+        if (school) {
+            headerSchool.textContent = school.name.toUpperCase();
+            headerDirector.textContent = school.director ? school.director.toUpperCase() : 'NÃO INFORMADO';
+        } else {
+            headerSchool.textContent = 'RELATÓRIO GERAL';
+            headerDirector.textContent = 'N/A';
+        }
+    } else {
+        // Default header if no school selected
+        headerSchool.textContent = 'RELATÓRIO GERAL (TODAS AS ESCOLAS)';
+        headerDirector.textContent = '-';
     }
 }
 
@@ -283,6 +337,9 @@ function resetFilters() {
     document.querySelector('#reportTable tbody').innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 3rem; color: var(--text-secondary);">Selecione os filtros e clique em "Gerar Relatório".</td></tr>';
     document.getElementById('resultsCount').textContent = 'Filtros limpos';
     document.getElementById('btnPrint').disabled = true;
+    
+    // Reset Print Header
+    updatePrintHeader('');
 }
 
 function printReport() {
