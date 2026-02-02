@@ -650,18 +650,20 @@ function printTeamList() {
                 <div class="signature-box">
                     <div class="signature-line"></div>
                     <div class="signature-label">Técnico Responsável</div>
-                    <div style="font-size: 12px; color: #666;">Assinatura e Carimbo</div>
+                    <div style="font-weight: bold; margin-bottom: 2px;">${currentTeam.tecnico_nome || ''}</div>
+                    <div style="font-size: 12px;">${currentTeam.tecnico_celular || ''}</div>
                 </div>
                 <div class="signature-box">
                     <div class="signature-line"></div>
                     <div class="signature-label">Chefe de Delegação</div>
-                    <div style="font-weight: bold; margin-bottom: 2px;">${currentTeam.director || ''}</div>
-                    <div style="font-size: 12px;">${currentTeam.school_phone || ''}</div>
+                    <div style="font-weight: bold; margin-bottom: 2px;">${currentTeam.chefe_delegacao_nome || currentTeam.director || ''}</div>
+                    <div style="font-size: 12px;">${currentTeam.chefe_delegacao_celular || currentTeam.school_phone || ''}</div>
                 </div>
                 <div class="signature-box">
                     <div class="signature-line"></div>
                     <div class="signature-label">Auxiliar Técnico</div>
-                    <div style="font-size: 12px; color: #666;">Assinatura e Carimbo</div>
+                    <div style="font-weight: bold; margin-bottom: 2px;">${currentTeam.auxiliar_tecnico_nome || ''}</div>
+                    <div style="font-size: 12px;">${currentTeam.auxiliar_tecnico_celular || ''}</div>
                 </div>
             </div>
             
