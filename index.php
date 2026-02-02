@@ -134,6 +134,9 @@
             <div class="hero-buttons">
                 <a href="login.php" class="btn btn-primary btn-lg">Acessar Sistema</a>
                 <a href="register.php" class="btn btn-secondary btn-lg">Solicitar Acesso</a>
+                <a href="results/" class="btn btn-lg" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.2); width: 100%; max-width: 400px; margin-top: 1rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem;" target="_blank">
+                    <span>🏆</span> JEM-RLIS 2026 - RESULTADOS AO VIVO
+                </a>
             </div>
         </div>
     </div>

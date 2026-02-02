@@ -139,6 +139,25 @@ $userRole = getCurrentUserRole();
                     <span>Professores</span>
                 </a>
             </div>
+
+            <div class="nav-section">
+                <div class="nav-section-title">Competição</div>
+                <a href="<?php echo SITE_URL; ?>/admin/competition_events.php" 
+                   class="nav-link <?php echo $currentPage === 'competition_events.php' ? 'active' : ''; ?>">
+                    <span class="nav-icon">🏆</span>
+                    <span>Eventos</span>
+                </a>
+                <a href="<?php echo SITE_URL; ?>/admin/competition_operators.php" 
+                   class="nav-link <?php echo $currentPage === 'competition_operators.php' ? 'active' : ''; ?>">
+                    <span class="nav-icon">🛂</span>
+                    <span>Operadores</span>
+                </a>
+                <a href="<?php echo SITE_URL; ?>/admin/matches_generator.php" 
+                   class="nav-link <?php echo $currentPage === 'matches_generator.php' ? 'active' : ''; ?>">
+                    <span class="nav-icon">⚔️</span>
+                    <span>Gerar Jogos</span>
+                </a>
+            </div>
             
             <div class="nav-section">
                 <div class="nav-section-title">Inscrições</div>

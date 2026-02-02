@@ -33,15 +33,15 @@ echo "<h2>2. Testando credenciais do banco de dados:</h2>";
 $credentials = [
     [
         'host' => 'localhost',
-        'user' => 'u19967l261_admdatabase',
-        'pass' => 'I@nna2111',
-        'name' => 'u19967l261_database'
+        'user' => 'u199671261_admdatabase',
+        'pass' => 'yv!B6+Lp',
+        'name' => 'u199671261_database'
     ],
     [
         'host' => 'localhost',
-        'user' => 'u19967l261_admdatabase',
-        'pass' => 'I@nna2111',
-        'name' => 'u19967l261_bancodedados'
+        'user' => 'u199671261_admdatabase',
+        'pass' => 'yv!B6+Lp',
+        'name' => 'u199671261_bancodedados'
     ],
 ];
 
