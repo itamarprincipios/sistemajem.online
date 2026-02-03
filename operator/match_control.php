@@ -60,6 +60,12 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
 </head>
 <body>
 
+    <div style="padding: 1rem; border-bottom: 1px solid #333;">
+        <a href="dashboard.php" style="color: #94a3b8; text-decoration: none; display: flex; align-items: center; gap: 0.5rem; font-weight: 600;">
+            ⬅️ Voltar ao Painel
+        </a>
+    </div>
+
     <div class="score-board">
         <div class="team-box">
             <div class="team-name"><?php echo $match['team_a_name']; ?></div>
