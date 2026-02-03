@@ -25,6 +25,7 @@ try {
                     SELECT m.*, 
                            t1.school_name_snapshot as team_a_name, 
                            t2.school_name_snapshot as team_b_name,
+                           t1.group_name,
                            mdl.name as modality_name,
                            cat.name as category_name,
                            ce.name as event_name
@@ -129,6 +130,57 @@ try {
                             $generatedCount++;
                         }
                     }
+                } elseif ($type === 'groups_knockout') {
+                    // 1. Shuffle
+                    shuffle($teams);
+                    $numTeams = count($teams);
+                    
+                    // 2. Decide number of groups (approx 4 teams per group)
+                    // If 5 teams -> 1 group of 5 or 2 groups (3 and 2)? 
+                    // Let's use ceil(N/4)
+                    $numGroups = ceil($numTeams / 4);
+                    if ($numGroups < 1) $numGroups = 1;
+                    
+                    $groups = [];
+                    for ($i = 0; $i < $numGroups; $i++) {
+                        $groups[] = chr(65 + $i); // A, B, C...
+                    }
+                    
+                    // 3. Assign teams to groups and update DB
+                    for ($i = 0; $i < $numTeams; $i++) {
+                        $groupIndex = $i % $numGroups;
+                        $groupName = "Grupo " . $groups[$groupIndex];
+                        $teamId = $teams[$i]['id'];
+                        
+                        execute("UPDATE competition_teams SET group_name = ? WHERE id = ?", [$groupName, $teamId]);
+                        $teams[$i]['group_name'] = $groupName;
+                    }
+                    
+                    // 4. Generate matches within each group
+                    foreach ($groups as $gChar) {
+                        $gName = "Grupo " . $gChar;
+                        $groupTeams = array_filter($teams, function($t) use ($gName) {
+                            return $t['group_name'] === $gName;
+                        });
+                        $groupTeams = array_values($groupTeams); // reset keys
+                        
+                        for ($i = 0; $i < count($groupTeams); $i++) {
+                            for ($j = $i + 1; $j < count($groupTeams); $j++) {
+                                $teamA = $groupTeams[$i];
+                                $teamB = $groupTeams[$j];
+                                
+                                $sqlInsert = "
+                                    INSERT INTO matches 
+                                    (competition_event_id, modality_id, category_id, team_a_id, team_b_id, phase, scheduled_time, status)
+                                    VALUES (?, ?, ?, ?, ?, 'group_stage', ?, 'scheduled')
+                                ";
+                                $defaultTime = date('Y-m-d H:i:s', strtotime('+1 day 08:00:00'));
+                                execute($sqlInsert, [$eventId, $modalityId, $categoryId, $teamA['id'], $teamB['id'], $defaultTime]);
+                                $generatedCount++;
+                            }
+                        }
+                    }
+                    
                 } else {
                     throw new Exception('Formato ainda não implementado');
                 }

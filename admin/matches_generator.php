@@ -44,10 +44,11 @@ include '../includes/sidebar.php';
                 
                 <div class="form-group">
                     <label class="form-label">Formato</label>
-                    <select name="type" class="form-select" required>
-                        <option value="round_robin">Todos contra Todos (Fase de Grupos)</option>
-                        <option value="elimination" disabled>Mata-mata (Em breve)</option>
-                    </select>
+                        <select name="type" class="form-select" required>
+                            <option value="round_robin">Todos contra Todos (Fase de Grupos única)</option>
+                            <option value="groups_knockout">Grupos de 4 + Eliminatórias</option>
+                            <option value="elimination">Eliminação Simples (Mata-mata Direto)</option>
+                        </select>
                 </div>
                 
                 <button type="submit" class="btn btn-primary" style="height: 42px;">⚡ Gerar Jogos</button>
@@ -67,6 +68,7 @@ include '../includes/sidebar.php';
                             <th>ID</th>
                             <th>Data/Hora</th>
                             <th>Categoria</th>
+                            <th>Grupo</th>
                             <th>Home</th>
                             <th>Away</th>
                             <th>Local</th>
@@ -251,6 +253,7 @@ async function loadMatches() {
                 <td>#${m.id}</td>
                 <td>${new Date(m.scheduled_time).toLocaleString('pt-BR')}</td>
                 <td>${m.category_name} (${m.modality_name})</td>
+                <td><span class="badge" style="background:#475569">${m.group_name || '-'}</span></td>
                 <td style="font-weight:bold">${m.team_a_name}</td>
                 <td style="font-weight:bold">${m.team_b_name}</td>
                 <td>${m.venue || '-'}</td>
