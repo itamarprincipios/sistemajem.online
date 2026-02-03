@@ -207,12 +207,8 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
         async function updateStatus(status) {
             console.log("🔵 updateStatus called with status:", status);
             
-            if(!confirm('Confirmar mudança de status?')) {
-                console.log("🔴 User cancelled confirmation");
-                return;
-            }
-            
-            console.log("✅ User confirmed, proceeding with update");
+            // REMOVED CONFIRM - it was blocking execution
+            console.log("✅ Proceeding with update (no confirmation needed)");
             
             try {
                 const payload = {
