@@ -49,8 +49,11 @@ try {
         }
         $sql .= " WHERE id = ?";
         
-        execute($sql, [$status, $matchId]);
-        echo json_encode(['success' => true]);
+        if (execute($sql, [$status, $matchId])) {
+            echo json_encode(['success' => true]);
+        } else {
+            echo json_encode(['success' => false, 'error' => 'Falha ao atualizar o banco de dados']);
+        }
         
     } else {
         throw new Exception('Invalid action');

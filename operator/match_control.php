@@ -120,10 +120,20 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
     <script>
         const matchId = <?php echo $matchId; ?>;
         const matchStatus = '<?php echo $match['status']; ?>';
-        // Better sync: Calculate elapsed seconds on server to avoid JS date parsing/timezone issues
-        const elapsedAtLoad = <?php echo ($match['status'] === 'live' && $match['start_time']) ? (time() - strtotime($match['start_time'])) : 0; ?>;
-        const startTime = Date.now() - (elapsedAtLoad * 1000);
         
+        // Robust sync: Calculate elapsed seconds ON THE SERVER
+        <?php 
+            $elapsed = 0;
+            if ($match['status'] === 'live' && $match['start_time']) {
+                $elapsed = time() - strtotime($match['start_time']);
+                if ($elapsed < 0) $elapsed = 0; // Resilience against minor clock skew
+            }
+        ?>
+        let seconds = <?php echo $elapsed; ?>;
+        
+        console.log("Match Status:", matchStatus);
+        console.log("Elapsed seconds from server:", seconds);
+
         const athletesA = <?php echo json_encode($athletesA); ?>;
         const athletesB = <?php echo json_encode($athletesB); ?>;
         const teamA_id = <?php echo $match['team_a_id']; ?>;
@@ -194,34 +204,45 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
         async function updateStatus(status) {
             if(!confirm('Confirmar mudança de status?')) return;
             
-            await fetch('../api/match-events-api.php', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    action: 'status',
-                    match_id: matchId,
-                    status: status
-                })
-            });
-            window.location.reload();
+            try {
+                const res = await fetch('../api/match-events-api.php', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        action: 'status',
+                        match_id: matchId,
+                        status: status
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    window.location.reload();
+                } else {
+                    alert('Erro ao atualizar status: ' + data.error);
+                }
+            } catch (e) {
+                alert('Erro de conexão!');
+                console.error(e);
+            }
         }
         
         // Chronometer logic
         if (matchStatus === 'live') {
-            const updateTimer = () => {
-                const now = new Date().getTime();
-                const diff = Math.floor((now - startTime) / 1000);
-                if (diff < 0) return;
-
-                const m = Math.floor(diff / 60).toString().padStart(2, '0');
-                const s = (diff % 60).toString().padStart(2, '0');
+            const updateUI = () => {
+                const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+                const s = (seconds % 60).toString().padStart(2, '0');
                 document.getElementById('gameTimer').textContent = `${m}:${s}`;
             };
             
-            updateTimer(); // Run once immediately
-            setInterval(updateTimer, 1000);
+            updateUI();
+            setInterval(() => {
+                seconds++;
+                updateUI();
+            }, 1000);
         } else if (matchStatus === 'finished') {
              document.getElementById('gameTimer').textContent = 'ENCERRADO';
+        } else {
+             document.getElementById('gameTimer').textContent = '00:00';
         }
     </script>
 </body>
