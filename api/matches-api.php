@@ -223,8 +223,10 @@ try {
             
             if (isset($data['scheduled_time'])) {
                 $fields[] = "scheduled_time = ?";
-                // Sanitize: browser sends YYYY-MM-DDTHH:MM, DB needs YYYY-MM-DD HH:MM
-                $params[] = str_replace('T', ' ', $data['scheduled_time']);
+                // Sanitize: browser sends YYYY-MM-DDTHH:MM, DB needs YYYY-MM-DD HH:MM:SS
+                $val = str_replace('T', ' ', $data['scheduled_time']);
+                if (strlen($val) === 16) $val .= ':00';
+                $params[] = $val;
             }
             
             if (isset($data['venue'])) {
@@ -245,10 +247,12 @@ try {
             $params[] = $id;
             $sql = "UPDATE matches SET " . implode(', ', $fields) . " WHERE id = ?";
             
-            if (execute($sql, $params)) {
-                echo json_encode(['success' => true]);
+            $pdo = getConnection();
+            $stmt = $pdo->prepare($sql);
+            if ($stmt->execute($params)) {
+                echo json_encode(['success' => true, 'affected' => $stmt->rowCount()]);
             } else {
-                throw new Exception('Erro ao atualizar partida');
+                throw new Exception('Erro ao atualizar partida no banco');
             }
             break;
             

@@ -131,6 +131,7 @@ $pageTitle = 'Painel do Operador';
     </div>
 
 <script>
+let allMatches = []; 
 let currentTabId = null;
 
 async function loadMatches() {
@@ -293,6 +294,9 @@ document.getElementById('scheduleForm').onsubmit = async (e) => {
         const result = await res.json();
         if (result.success) {
             closeModal();
+            if (result.affected === 0) {
+                alert('Aviso: Os dados já eram os mesmos ou a partida não foi encontrada.');
+            }
             loadMatches();
         } else {
             alert('Erro ao salvar: ' + result.error);
