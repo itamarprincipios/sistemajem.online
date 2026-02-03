@@ -5,13 +5,17 @@ require_once '../includes/db.php';
 
 requireLogin(); // Should check for Operator/Admin role
 
+ob_start(); // Buffer output to prevent notices from breaking JSON
 header('Content-Type: application/json');
 
 $input = json_decode(file_get_contents('php://input'), true);
 $action = $input['action'] ?? '';
 
 try {
-    if ($action === 'event') {
+    if ($action === 'ping') {
+        echo json_encode(['success' => true, 'message' => 'pong', 'session' => $_SESSION['user_name'] ?? 'Guest']);
+        exit;
+    }
         $matchId = $input['match_id'];
         $teamId = $input['team_id'];
         $athleteId = $input['athlete_id'];
@@ -62,6 +66,8 @@ try {
         throw new Exception('Invalid action: ' . $action);
     }
 } catch (Exception $e) {
+    ob_clean();
     http_response_code(400);
     echo json_encode(['success' => false, 'error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
 }
+ob_end_flush();

@@ -157,6 +157,16 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
         const teamA_id = <?php echo $match['team_a_id']; ?>;
         const teamB_id = <?php echo $match['team_b_id']; ?>;
 
+        const apiBase = window.location.origin + '/api/match-events-api.php';
+        console.log("API Base URL:", apiBase);
+
+        // Connection test on load
+        fetch(apiBase, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({action: 'ping'})
+        }).then(r => r.json()).then(d => console.log("API Ping Test:", d)).catch(e => console.error("API Ping Failed:", e));
+
         function openEventModal(teamSide, eventType) {
             closeModals();
             const modal = document.getElementById('eventModal');
@@ -230,12 +240,9 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
                     match_id: matchId,
                     status: status
                 };
-                console.log("Sending status update:", payload);
+                console.log("Sending status update to:", apiBase, payload);
 
-                // Use more reliable path
-                const apiPath = '../api/match-events-api.php?t=' + Date.now();
-                
-                const res = await fetch(apiPath, {
+                const res = await fetch(apiBase + '?t=' + Date.now(), {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify(payload)
