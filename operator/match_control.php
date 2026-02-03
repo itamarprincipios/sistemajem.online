@@ -56,6 +56,24 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
         
         .athlete-list { display: grid; gap: 0.5rem; margin-top: 1rem; }
         .athlete-btn { background: #334155; border: 1px solid #475569; color: white; padding: 1rem; text-align: left; border-radius: 8px; font-size: 1.1rem; }
+        
+        /* Loading State */
+        .btn.loading { opacity: 0.7; pointer-events: none; position: relative; }
+        .btn.loading::after {
+            content: "";
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            top: 50%;
+            left: 50%;
+            margin-top: -8px;
+            margin-left: -8px;
+            border: 2px solid white;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
@@ -100,9 +118,9 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
 
     <div class="status-bar">
         <?php if ($match['status'] === 'scheduled'): ?>
-            <button class="btn btn-primary" style="width: 100%" onclick="updateStatus('live')">▶️ INICIAR PARTIDA</button>
+            <button class="btn btn-primary" style="width: 100%" onclick="updateStatus('live', this)">▶️ INICIAR PARTIDA</button>
         <?php elseif ($match['status'] === 'live'): ?>
-            <button class="btn btn-danger" style="width: 100%" onclick="updateStatus('finished')">🏁 ENCERRAR PARTIDA</button>
+            <button class="btn btn-danger" style="width: 100%" onclick="updateStatus('finished', this)">🏁 ENCERRAR PARTIDA</button>
         <?php else: ?>
             <div style="width: 100%; text-align: center;">PARTIDA FINALIZADA</div>
         <?php endif; ?>
@@ -201,8 +219,10 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
             }
         }
 
-        async function updateStatus(status) {
+        async function updateStatus(status, btn) {
             if(!confirm('Confirmar mudança de status?')) return;
+            
+            if (btn) btn.classList.add('loading');
             
             try {
                 const payload = {
@@ -212,23 +232,32 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
                 };
                 console.log("Sending status update:", payload);
 
-                const res = await fetch('../api/match-events-api.php?t=' + Date.now(), {
+                // Use more reliable path
+                const apiPath = '../api/match-events-api.php?t=' + Date.now();
+                
+                const res = await fetch(apiPath, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify(payload)
                 });
                 
+                if (!res.ok) {
+                    throw new Error(`HTTP Error: ${res.status}`);
+                }
+
                 const data = await res.json();
                 console.log("Status update response:", data);
 
                 if (data.success) {
                     window.location.reload();
                 } else {
-                    alert('Erro ao atualizar status: ' + data.error);
+                    alert('Erro ao atualizar status: ' + (data.error || 'Erro desconhecido'));
+                    if (btn) btn.classList.remove('loading');
                 }
             } catch (e) {
-                alert('Erro de conexão ou erro no servidor!');
+                alert('Erro de conexão ou erro no servidor: ' + e.message);
                 console.error("Fetch error:", e);
+                if (btn) btn.classList.remove('loading');
             }
         }
         
