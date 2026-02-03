@@ -47,6 +47,22 @@ try {
                     $params[] = $_GET['modality_id'];
                 }
 
+                // If Operator, filter by their assignments
+                if (!isAdmin()) {
+                    $userId = getCurrentUserId();
+                    $opInfo = queryOne("SELECT * FROM competition_operators WHERE user_id = ? AND active = 1", [$userId]);
+                    if ($opInfo) {
+                        if ($opInfo['assigned_modality_id']) {
+                            $filters[] = "m.modality_id = ?";
+                            $params[] = $opInfo['assigned_modality_id'];
+                        }
+                        if ($opInfo['assigned_venue']) {
+                            $filters[] = "m.venue = ?";
+                            $params[] = $opInfo['assigned_venue'];
+                        }
+                    }
+                }
+
                 if (!empty($filters)) {
                     $sql .= " WHERE " . implode(" AND ", $filters);
                 }
