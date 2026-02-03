@@ -43,6 +43,35 @@ $pageTitle = 'Painel do Operador';
         
         .match-footer { display: flex; gap: 0.5rem; }
         
+        /* Tabs Styles */
+        .tabs-container { 
+            display: flex; 
+            gap: 0.5rem; 
+            margin-bottom: 2rem; 
+            overflow-x: auto; 
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #334155;
+        }
+        .tab-btn {
+            background: #1e293b;
+            color: #94a3b8;
+            border: 1px solid #334155;
+            padding: 0.75rem 1.5rem;
+            border-radius: 12px 12px 0 0;
+            cursor: pointer;
+            font-weight: 600;
+            white-space: nowrap;
+            transition: all 0.2s;
+            border-bottom: none;
+        }
+        .tab-btn.active {
+            background: #10b981;
+            color: white;
+            border-color: #10b981;
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
         .schedule-btn { background: #334155; color: white; border: none; padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; flex: 1; transition: background 0.2s; }
         .schedule-btn:hover { background: #475569; }
         
@@ -113,9 +142,19 @@ async function loadMatches() {
     }
 }
 
+function switchTab(cat) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    
+    document.querySelector(`.tab-btn[data-cat="${cat}"]`).classList.add('active');
+    document.getElementById(`cat-${cat}`).classList.add('active');
+}
+
 function renderGroups() {
     const container = document.getElementById('matchesContainer');
+    const tabsContainer = document.getElementById('tabsContainer');
     container.innerHTML = '';
+    tabsContainer.innerHTML = '';
     
     if (allMatches.length === 0) {
         container.innerHTML = '<p style="text-align:center; color: #64748b; padding-top: 5rem;">Nenhum jogo encontrado.</p>';
@@ -124,20 +163,28 @@ function renderGroups() {
 
     // Grouping by Category
     const groups = allMatches.reduce((acc, m) => {
-        const cat = m.category_name;
+        const cat = m.category_name || 'Sem Categoria';
         if (!acc[cat]) acc[cat] = [];
         acc[cat].push(m);
         return acc;
     }, {});
 
-    Object.keys(groups).sort().forEach(cat => {
+    const sortedCats = Object.keys(groups).sort();
+
+    sortedCats.forEach((cat, index) => {
+        // Create Tab Button
+        const safeCat = cat.replace(/\s+/g, '-');
+        const tabBtn = document.createElement('button');
+        tabBtn.className = `tab-btn ${index === 0 ? 'active' : ''}`;
+        tabBtn.innerHTML = `🏆 ${cat}`;
+        tabBtn.setAttribute('data-cat', safeCat);
+        tabBtn.onclick = () => switchTab(safeCat);
+        tabsContainer.appendChild(tabBtn);
+
+        // Create Content Section
         const section = document.createElement('div');
-        section.className = 'category-section';
-        
-        const title = document.createElement('div');
-        title.className = 'category-title';
-        title.innerHTML = `<span>🏆 ${cat}</span>`;
-        section.appendChild(title);
+        section.className = `tab-content ${index === 0 ? 'active' : ''}`;
+        section.id = `cat-${safeCat}`;
         
         const grid = document.createElement('div');
         grid.className = 'matches-grid';
