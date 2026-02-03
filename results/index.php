@@ -45,6 +45,56 @@ $pageTitle = 'JEM - Resultados';
         .match-info { text-align: center; font-size: 0.85rem; color: #64748b; }
         
         .empty-state { text-align: center; padding: 3rem; color: #64748b; }
+
+        /* Tabs Styles */
+        .tabs-container { 
+            display: flex; 
+            gap: 0.5rem; 
+            margin-bottom: 2rem; 
+            overflow-x: auto; 
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #334155;
+            scrollbar-width: none;
+        }
+        .tabs-container::-webkit-scrollbar { display: none; }
+        
+        .tab-btn {
+            background: #1e293b;
+            color: #94a3b8;
+            border: 1px solid #334155;
+            padding: 0.75rem 1.25rem;
+            border-radius: 12px 12px 0 0;
+            cursor: pointer;
+            font-weight: 600;
+            white-space: nowrap;
+            transition: all 0.2s;
+            border-bottom: none;
+            font-size: 0.9rem;
+        }
+        
+        .tab-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .tab-content { display: none; animation: fadeIn 0.3s ease; }
+        .tab-content.active { display: block; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .modality-header {
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        .modality-header h2 {
+            font-size: 1.5rem;
+            color: var(--primary);
+            margin: 0;
+        }
     </style>
 </head>
 <body>
@@ -56,46 +106,105 @@ $pageTitle = 'JEM - Resultados';
 
     <div class="container">
         
-        <div id="live-matches">
-            <!-- Populated by JS -->
+        <div id="tabs-container" class="tabs-container">
+            <!-- Tabs generated here -->
         </div>
 
-        <div id="finished-matches">
-            <!-- Populated by JS -->
+        <div id="results-container">
+            <!-- Content grouped by modality -->
         </div>
 
     </div>
 
 <script>
     const API_URL = '../api/matches-api.php?action=list&event_id=<?php echo $event['id']; ?>';
+    let currentTabId = null;
+
+    function switchTab(safeId) {
+        currentTabId = safeId;
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        
+        const btn = document.querySelector(`.tab-btn[data-id="${safeId}"]`);
+        const content = document.getElementById(`content-${safeId}`);
+        
+        if (btn) btn.classList.add('active');
+        if (content) content.classList.add('active');
+    }
 
     async function loadResults() {
         try {
-            const res = await fetch(API_URL);
+            const res = await fetch(API_URL + '&_t=' + Date.now());
             const data = await res.json();
+            const matches = data.data;
+
+            const tabsContainer = document.getElementById('tabs-container');
+            const resultsContainer = document.getElementById('results-container');
             
-            const liveDiv = document.getElementById('live-matches');
-            const finishedDiv = document.getElementById('finished-matches');
+            if (matches.length === 0) {
+                resultsContainer.innerHTML = '<div class="empty-state">Nenhum resultado registrado ainda.</div>';
+                tabsContainer.innerHTML = '';
+                return;
+            }
+
+            // Group by Modality
+            const groups = matches.reduce((acc, m) => {
+                // Focus on finished and live only for results page
+                if (m.status !== 'finished' && m.status !== 'live') return acc;
+                
+                const mod = m.modality_name || 'Geral';
+                if (!acc[mod]) acc[mod] = [];
+                acc[mod].push(m);
+                return acc;
+            }, {});
+
+            const sortedMods = Object.keys(groups).sort();
             
-            let liveHtml = '<div class="section-title">AO VIVO AGORA</div>';
-            let finishedHtml = '<div class="section-title">RESULTADOS RECENTES</div>';
-            let hasLive = false;
-            let hasFinished = false;
-            
-            data.data.forEach(m => {
-                if (m.status === 'live') {
-                    hasLive = true;
-                    liveHtml += createCard(m, true);
-                } else if (m.status === 'finished') {
-                    hasFinished = true;
-                    finishedHtml += createCard(m, false);
+            // Clean containers for redraw
+            tabsContainer.innerHTML = '';
+            resultsContainer.innerHTML = '';
+
+            // Handle Tab ID persistence
+            const safeIds = sortedMods.map(mod => "mod_" + mod.replace(/[^a-z0-9]/gi, '_'));
+            if (!currentTabId || !safeIds.includes(currentTabId)) {
+                currentTabId = safeIds[0];
+            }
+
+            sortedMods.forEach((mod, index) => {
+                const safeId = safeIds[index];
+                const isActive = currentTabId === safeId;
+
+                // Create Tab
+                const btn = document.createElement('button');
+                btn.className = `tab-btn ${isActive ? 'active' : ''}`;
+                btn.innerHTML = mod;
+                btn.setAttribute('data-id', safeId);
+                btn.onclick = () => switchTab(safeId);
+                tabsContainer.appendChild(btn);
+
+                // Create Content
+                const content = document.createElement('div');
+                content.className = `tab-content ${isActive ? 'active' : ''}`;
+                content.id = `content-${safeId}`;
+
+                // Separate Live and Finished in each tab
+                const liveMatches = groups[mod].filter(m => m.status === 'live');
+                const finishedMatches = groups[mod].filter(m => m.status === 'finished');
+
+                let html = '';
+                if (liveMatches.length > 0) {
+                    html += '<div class="section-title">AO VIVO AGORA</div>';
+                    liveMatches.forEach(m => html += createCard(m, true));
                 }
+
+                if (finishedMatches.length > 0) {
+                    html += '<div class="section-title">RESULTADOS RECENTES</div>';
+                    finishedMatches.forEach(m => html += createCard(m, false));
+                }
+
+                content.innerHTML = html;
+                resultsContainer.appendChild(content);
             });
-            
-            if (!hasLive) liveHtml = '';
-            
-            liveDiv.innerHTML = liveHtml;
-            finishedDiv.innerHTML = finishedHtml;
             
         } catch(e) {
             console.error('Err', e);
