@@ -75,6 +75,21 @@ function execute($sql, $params = []) {
 }
 
 /**
+ * Execute an insert/update/delete query and return row count
+ */
+function executeWithCount($sql, $params = []) {
+    try {
+        $pdo = getConnection();
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->rowCount();
+    } catch (PDOException $e) {
+        error_log("Execute error: " . $e->getMessage());
+        return -1;
+    }
+}
+
+/**
  * Get last insert ID
  */
 function lastInsertId() {

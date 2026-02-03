@@ -34,17 +34,23 @@ try {
         
     } elseif ($action === 'status') {
         $matchId = $input['match_id'];
-        $status = $input['status'];
+        $statusRequested = $input['status'];
         
-        $sql = "UPDATE matches SET status = ?";
-        if ($status === 'live') $sql .= ", start_time = NOW()";
-        elseif ($status === 'finished') $sql .= ", end_time = NOW()";
-        $sql .= " WHERE id = ?";
-        
-        if (execute($sql, [$status, $matchId])) {
-            echo json_encode(['success' => true]);
+        $count = 0;
+        if ($statusRequested === 'live') {
+            $count = executeWithCount("UPDATE matches SET status = 'live', start_time = NOW() WHERE id = ?", [$matchId]);
+        } elseif ($statusRequested === 'finished') {
+            $count = executeWithCount("UPDATE matches SET status = 'finished', end_time = NOW() WHERE id = ?", [$matchId]);
         } else {
-            echo json_encode(['success' => false, 'error' => 'Falha no banco de dados']);
+            $count = executeWithCount("UPDATE matches SET status = ? WHERE id = ?", [$statusRequested, $matchId]);
+        }
+        
+        if ($count > 0) {
+            echo json_encode(['success' => true, 'updated' => $count]);
+        } elseif ($count === 0) {
+            echo json_encode(['success' => false, 'error' => 'Nenhuma alteração feita. Verifique se o ID existe e se o status já não é este.', 'id' => $matchId]);
+        } else {
+            echo json_encode(['success' => false, 'error' => 'Erro no banco de dados ao atualizar status']);
         }
     } else {
         throw new Exception('Invalid action: ' . $action);
