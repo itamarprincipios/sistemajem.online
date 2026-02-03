@@ -205,30 +205,54 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
         }
 
         async function updateStatus(status) {
-            if(!confirm('Confirmar mudança de status?')) return;
+            console.log("🔵 updateStatus called with status:", status);
+            
+            if(!confirm('Confirmar mudança de status?')) {
+                console.log("🔴 User cancelled confirmation");
+                return;
+            }
+            
+            console.log("✅ User confirmed, proceeding with update");
             
             try {
+                const payload = {
+                    action: 'status',
+                    match_id: matchId,
+                    status: status
+                };
+                console.log("📤 Sending payload:", payload);
+                console.log("📍 API URL:", '../api/match-events-api.php');
+
                 const res = await fetch('../api/match-events-api.php', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        action: 'status',
-                        match_id: matchId,
-                        status: status
-                    })
+                    body: JSON.stringify(payload)
                 });
                 
+                console.log("📥 Response status:", res.status);
+                console.log("📥 Response ok:", res.ok);
+                
                 const data = await res.json();
+                console.log("📊 Response data:", data);
+                
                 if (data.success) {
+                    console.log("✅ Success! Reloading page...");
                     window.location.reload();
                 } else {
+                    console.error("❌ API returned error:", data.error);
                     alert('Erro ao atualizar status: ' + data.error);
                 }
             } catch (e) {
-                console.error(e);
-                alert('Erro de conexão ao atualizar status');
+                console.error("💥 Exception caught:", e);
+                console.error("💥 Error message:", e.message);
+                console.error("💥 Error stack:", e.stack);
+                alert('Erro de conexão ao atualizar status: ' + e.message);
             }
         }
+        
+        // Make function globally accessible
+        window.updateStatus = updateStatus;
+        console.log("🌐 updateStatus function registered globally");
         
         // Chronometer logic
         if (matchStatus === 'live') {
