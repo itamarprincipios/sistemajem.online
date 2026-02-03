@@ -69,6 +69,31 @@ try {
 
                 $matches = query($sql, $params);
                 
+                // Fetch events for these matches (goals/scorers)
+                if (!empty($matches)) {
+                    $matchIds = array_map(function($m) { return $m['id']; }, $matches);
+                    $placeholders = implode(',', array_fill(0, count($matchIds), '?'));
+                    
+                    $events = query("
+                        SELECT me.*, a.name_snapshot as athlete_name
+                        FROM match_events me
+                        LEFT JOIN competition_team_athletes a ON me.athlete_id = a.id
+                        WHERE me.match_id IN ($placeholders) AND me.event_type IN ('GOAL', 'OWN_GOAL')
+                        ORDER BY me.created_at ASC
+                    ", $matchIds);
+                    
+                    // Group events by match_id
+                    $eventsByMatch = [];
+                    foreach ($events as $ev) {
+                        $eventsByMatch[$ev['match_id']][] = $ev;
+                    }
+                    
+                    // Attach to matches
+                    foreach ($matches as &$m) {
+                        $m['events'] = $eventsByMatch[$m['id']] ?? [];
+                    }
+                }
+
                 ob_clean(); // Safety against whitespace
                 
                 if ($matches === false) {

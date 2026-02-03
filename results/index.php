@@ -95,6 +95,22 @@ $pageTitle = 'JEM - Resultados';
             color: var(--primary);
             margin: 0;
         }
+
+        /* Scorer Styles */
+        .scorers-list {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            margin-top: 0.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            max-width: 100%;
+        }
+        .scorer-item {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
     </style>
 </head>
 <body>
@@ -212,6 +228,20 @@ $pageTitle = 'JEM - Resultados';
     }
 
     function createCard(m, isLive) {
+        const events = m.events || [];
+        const teamA_scorers = events.filter(e => e.team_id == m.team_a_id);
+        const teamB_scorers = events.filter(e => e.team_id == m.team_b_id);
+
+        const renderScorers = (scorers) => {
+            if (scorers.length === 0) return '';
+            const names = scorers.map(s => {
+                const name = s.athlete_name || 'Atleta';
+                const isOwnGoal = s.event_type === 'OWN_GOAL';
+                return `<div class="scorer-item">⚽ ${name}${isOwnGoal ? ' (GC)' : ''}</div>`;
+            }).join('');
+            return `<div class="scorers-list">${names}</div>`;
+        };
+
         return `
             <div class="match-card" style="${isLive ? 'border-color: #059669;' : ''}">
                 ${isLive ? '<div class="live-indicator"><div class="live-dot"></div> EM ANDAMENTO</div>' : ''}
@@ -221,11 +251,13 @@ $pageTitle = 'JEM - Resultados';
                     <div class="team">
                         <div class="team-name">${m.team_a_name}</div>
                         <div class="score">${m.score_team_a}</div>
+                        ${renderScorers(teamA_scorers)}
                     </div>
-                    <div style="font-size: 1.5rem; color: #475569;">x</div>
+                    <div style="font-size: 1.5rem; color: #475569; margin-top: -1rem">x</div>
                     <div class="team">
                          <div class="team-name">${m.team_b_name}</div>
                          <div class="score">${m.score_team_b}</div>
+                         ${renderScorers(teamB_scorers)}
                     </div>
                 </div>
             </div>
