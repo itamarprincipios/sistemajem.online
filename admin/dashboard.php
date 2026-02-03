@@ -26,6 +26,16 @@ $recentRegistrations = query("
     LIMIT 5
 ");
 
+// Get school summary (Logistics)
+$schoolSummary = query("
+    SELECT 
+        s.name as school_name,
+        (SELECT COUNT(*) FROM registrations r WHERE r.school_id = s.id) as team_count,
+        (SELECT COUNT(*) FROM students st WHERE st.school_id = s.id) as student_count
+    FROM schools s
+    ORDER BY s.name ASC
+");
+
 include '../includes/header.php';
 include '../includes/sidebar.php';
 ?>
@@ -108,6 +118,37 @@ include '../includes/sidebar.php';
             </div>
         </div>
         
+        <!-- School Summary (Logistics) -->
+        <div class="glass-card" style="margin-bottom: 2rem;">
+            <h2 style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.75rem;">
+                <span>📊</span> Resumo por Escola
+            </h2>
+            <div class="table-container">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Escola</th>
+                            <th style="text-align: center;">Total de Equipes</th>
+                            <th style="text-align: center;">Total de Alunos</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($schoolSummary as $school): ?>
+                            <tr>
+                                <td style="font-weight: 600;"><?php echo htmlspecialchars($school['school_name']); ?></td>
+                                <td style="text-align: center; font-weight: 700; color: var(--primary);">
+                                    <?php echo $school['team_count']; ?>
+                                </td>
+                                <td style="text-align: center; font-weight: 700; color: #6366f1;">
+                                    <?php echo $school['student_count']; ?>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
         <!-- Recent Registrations -->
         <div class="glass-card">
             <h2 style="margin-bottom: 1.5rem;">Inscrições Recentes</h2>
