@@ -94,6 +94,7 @@ $pageTitle = 'Painel do Operador';
     <div class="op-header">
         <div style="font-size: 1.2rem; font-weight: 800; letter-spacing: -0.5px; color: #10b981;">JEM OPERADOR</div>
         <div style="display: flex; align-items: center; gap: 1.5rem;">
+            <span id="matchCount" style="font-size: 0.85rem; color: #64748b; font-weight: 600;"></span>
             <span style="font-size: 0.9rem; color: #94a3b8;"><?php echo htmlspecialchars($_SESSION['user_name']); ?></span>
             <a href="../logout.php" style="color: #ef4444; text-decoration: none; font-size: 0.9rem; font-weight: 600;">Sair</a>
         </div>
@@ -159,8 +160,12 @@ function switchTab(safeId) {
 function renderGroups() {
     const container = document.getElementById('matchesContainer');
     const tabsContainer = document.getElementById('tabsContainer');
+    const countDisplay = document.getElementById('matchCount');
+    
     container.innerHTML = '';
     tabsContainer.innerHTML = '';
+    
+    if (countDisplay) countDisplay.textContent = `(${allMatches.length} jogos)`;
     
     if (allMatches.length === 0) {
         container.innerHTML = '<p style="text-align:center; color: #64748b; padding-top: 5rem;">Nenhum jogo encontrado.</p>';
@@ -176,14 +181,15 @@ function renderGroups() {
     }, {});
 
     const sortedCats = Object.keys(groups).sort();
+    
+    // Ensure currentTabId is still valid or pick first
+    const safeIds = sortedCats.map(cat => "cat_" + cat.replace(/[^a-z0-9]/gi, '_'));
+    if (!currentTabId || !safeIds.includes(currentTabId)) {
+        currentTabId = safeIds[0];
+    }
 
     sortedCats.forEach((cat, index) => {
-        // Create a truly safe ID (alphanumeric only)
-        const safeId = "cat-" + btoa(unescape(encodeURIComponent(cat))).replace(/[^a-zA-Z0-9]/g, '');
-        
-        // If no tab selected yet, default to first
-        if (!currentTabId && index === 0) currentTabId = safeId;
-
+        const safeId = safeIds[index];
         const isActive = currentTabId === safeId;
 
         // Create Tab Button

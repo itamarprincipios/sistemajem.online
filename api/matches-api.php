@@ -56,11 +56,8 @@ try {
                             $filters[] = "m.modality_id = ?";
                             $params[] = $opInfo['assigned_modality_id'];
                         }
-                        if ($opInfo['assigned_venue']) {
-                            // Allow seeing games assigned to their venue OR games with no venue yet
-                            $filters[] = "(m.venue = ? OR m.venue IS NULL OR m.venue = '')";
-                            $params[] = $opInfo['assigned_venue'];
-                        }
+                        // Note: Venue filter removed to prevent matches from "disappearing" 
+                        // when an operator schedules a game for a specific court.
                     }
                 }
 
