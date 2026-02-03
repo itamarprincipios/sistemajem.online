@@ -7,7 +7,7 @@ require_once '../includes/knockout_generator.php';
 header('Content-Type: application/json');
 
 try {
-    requireAdmin();
+    requireLogin(); // Allow operators to manage knockout
     
     $action = $_GET['action'] ?? $_POST['action'] ?? '';
     

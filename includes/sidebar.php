@@ -157,11 +157,6 @@ $userRole = getCurrentUserRole();
                     <span class="nav-icon">⚔️</span>
                     <span>Gerar Jogos</span>
                 </a>
-                <a href="<?php echo SITE_URL; ?>/admin/knockout_manager.php" 
-                   class="nav-link <?php echo $currentPage === 'knockout_manager.php' ? 'active' : ''; ?>">
-                    <span class="nav-icon">🏆</span>
-                    <span>Mata-Mata</span>
-                </a>
             </div>
             
             <div class="nav-section">
@@ -184,6 +179,26 @@ $userRole = getCurrentUserRole();
                    class="nav-link <?php echo $currentPage === 'reports.php' ? 'active' : ''; ?>">
                     <span class="nav-icon">📈</span>
                     <span>Relatórios</span>
+                </a>
+            </div>
+            
+        <?php elseif ($userRole === 'operator'): ?>
+            <!-- Operator Navigation -->
+            <div class="nav-section">
+                <div class="nav-section-title">Principal</div>
+                <a href="<?php echo SITE_URL; ?>/operator/dashboard.php" 
+                   class="nav-link <?php echo $currentPage === 'dashboard.php' ? 'active' : ''; ?>">
+                    <span class="nav-icon">📊</span>
+                    <span>Minhas Partidas</span>
+                </a>
+            </div>
+            
+            <div class="nav-section">
+                <div class="nav-section-title">Competição</div>
+                <a href="<?php echo SITE_URL; ?>/operator/knockout_manager.php" 
+                   class="nav-link <?php echo $currentPage === 'knockout_manager.php' ? 'active' : ''; ?>">
+                    <span class="nav-icon">🏆</span>
+                    <span>Mata-Mata</span>
                 </a>
             </div>
             
