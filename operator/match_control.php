@@ -205,24 +205,30 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
             if(!confirm('Confirmar mudança de status?')) return;
             
             try {
-                const res = await fetch('../api/match-events-api.php', {
+                const payload = {
+                    action: 'status',
+                    match_id: matchId,
+                    status: status
+                };
+                console.log("Sending status update:", payload);
+
+                const res = await fetch('../api/match-events-api.php?t=' + Date.now(), {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        action: 'status',
-                        match_id: matchId,
-                        status: status
-                    })
+                    body: JSON.stringify(payload)
                 });
+                
                 const data = await res.json();
+                console.log("Status update response:", data);
+
                 if (data.success) {
                     window.location.reload();
                 } else {
                     alert('Erro ao atualizar status: ' + data.error);
                 }
             } catch (e) {
-                alert('Erro de conexão!');
-                console.error(e);
+                alert('Erro de conexão ou erro no servidor!');
+                console.error("Fetch error:", e);
             }
         }
         

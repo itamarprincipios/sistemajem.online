@@ -49,16 +49,19 @@ try {
         }
         $sql .= " WHERE id = ?";
         
+        // Log update attempt
+        error_log("JEM: Updating match $matchId to status $status");
+        
         if (execute($sql, [$status, $matchId])) {
-            echo json_encode(['success' => true]);
+            echo json_encode(['success' => true, 'debug' => ['sql' => $sql, 'id' => $matchId]]);
         } else {
-            echo json_encode(['success' => false, 'error' => 'Falha ao atualizar o banco de dados']);
+            echo json_encode(['success' => false, 'error' => 'Falha ao atualizar o banco de dados. Verifique os logs do servidor.']);
         }
         
     } else {
-        throw new Exception('Invalid action');
+        throw new Exception('Invalid action: ' . $action);
     }
 } catch (Exception $e) {
     http_response_code(400);
-    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+    echo json_encode(['success' => false, 'error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
 }
