@@ -78,7 +78,7 @@ try {
                         SELECT me.*, a.name_snapshot as athlete_name
                         FROM match_events me
                         LEFT JOIN competition_team_athletes a ON me.athlete_id = a.id
-                        WHERE me.match_id IN ($placeholders) AND me.event_type IN ('GOAL', 'OWN_GOAL')
+                        WHERE me.match_id IN ($placeholders) AND me.event_type IN ('GOAL', 'OWN_GOAL', 'YELLOW_CARD', 'RED_CARD')
                         ORDER BY me.created_at ASC
                     ", $matchIds);
                     

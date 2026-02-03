@@ -77,12 +77,18 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
 
     <div class="controls">
         <div class="team-controls">
-            <button class="btn-goal" onclick="openGoalModal('A')">⚽ GOL TIME A</button>
-            <button class="btn btn-secondary" onclick="alert('Cartão não implementado no MVP')">🟨 Cartão</button>
+            <button class="btn-goal" onclick="openEventModal('A', 'GOAL')">⚽ GOL TIME A</button>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                <button class="btn btn-secondary" style="background: #fbbf24; color: black; border: none;" onclick="openEventModal('A', 'YELLOW_CARD')">🟨 Cartão</button>
+                <button class="btn btn-secondary" style="background: #ef4444; color: white; border: none;" onclick="openEventModal('A', 'RED_CARD')">🟥 Cartão</button>
+            </div>
         </div>
         <div class="team-controls">
-            <button class="btn-goal" onclick="openGoalModal('B')">⚽ GOL TIME B</button>
-            <button class="btn btn-secondary">🟨 Cartão</button>
+            <button class="btn-goal" onclick="openEventModal('B', 'GOAL')">⚽ GOL TIME B</button>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                <button class="btn btn-secondary" style="background: #fbbf24; color: black; border: none;" onclick="openEventModal('B', 'YELLOW_CARD')">🟨 Cartão</button>
+                <button class="btn btn-secondary" style="background: #ef4444; color: white; border: none;" onclick="openEventModal('B', 'RED_CARD')">🟥 Cartão</button>
+            </div>
         </div>
     </div>
 
@@ -96,55 +102,65 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
         <?php endif; ?>
     </div>
 
-    <!-- Modal Athletes Team A -->
-    <div id="modalA" class="modal-sheet">
-        <h3>Quem fez o gol? (Time A)</h3>
-        <div class="athlete-list">
-            <?php foreach ($athletesA as $at): ?>
-                <button class="athlete-btn" onclick="registerGoal(<?php echo $match['team_a_id']; ?>, <?php echo $at['id']; ?>, 'A')">
-                    <?php echo $at['jersey_number'] ? "#{$at['jersey_number']} " : ''; ?> <?php echo $at['name_snapshot']; ?>
-                </button>
-            <?php endforeach; ?>
-            <button class="athlete-btn" style="background: #ef4444;" onclick="closeModals()">Cancelar</button>
+    <!-- Dynamic Modal -->
+    <div id="eventModal" class="modal-sheet">
+        <h3 id="modalTitle">Selecionar Atleta</h3>
+        <div id="modalAthleteList" class="athlete-list">
+            <!-- Populated by JS -->
         </div>
-    </div>
-
-    <!-- Modal Athletes Team B -->
-    <div id="modalB" class="modal-sheet">
-        <h3>Quem fez o gol? (Time B)</h3>
-        <div class="athlete-list">
-             <?php foreach ($athletesB as $at): ?>
-                <button class="athlete-btn" onclick="registerGoal(<?php echo $match['team_b_id']; ?>, <?php echo $at['id']; ?>, 'B')">
-                    <?php echo $at['jersey_number'] ? "#{$at['jersey_number']} " : ''; ?> <?php echo $at['name_snapshot']; ?>
-                </button>
-            <?php endforeach; ?>
-            <button class="athlete-btn" style="background: #ef4444;" onclick="closeModals()">Cancelar</button>
-        </div>
+        <button class="athlete-btn" style="background: #ef4444; margin-top: 1rem; width: 100%;" onclick="closeModals()">Cancelar</button>
     </div>
 
     <script>
         const matchId = <?php echo $matchId; ?>;
+        const matchStatus = '<?php echo $match['status']; ?>';
+        const startTime = <?php echo $match['start_time'] ? "new Date('{$match['start_time']}').getTime()" : 'null'; ?>;
         
-        function openGoalModal(team) {
+        const athletesA = <?php echo json_encode($athletesA); ?>;
+        const athletesB = <?php echo json_encode($athletesB); ?>;
+        const teamA_id = <?php echo $match['team_a_id']; ?>;
+        const teamB_id = <?php echo $match['team_b_id']; ?>;
+
+        function openEventModal(teamSide, eventType) {
             closeModals();
-            document.getElementById('modal' + team).classList.add('active');
+            const modal = document.getElementById('eventModal');
+            const title = document.getElementById('modalTitle');
+            const list = document.getElementById('modalAthleteList');
+            
+            const eventLabels = { 'GOAL': 'GOL', 'YELLOW_CARD': 'Cartão Amarelo', 'RED_CARD': 'Cartão Vermelho' };
+            title.textContent = `${eventLabels[eventType]} - Selecionar Atleta`;
+            
+            const teamId = teamSide === 'A' ? teamA_id : teamB_id;
+            const athletes = teamSide === 'A' ? athletesA : athletesB;
+            
+            list.innerHTML = athletes.map(at => `
+                <button class="athlete-btn" onclick="registerEvent(${teamId}, ${at.id}, '${eventType}', '${teamSide}')">
+                    ${at.jersey_number ? '#' + at.jersey_number + ' ' : ''} ${at.name_snapshot}
+                </button>
+            `).join('') + `
+                <button class="athlete-btn" style="background: #4b5563;" onclick="registerEvent(${teamId}, null, '${eventType}', '${teamSide}')">
+                    Atleta não listado
+                </button>
+            `;
+            
+            modal.classList.add('active');
         }
         
         function closeModals() {
             document.querySelectorAll('.modal-sheet').forEach(m => m.classList.remove('active'));
         }
 
-        async function registerGoal(teamId, athleteId, teamSide) {
+        async function registerEvent(teamId, athleteId, eventType, teamSide) {
             closeModals();
             
             try {
-                // Optimistic Update
-                const scoreId = 'score' + teamSide;
-                const el = document.getElementById(scoreId);
-                let current = parseInt(el.textContent);
-                el.textContent = current + 1;
+                // Optimistic Update for Score
+                if (eventType === 'GOAL') {
+                    const scoreId = 'score' + teamSide;
+                    const el = document.getElementById(scoreId);
+                    el.textContent = parseInt(el.textContent) + 1;
+                }
                 
-                // API Call
                 const res = await fetch('../api/match-events-api.php', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
@@ -153,14 +169,14 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
                         match_id: matchId,
                         team_id: teamId,
                         athlete_id: athleteId,
-                        event_type: 'GOAL'
+                        event_type: eventType
                     })
                 });
                 
                 const data = await res.json();
                 if(!data.success) {
-                    alert('Erro ao salvar gol!');
-                    el.textContent = current; // Revert
+                    alert('Erro ao salvar evento!');
+                    window.location.reload(); // Revert
                 }
             } catch (e) {
                 console.error(e);
@@ -182,15 +198,20 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
             window.location.reload();
         }
         
-        // Simple Stopwatch (Client side only for demo)
-        // In productio sync with server start_time
-        let seconds = 0;
-        setInterval(() => {
-            seconds++;
-            const m = Math.floor(seconds / 60).toString().padStart(2, '0');
-            const s = (seconds % 60).toString().padStart(2, '0');
-            document.getElementById('gameTimer').textContent = `${m}:${s}`;
-        }, 1000);
+        // Chronometer logic
+        if (matchStatus === 'live' && startTime) {
+            setInterval(() => {
+                const now = new Date().getTime();
+                const diff = Math.floor((now - startTime) / 1000);
+                if (diff < 0) return;
+
+                const m = Math.floor(diff / 60).toString().padStart(2, '0');
+                const s = (diff % 60).toString().padStart(2, '0');
+                document.getElementById('gameTimer').textContent = `${m}:${s}`;
+            }, 1000);
+        } else if (matchStatus === 'finished') {
+             document.getElementById('gameTimer').textContent = 'ENCERRADO';
+        }
     </script>
 </body>
 </html>
