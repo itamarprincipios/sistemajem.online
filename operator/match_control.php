@@ -120,7 +120,9 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
     <script>
         const matchId = <?php echo $matchId; ?>;
         const matchStatus = '<?php echo $match['status']; ?>';
-        const startTime = <?php echo $match['start_time'] ? "new Date('{$match['start_time']}').getTime()" : 'null'; ?>;
+        // Better sync: Calculate elapsed seconds on server to avoid JS date parsing/timezone issues
+        const elapsedAtLoad = <?php echo ($match['status'] === 'live' && $match['start_time']) ? (time() - strtotime($match['start_time'])) : 0; ?>;
+        const startTime = Date.now() - (elapsedAtLoad * 1000);
         
         const athletesA = <?php echo json_encode($athletesA); ?>;
         const athletesB = <?php echo json_encode($athletesB); ?>;
@@ -205,8 +207,8 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
         }
         
         // Chronometer logic
-        if (matchStatus === 'live' && startTime) {
-            setInterval(() => {
+        if (matchStatus === 'live') {
+            const updateTimer = () => {
                 const now = new Date().getTime();
                 const diff = Math.floor((now - startTime) / 1000);
                 if (diff < 0) return;
@@ -214,7 +216,10 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
                 const m = Math.floor(diff / 60).toString().padStart(2, '0');
                 const s = (diff % 60).toString().padStart(2, '0');
                 document.getElementById('gameTimer').textContent = `${m}:${s}`;
-            }, 1000);
+            };
+            
+            updateTimer(); // Run once immediately
+            setInterval(updateTimer, 1000);
         } else if (matchStatus === 'finished') {
              document.getElementById('gameTimer').textContent = 'ENCERRADO';
         }
