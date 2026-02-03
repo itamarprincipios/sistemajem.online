@@ -184,9 +184,25 @@ try {
             
         case 'DELETE':
              if (!isAdmin()) throw new Exception('Apenas admin pode excluir');
-             $id = $_GET['id'];
-             execute("DELETE FROM matches WHERE id = ?", [$id]);
-             echo json_encode(['success' => true]);
+             
+             if ($action === 'clear') {
+                 $eventId = $_GET['event_id'] ?? null;
+                 $modalityId = $_GET['modality_id'] ?? null;
+                 $categoryId = $_GET['category_id'] ?? null;
+                 
+                 if (!$eventId || !$modalityId || !$categoryId) {
+                     throw new Exception('Filtros incompletos para limpar lista');
+                 }
+                 
+                 execute("DELETE FROM matches WHERE competition_event_id = ? AND modality_id = ? AND category_id = ?", 
+                    [$eventId, $modalityId, $categoryId]);
+                    
+                 echo json_encode(['success' => true]);
+             } else {
+                 $id = $_GET['id'];
+                 execute("DELETE FROM matches WHERE id = ?", [$id]);
+                 echo json_encode(['success' => true]);
+             }
              break;
 
         default:

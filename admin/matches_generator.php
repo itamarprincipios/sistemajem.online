@@ -145,6 +145,7 @@ async function loadOptions() {
     }
 }
 
+// Main generation handler
 async function handleGenerate(e) {
     e.preventDefault();
     const formData = new FormData(e.target);
@@ -173,6 +174,36 @@ async function handleGenerate(e) {
     } catch (e) {
         Toast.error('Erro na geração');
     }
+}
+
+// Clear list for current filters
+async function clearAllMatches() {
+   const eventId = document.getElementById('eventSelect').value;
+   const modalityId = document.getElementById('modalitySelect').value;
+   const categoryId = document.getElementById('categorySelect').value;
+
+   if (!eventId || !modalityId || !categoryId) {
+       Toast.error('Selecione Evento, Modalidade e Categoria para limpar!');
+       return;
+   }
+
+   if (!confirm('ATENÇÃO: Isso excluirá TODAS as partidas desta Categoria/Modalidade no evento atual. Continuar?')) return;
+
+   try {
+       const res = await fetch(`../api/matches-api.php?action=clear&event_id=${eventId}&modality_id=${modalityId}&category_id=${categoryId}`, {
+           method: 'DELETE'
+       });
+       const result = await res.json();
+       
+       if (result.success) {
+           Toast.success('Lista limpa com sucesso!');
+           loadMatches();
+       } else {
+           Toast.error(result.error || 'Erro ao limpar lista');
+       }
+   } catch(e) {
+       Toast.error('Erro de conexão');
+   }
 }
 
 // Store matches globally to access them for edit
@@ -235,6 +266,12 @@ async function loadMatches() {
         console.error(e);
         tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:red">Erro de conexão: ${e.message}</td></tr>`;
     }
+}
+
+async function deleteMatch(id) {
+    if (!confirm('Excluir partida?')) return;
+    await fetch(`../api/matches-api.php?id=${id}`, { method: 'DELETE' });
+    loadMatches();
 }
 
 // Edit Modal Logic
