@@ -131,11 +131,12 @@ $pageTitle = 'Painel do Operador';
     </div>
 
 <script>
-let allMatches = [];
+let currentTabId = null;
 
 async function loadMatches() {
     try {
-        const res = await fetch('../api/matches-api.php?action=list'); 
+        // Cache busting with timestamp
+        const res = await fetch(`../api/matches-api.php?action=list&_t=${Date.now()}`); 
         const data = await res.json();
         allMatches = data.data;
         
@@ -146,6 +147,7 @@ async function loadMatches() {
 }
 
 function switchTab(safeId) {
+    currentTabId = safeId;
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
     
@@ -178,9 +180,14 @@ function renderGroups() {
         // Create a truly safe ID (alphanumeric only)
         const safeId = "cat-" + btoa(unescape(encodeURIComponent(cat))).replace(/[^a-zA-Z0-9]/g, '');
         
+        // If no tab selected yet, default to first
+        if (!currentTabId && index === 0) currentTabId = safeId;
+
+        const isActive = currentTabId === safeId;
+
         // Create Tab Button
         const tabBtn = document.createElement('button');
-        tabBtn.className = `tab-btn ${index === 0 ? 'active' : ''}`;
+        tabBtn.className = `tab-btn ${isActive ? 'active' : ''}`;
         tabBtn.innerHTML = `🏆 ${cat}`;
         tabBtn.setAttribute('data-id', safeId);
         tabBtn.onclick = () => switchTab(safeId);
@@ -188,7 +195,7 @@ function renderGroups() {
 
         // Create Content Section
         const section = document.createElement('div');
-        section.className = `tab-content ${index === 0 ? 'active' : ''}`;
+        section.className = `tab-content ${isActive ? 'active' : ''}`;
         section.id = `content-${safeId}`;
         
         const grid = document.createElement('div');
@@ -249,10 +256,15 @@ function openModal(id) {
     
     document.getElementById('matchId').value = id;
     
-    // Format for datetime-local
+    // Format for datetime-local (YYYY-MM-DDTHH:MM)
     const date = new Date(match.scheduled_time);
-    date.setMinutes(date.getTimezoneOffset() * -1); // adjust timezone
-    document.getElementById('matchTime').value = date.toISOString().slice(0, 16);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    
+    document.getElementById('matchTime').value = `${year}-${month}-${day}T${hours}:${minutes}`;
     document.getElementById('matchVenue').value = match.venue || '';
     
     document.getElementById('scheduleModal').classList.add('active');

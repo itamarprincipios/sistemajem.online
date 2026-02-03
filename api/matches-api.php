@@ -223,7 +223,8 @@ try {
             
             if (isset($data['scheduled_time'])) {
                 $fields[] = "scheduled_time = ?";
-                $params[] = $data['scheduled_time'];
+                // Sanitize: browser sends YYYY-MM-DDTHH:MM, DB needs YYYY-MM-DD HH:MM
+                $params[] = str_replace('T', ' ', $data['scheduled_time']);
             }
             
             if (isset($data['venue'])) {
