@@ -100,6 +100,9 @@ $pageTitle = 'Painel do Operador';
     </div>
 
     <div class="dashboard-container">
+        <div id="tabsContainer" class="tabs-container">
+            <!-- Tabs generated here -->
+        </div>
         <div id="matchesContainer">
             <!-- Populated by JS grouped by Category -->
         </div>
@@ -142,12 +145,12 @@ async function loadMatches() {
     }
 }
 
-function switchTab(cat) {
+function switchTab(safeId) {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
     
-    document.querySelector(`.tab-btn[data-cat="${cat}"]`).classList.add('active');
-    document.getElementById(`cat-${cat}`).classList.add('active');
+    document.querySelector(`.tab-btn[data-id="${safeId}"]`).classList.add('active');
+    document.getElementById(`content-${safeId}`).classList.add('active');
 }
 
 function renderGroups() {
@@ -172,19 +175,21 @@ function renderGroups() {
     const sortedCats = Object.keys(groups).sort();
 
     sortedCats.forEach((cat, index) => {
+        // Create a truly safe ID (alphanumeric only)
+        const safeId = "cat-" + btoa(unescape(encodeURIComponent(cat))).replace(/[^a-zA-Z0-9]/g, '');
+        
         // Create Tab Button
-        const safeCat = cat.replace(/\s+/g, '-');
         const tabBtn = document.createElement('button');
         tabBtn.className = `tab-btn ${index === 0 ? 'active' : ''}`;
         tabBtn.innerHTML = `🏆 ${cat}`;
-        tabBtn.setAttribute('data-cat', safeCat);
-        tabBtn.onclick = () => switchTab(safeCat);
+        tabBtn.setAttribute('data-id', safeId);
+        tabBtn.onclick = () => switchTab(safeId);
         tabsContainer.appendChild(tabBtn);
 
         // Create Content Section
         const section = document.createElement('div');
         section.className = `tab-content ${index === 0 ? 'active' : ''}`;
-        section.id = `cat-${safeCat}`;
+        section.id = `content-${safeId}`;
         
         const grid = document.createElement('div');
         grid.className = 'matches-grid';
