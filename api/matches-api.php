@@ -25,13 +25,13 @@ try {
                     SELECT m.*, 
                            t1.school_name_snapshot as team_a_name, 
                            t2.school_name_snapshot as team_b_name,
-                           mod.name as modality_name,
+                           mdl.name as modality_name,
                            cat.name as category_name,
                            ce.name as event_name
                     FROM matches m
                     JOIN competition_teams t1 ON m.team_a_id = t1.id
                     JOIN competition_teams t2 ON m.team_b_id = t2.id
-                    JOIN modalities mod ON m.modality_id = mod.id
+                    JOIN modalities mdl ON m.modality_id = mdl.id
                     JOIN categories cat ON m.category_id = cat.id
                     JOIN competition_events ce ON m.competition_event_id = ce.id
                 ";
@@ -52,18 +52,14 @@ try {
 
                 $sql .= " ORDER BY m.scheduled_time ASC, m.id ASC";
 
-                // Bypass query() wrapper to debug SQL error
-                try {
-                    $pdo = getConnection();
-                    $stmt = $pdo->prepare($sql);
-                    $stmt->execute($params);
-                    $matches = $stmt->fetchAll();
-                    
-                    ob_clean();
-                    echo json_encode(['success' => true, 'data' => $matches]);
-                } catch (PDOException $e) {
-                    ob_clean();
-                    echo json_encode(['success' => false, 'error' => 'SQL Error: ' . $e->getMessage()]);
+                $matches = query($sql, $params);
+                
+                ob_clean(); // Safety against whitespace
+                
+                if ($matches === false) {
+                     echo json_encode(['success' => false, 'error' => 'Erro interno ao carregar partidas.']);
+                } else {
+                     echo json_encode(['success' => true, 'data' => $matches]);
                 }
             } else {
                 // Return filters for UI (Modalities/Cats available in competition)
