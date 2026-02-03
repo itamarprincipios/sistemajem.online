@@ -30,11 +30,11 @@ try {
                            cat.name as category_name,
                            ce.name as event_name
                     FROM matches m
-                    JOIN competition_teams t1 ON m.team_a_id = t1.id
-                    JOIN competition_teams t2 ON m.team_b_id = t2.id
-                    JOIN modalities mdl ON m.modality_id = mdl.id
-                    JOIN categories cat ON m.category_id = cat.id
-                    JOIN competition_events ce ON m.competition_event_id = ce.id
+                    LEFT JOIN competition_teams t1 ON m.team_a_id = t1.id
+                    LEFT JOIN competition_teams t2 ON m.team_b_id = t2.id
+                    LEFT JOIN modalities mdl ON m.modality_id = mdl.id
+                    LEFT JOIN categories cat ON m.category_id = cat.id
+                    LEFT JOIN competition_events ce ON m.competition_event_id = ce.id
                 ";
 
                 if (isset($_GET['event_id']) && $_GET['event_id']) {
@@ -57,7 +57,8 @@ try {
                             $params[] = $opInfo['assigned_modality_id'];
                         }
                         if ($opInfo['assigned_venue']) {
-                            $filters[] = "m.venue = ?";
+                            // Allow seeing games assigned to their venue OR games with no venue yet
+                            $filters[] = "(m.venue = ? OR m.venue IS NULL OR m.venue = '')";
                             $params[] = $opInfo['assigned_venue'];
                         }
                     }
