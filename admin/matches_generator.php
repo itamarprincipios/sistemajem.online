@@ -190,7 +190,21 @@ async function loadMatches() {
 
     try {
         const res = await fetch(`../api/matches-api.php?action=list&event_id=${eventId}`);
-        const data = await res.json();
+        const text = await res.text();
+        let data;
+        
+        try {
+            data = JSON.parse(text);
+        } catch(e) {
+            console.error("JSON Error", text);
+            tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:red">Erro na resposta do servidor: ${text.substring(0, 100)}...</td></tr>`;
+            return;
+        }
+        
+        if (!data.success) {
+             tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:red">${data.error || 'Erro desconhecido'}</td></tr>`;
+             return;
+        }
         
         currentMatches = data.data; // Store
         tbody.innerHTML = '';
@@ -219,7 +233,7 @@ async function loadMatches() {
         });
     } catch (e) {
         console.error(e);
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:red">Erro ao carregar partidas</td></tr>';
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:red">Erro de conexão: ${e.message}</td></tr>`;
     }
 }
 

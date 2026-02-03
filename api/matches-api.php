@@ -53,7 +53,20 @@ try {
                 $sql .= " ORDER BY m.scheduled_time ASC, m.id ASC";
 
                 $matches = query($sql, $params);
-                echo json_encode(['success' => true, 'data' => $matches]);
+                
+                // Clear buffer to avoid garbage
+                ob_clean(); 
+                
+                if ($matches === false) {
+                     echo json_encode(['success' => false, 'error' => 'Erro ao consultar banco de dados.']);
+                } else {
+                     $json = json_encode(['success' => true, 'data' => $matches]);
+                     if ($json === false) {
+                         echo json_encode(['success' => false, 'error' => 'Erro JSON: ' . json_last_error_msg()]);
+                     } else {
+                         echo $json;
+                     }
+                }
             } else {
                 // Return filters for UI (Modalities/Cats available in competition)
                  $eventId = $_GET['event_id'] ?? 0;
