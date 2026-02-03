@@ -207,7 +207,7 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
                     el.textContent = parseInt(el.textContent) + 1;
                 }
                 
-                const res = await fetch('../api/match-events-api.php', {
+                const res = await fetch(apiBase, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
@@ -219,13 +219,25 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
                     })
                 });
                 
-                const data = await res.json();
+                const text = await res.text();
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch(e) {
+                    console.error("Server returned non-JSON for registerEvent:", text);
+                    alert('Erro ao salvar evento: Resposta inválida do servidor.');
+                    window.location.reload(); // Revert
+                    return;
+                }
+
                 if(!data.success) {
-                    alert('Erro ao salvar evento!');
+                    alert('Erro ao salvar evento: ' + (data.error || 'Erro desconhecido'));
                     window.location.reload(); // Revert
                 }
             } catch (e) {
-                console.error(e);
+                console.error("Fetch error in registerEvent:", e);
+                alert('Erro de conexão ou erro no servidor ao registrar evento: ' + e.message);
+                window.location.reload(); // Revert
             }
         }
 
@@ -248,11 +260,15 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
                     body: JSON.stringify(payload)
                 });
                 
-                if (!res.ok) {
-                    throw new Error(`HTTP Error: ${res.status}`);
+                const text = await res.text();
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch(e) {
+                    console.error("Server returned non-JSON:", text);
+                    throw new Error("Resposta inválida do servidor (não é JSON).");
                 }
 
-                const data = await res.json();
                 console.log("Status update response:", data);
 
                 if (data.success) {
@@ -262,7 +278,7 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
                     if (btn) btn.classList.remove('loading');
                 }
             } catch (e) {
-                alert('Erro de conexão ou erro no servidor: ' + e.message);
+                alert('Erro crítico: ' + e.message);
                 console.error("Fetch error:", e);
                 if (btn) btn.classList.remove('loading');
             }
