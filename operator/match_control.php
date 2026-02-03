@@ -57,23 +57,7 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
         .athlete-list { display: grid; gap: 0.5rem; margin-top: 1rem; }
         .athlete-btn { background: #334155; border: 1px solid #475569; color: white; padding: 1rem; text-align: left; border-radius: 8px; font-size: 1.1rem; }
         
-        /* Loading State */
-        .btn.loading { opacity: 0.7; pointer-events: none; position: relative; }
-        .btn.loading::after {
-            content: "";
-            position: absolute;
-            width: 16px;
-            height: 16px;
-            top: 50%;
-            left: 50%;
-            margin-top: -8px;
-            margin-left: -8px;
-            border: 2px solid white;
-            border-top-color: transparent;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
+        .athlete-btn { background: #334155; border: 1px solid #475569; color: white; padding: 1rem; text-align: left; border-radius: 8px; font-size: 1.1rem; }
     </style>
 </head>
 <body>
@@ -118,9 +102,9 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
 
     <div class="status-bar">
         <?php if ($match['status'] === 'scheduled'): ?>
-            <button class="btn btn-primary" style="width: 100%" onclick="updateStatus('live', this)">▶️ INICIAR PARTIDA</button>
+            <button class="btn btn-primary" style="width: 100%" onclick="updateStatus('live')">▶️ INICIAR PARTIDA</button>
         <?php elseif ($match['status'] === 'live'): ?>
-            <button class="btn btn-danger" style="width: 100%" onclick="updateStatus('finished', this)">🏁 ENCERRAR PARTIDA</button>
+            <button class="btn btn-danger" style="width: 100%" onclick="updateStatus('finished')">🏁 ENCERRAR PARTIDA</button>
         <?php else: ?>
             <div style="width: 100%; text-align: center;">PARTIDA FINALIZADA</div>
         <?php endif; ?>
@@ -156,16 +140,6 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
         const athletesB = <?php echo json_encode($athletesB); ?>;
         const teamA_id = <?php echo $match['team_a_id']; ?>;
         const teamB_id = <?php echo $match['team_b_id']; ?>;
-
-        const apiBase = window.location.origin + '/api/match-events-api.php';
-        console.log("API Base URL:", apiBase);
-
-        // Connection test on load
-        fetch(apiBase, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({action: 'ping'})
-        }).then(r => r.json()).then(d => console.log("API Ping Test:", d)).catch(e => console.error("API Ping Failed:", e));
 
         function openEventModal(teamSide, eventType) {
             closeModals();
@@ -207,7 +181,7 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
                     el.textContent = parseInt(el.textContent) + 1;
                 }
                 
-                const res = await fetch(apiBase, {
+                const res = await fetch('../api/match-events-api.php', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
@@ -219,68 +193,40 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
                     })
                 });
                 
-                const text = await res.text();
-                let data;
-                try {
-                    data = JSON.parse(text);
-                } catch(e) {
-                    console.error("Server returned non-JSON for registerEvent:", text);
-                    alert('Erro ao salvar evento: Resposta inválida do servidor.');
-                    window.location.reload(); // Revert
-                    return;
-                }
-
+                const data = await res.json();
                 if(!data.success) {
-                    alert('Erro ao salvar evento: ' + (data.error || 'Erro desconhecido'));
-                    window.location.reload(); // Revert
+                    alert('Erro ao salvar evento: ' + data.error);
+                    window.location.reload();
                 }
             } catch (e) {
-                console.error("Fetch error in registerEvent:", e);
-                alert('Erro de conexão ou erro no servidor ao registrar evento: ' + e.message);
-                window.location.reload(); // Revert
+                console.error(e);
+                alert('Erro de conexão ao salvar evento');
             }
         }
 
-        async function updateStatus(status, btn) {
+        async function updateStatus(status) {
             if(!confirm('Confirmar mudança de status?')) return;
             
-            if (btn) btn.classList.add('loading');
-            
             try {
-                const payload = {
-                    action: 'status',
-                    match_id: matchId,
-                    status: status
-                };
-                console.log("Sending status update to:", apiBase, payload);
-
-                const res = await fetch(apiBase + '?t=' + Date.now(), {
+                const res = await fetch('../api/match-events-api.php', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(payload)
+                    body: JSON.stringify({
+                        action: 'status',
+                        match_id: matchId,
+                        status: status
+                    })
                 });
                 
-                const text = await res.text();
-                let data;
-                try {
-                    data = JSON.parse(text);
-                } catch(e) {
-                    console.error("Server returned non-JSON:", text);
-                    throw new Error("Resposta inválida do servidor (não é JSON).");
-                }
-
-                console.log("Status update response:", data);
-
+                const data = await res.json();
                 if (data.success) {
                     window.location.reload();
                 } else {
-                    alert('Erro ao atualizar status: ' + (data.error || 'Erro desconhecido'));
-                    if (btn) btn.classList.remove('loading');
+                    alert('Erro ao atualizar status: ' + data.error);
                 }
             } catch (e) {
-                alert('Erro crítico: ' + e.message);
-                console.error("Fetch error:", e);
-                if (btn) btn.classList.remove('loading');
+                console.error(e);
+                alert('Erro de conexão ao atualizar status');
             }
         }
         
