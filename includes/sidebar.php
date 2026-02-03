@@ -157,6 +157,11 @@ $userRole = getCurrentUserRole();
                     <span class="nav-icon">⚔️</span>
                     <span>Gerar Jogos</span>
                 </a>
+                <a href="<?php echo SITE_URL; ?>/admin/knockout_manager.php" 
+                   class="nav-link <?php echo $currentPage === 'knockout_manager.php' ? 'active' : ''; ?>">
+                    <span class="nav-icon">🏆</span>
+                    <span>Mata-Mata</span>
+                </a>
             </div>
             
             <div class="nav-section">
