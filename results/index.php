@@ -145,6 +145,25 @@ $pageTitle = 'JEM - Resultados';
         if (content) content.classList.add('active');
     }
 
+    function switchSubTab(containerId, tabId) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        
+        // Update buttons
+        container.querySelectorAll('.sub-tab-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        const activeBtn = Array.from(container.querySelectorAll('.sub-tab-btn')).find(btn => btn.getAttribute('data-subtab') === tabId);
+        if (activeBtn) activeBtn.classList.add('active');
+        
+        // Update content
+        container.querySelectorAll('.sub-tab-content').forEach(content => {
+            content.classList.remove('active');
+        });
+        const activeContent = container.querySelector(`#${tabId}`);
+        if (activeContent) activeContent.classList.add('active');
+    }
+
     async function loadCategoriesForModality(modalityId, safeId) {
         if (categoriesCache[modalityId]) {
             return categoriesCache[modalityId];
