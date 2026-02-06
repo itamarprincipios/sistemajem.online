@@ -276,7 +276,18 @@ if (!$event) {
             const cat = mod.cats[catId];
             if (!state.phase[catId]) state.phase[catId] = 'group_stage';
             
-            const phases = PHASE_ORDER.filter(p => p === 'group_stage' || cat.matches.some(m => m.phase === p));
+            // Build available phases
+            let phases = PHASE_ORDER.filter(p => {
+                if (p === 'group_stage') return true;
+                if (p === 'podium') {
+                    // Include podium if final and third place are finished
+                    const finalMatch = cat.matches.find(m => m.phase === 'final' && m.status === 'finished');
+                    const thirdMatch = cat.matches.find(m => m.phase === 'third_place' && m.status === 'finished');
+                    return finalMatch && thirdMatch;
+                }
+                return cat.matches.some(m => m.phase === p);
+            });
+            
             const phaseIdx = phases.indexOf(state.phase[catId]);
             const canPrev = phaseIdx > 0;
             const canNext = phaseIdx < phases.length - 1;
@@ -456,7 +467,18 @@ if (!$event) {
         
         function switchPhase(catId, dir) {
             const cat = matches.filter(m => m.category_id == catId);
-            const phases = PHASE_ORDER.filter(p => p === 'group_stage' || cat.some(m => m.phase === p));
+            
+            // Build available phases (same logic as render)
+            const phases = PHASE_ORDER.filter(p => {
+                if (p === 'group_stage') return true;
+                if (p === 'podium') {
+                    const finalMatch = cat.find(m => m.phase === 'final' && m.status === 'finished');
+                    const thirdMatch = cat.find(m => m.phase === 'third_place' && m.status === 'finished');
+                    return finalMatch && thirdMatch;
+                }
+                return cat.some(m => m.phase === p);
+            });
+            
             const idx = phases.indexOf(state.phase[catId]);
             const newIdx = idx + dir;
             if (newIdx >= 0 && newIdx < phases.length) {
