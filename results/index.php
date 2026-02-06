@@ -412,6 +412,9 @@ $pageTitle = 'JEM - Resultados';
             const data = await res.json();
             allMatches = data.data;
             
+            console.log('Loaded matches:', allMatches.length);
+            console.log('Sample match:', allMatches[0]);
+            
             renderPage();
         } catch(e) {
             console.error('Error loading results:', e);
@@ -422,6 +425,8 @@ $pageTitle = 'JEM - Resultados';
     function renderPage() {
         const tabsContainer = document.getElementById('tabs-container');
         const contentContainer = document.getElementById('content-container');
+        
+        console.log('Rendering page with', allMatches.length, 'matches');
         
         if (allMatches.length === 0) {
             contentContainer.innerHTML = '<div class="empty-state">Nenhum resultado registrado ainda.</div>';
@@ -443,6 +448,8 @@ $pageTitle = 'JEM - Resultados';
             return acc;
         }, {});
         
+        console.log('Modality groups:', modalityGroups);
+        
         const modalityIds = Object.keys(modalityGroups).sort((a, b) => 
             modalityGroups[a].name.localeCompare(modalityGroups[b].name)
         );
@@ -450,6 +457,8 @@ $pageTitle = 'JEM - Resultados';
         if (!currentModalityId || !modalityIds.includes(currentModalityId)) {
             currentModalityId = modalityIds[0];
         }
+        
+        console.log('Current modality:', currentModalityId);
         
         tabsContainer.innerHTML = '';
         contentContainer.innerHTML = '';
@@ -480,6 +489,8 @@ $pageTitle = 'JEM - Resultados';
                 currentCategoryIds[modId] = categoryIds[0];
             }
             
+            console.log('Categories for modality', modId, ':', categoryIds);
+            
             const categoryTabsHtml = `
                 <div class="category-tabs">
                     ${categoryIds.map(catId => {
@@ -507,6 +518,7 @@ $pageTitle = 'JEM - Resultados';
                 modalityContent.appendChild(categoryContentDiv);
                 
                 if (isActiveCat && isActive) {
+                    console.log('Rendering phase content for category', catId);
                     renderPhaseContent(catId);
                 }
             });
