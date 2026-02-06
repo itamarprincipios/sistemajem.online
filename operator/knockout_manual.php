@@ -31,6 +31,11 @@ $categories = query("SELECT id, name FROM categories ORDER BY name");
         <!-- Filter Section -->
         <div class="glass-card" style="margin-bottom: 2rem;">
             <h2>📋 Selecionar Competição</h2>
+            <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid #3b82f6; border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
+                <p style="margin: 0; color: #93c5fd; font-size: 0.9rem;">
+                    💡 <strong>Como usar:</strong> Selecione a modalidade, categoria, gênero e fase desejada, depois clique em "Carregar" para ver os times qualificados e criar os confrontos.
+                </p>
+            </div>
             <form id="filterForm" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; align-items: end;">
                 <div class="form-group">
                     <label class="form-label">Modalidade</label>
@@ -259,6 +264,15 @@ function populateTeamSelects() {
     const teamBSelect = document.getElementById('teamBSelect');
     const editTeamA = document.getElementById('editTeamA');
     const editTeamB = document.getElementById('editTeamB');
+    
+    if (availableTeams.length === 0) {
+        const noTeamsMsg = '<option value="">Nenhum time encontrado - verifique se há jogos finalizados</option>';
+        [teamASelect, teamBSelect, editTeamA, editTeamB].forEach(select => {
+            select.innerHTML = noTeamsMsg;
+        });
+        alert('⚠️ Nenhum time encontrado para esta competição.\n\nVerifique se:\n- Os jogos da fase de grupos foram finalizados\n- A modalidade e categoria estão corretas\n- Há times cadastrados nesta competição');
+        return;
+    }
     
     const options = availableTeams.map(team => {
         const posText = team.position ? ` (${team.position}º - Grupo ${team.group})` : ` (Grupo ${team.group})`;
