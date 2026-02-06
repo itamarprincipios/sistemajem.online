@@ -7,13 +7,6 @@ if (!$event) {
     $event = queryOne("SELECT * FROM competition_events ORDER BY created_at DESC LIMIT 1");
 }
 
-// Get modalities with matches
-$modalities = query("SELECT DISTINCT m.id, m.name 
-                     FROM modalities m
-                     JOIN matches mat ON mat.modality_id = m.id
-                     WHERE mat.competition_event_id = ?
-                     ORDER BY m.name", [$event['id']]);
-
 $pageTitle = 'JEM - Resultados';
 ?>
 <!DOCTYPE html>
@@ -138,7 +131,7 @@ $pageTitle = 'JEM - Resultados';
     const EVENT_ID = <?php echo $event['id']; ?>;
     const API_URL = '../api/matches-api.php?action=list&event_id=' + EVENT_ID;
     let currentTabId = null;
-    let currentSubTab = {};
+    let categoriesCache = {};
 
     function switchTab(safeId) {
         currentTabId = safeId;
@@ -150,6 +143,34 @@ $pageTitle = 'JEM - Resultados';
         
         if (btn) btn.classList.add('active');
         if (content) content.classList.add('active');
+    }
+
+    async function loadCategoriesForModality(modalityId, safeId) {
+        if (categoriesCache[modalityId]) {
+            return categoriesCache[modalityId];
+        }
+        
+        try {
+            const res = await fetch(`../api/standings-api.php?action=categories_by_modality&event_id=${EVENT_ID}&modality_id=${modalityId}`);
+            const data = await res.json();
+            categoriesCache[modalityId] = data.success ? data.data : [];
+            
+            // Update select if it exists
+            const select = document.getElementById(`category-select-${safeId}`);
+            if (select && select.options.length === 1) {
+                categoriesCache[modalityId].forEach(cat => {
+                    const option = document.createElement('option');
+                    option.value = cat.id;
+                    option.textContent = cat.name;
+                    select.appendChild(option);
+                });
+            }
+            
+            return categoriesCache[modalityId];
+        } catch (e) {
+            console.error('Error loading categories:', e);
+            return [];
+        }
     }
 
     async function loadResults() {
@@ -172,8 +193,8 @@ $pageTitle = 'JEM - Resultados';
                 if (m.status !== 'finished' && m.status !== 'live') return acc;
                 
                 const mod = m.modality_name || 'Geral';
-                if (!acc[mod]) acc[mod] = [];
-                acc[mod].push(m);
+                if (!acc[mod]) acc[mod] = {matches: [], modalityId: m.modality_id};
+                acc[mod].matches.push(m);
                 return acc;
             }, {});
 
@@ -187,22 +208,10 @@ $pageTitle = 'JEM - Resultados';
                 currentTabId = safeIds[0];
             }
 
-            // Get categories for each modality
-            const modalityData = await Promise.all(sortedMods.map(async (mod, index) => {
-                const modalityId = matches.find(m => m.modality_name === mod)?.modality_id;
-                const categoriesRes = await fetch(`../api/standings-api.php?action=categories_by_modality&event_id=${EVENT_ID}&modality_id=${modalityId}`);
-                const categoriesData = await categoriesRes.json();
-                return {
-                    name: mod,
-                    id: modalityId,
-                    categories: categoriesData.success ? categoriesData.data : []
-                };
-            }));
-
             sortedMods.forEach((mod, index) => {
                 const safeId = safeIds[index];
                 const isActive = currentTabId === safeId;
-                const modData = modalityData[index];
+                const modalityId = groups[mod].modalityId;
 
                 // Create Tab
                 const btn = document.createElement('button');
@@ -221,19 +230,19 @@ $pageTitle = 'JEM - Resultados';
                 const subTabsHtml = `
                     <div class="sub-tabs-container">
                         <button class="sub-tab-btn active" data-subtab="jogos" onclick="switchSubTab('content-${safeId}', 'jogos')">🎮 JOGOS</button>
-                        <button class="sub-tab-btn" data-subtab="classificacao" onclick="switchSubTab('content-${safeId}', 'classificacao'); loadClassificationForCategory('${safeId}', ${modData.id})">📊 CLASSIFICAÇÃO</button>
+                        <button class="sub-tab-btn" data-subtab="classificacao" onclick="switchSubTab('content-${safeId}', 'classificacao'); loadCategoriesForModality(${modalityId}, '${safeId}')">📊 CLASSIFICAÇÃO</button>
                     </div>
                 `;
 
                 content.innerHTML = subTabsHtml;
 
-                // JOGOS sub-tab (existing functionality)
+                // JOGOS sub-tab
                 const jogosContent = document.createElement('div');
                 jogosContent.className = 'sub-tab-content active';
                 jogosContent.id = 'jogos';
 
-                const liveMatches = groups[mod].filter(m => m.status === 'live');
-                const finishedMatches = groups[mod].filter(m => m.status === 'finished');
+                const liveMatches = groups[mod].matches.filter(m => m.status === 'live');
+                const finishedMatches = groups[mod].matches.filter(m => m.status === 'finished');
 
                 let jogosHtml = '';
                 if (liveMatches.length > 0) {
@@ -254,17 +263,12 @@ $pageTitle = 'JEM - Resultados';
                 classContent.className = 'sub-tab-content';
                 classContent.id = 'classificacao';
                 
-                // Category selector + classification content
                 let classHtml = '<div style="margin-bottom: 1.5rem;">';
                 classHtml += '<label style="display: block; margin-bottom: 0.5rem; color: #94a3b8; font-size: 0.9rem;">Selecione a Categoria:</label>';
-                classHtml += `<select id="category-select-${safeId}" class="form-select" style="width: 100%; max-width: 300px; padding: 0.75rem; background: var(--card); color: var(--text); border: 1px solid #334155; border-radius: 8px; font-size: 0.9rem;" onchange="loadClassificationData(${EVENT_ID}, ${modData.id}, this.value)">`;
+                classHtml += `<select id="category-select-${safeId}" class="form-select" style="width: 100%; max-width: 300px; padding: 0.75rem; background: var(--card); color: var(--text); border: 1px solid #334155; border-radius: 8px; font-size: 0.9rem;" onchange="loadClassificationData(${EVENT_ID}, ${modalityId}, this.value); document.getElementById('classification-tabs-${safeId}').style.display = 'flex';">`;
                 classHtml += '<option value="">Escolha uma categoria...</option>';
-                modData.categories.forEach(cat => {
-                    classHtml += `<option value="${cat.id}">${cat.name}</option>`;
-                });
                 classHtml += '</select></div>';
                 
-                // Sub-sub-tabs for classification
                 classHtml += `
                     <div class="sub-tabs-container" style="display: none;" id="classification-tabs-${safeId}">
                         <button class="sub-tab-btn active" data-subtab="group-standings" onclick="switchSubTab('classification-content-${safeId}', 'group-standings')">Fase de Grupos</button>
@@ -287,15 +291,8 @@ $pageTitle = 'JEM - Resultados';
             });
             
         } catch(e) {
-            console.error('Err', e);
-        }
-    }
-
-    function loadClassificationForCategory(safeId, modalityId) {
-        const select = document.getElementById(`category-select-${safeId}`);
-        if (select && select.value) {
-            document.getElementById(`classification-tabs-${safeId}`).style.display = 'flex';
-            loadClassificationData(EVENT_ID, modalityId, select.value);
+            console.error('Error loading results:', e);
+            document.getElementById('results-container').innerHTML = '<div class="empty-state">Erro ao carregar resultados. Verifique o console.</div>';
         }
     }
 
@@ -344,7 +341,7 @@ $pageTitle = 'JEM - Resultados';
 
     // Auto Refresh
     loadResults();
-    setInterval(loadResults, 10000); // 10s polling
+    setInterval(loadResults, 10000);
 </script>
 </body>
 </html>
