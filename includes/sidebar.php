@@ -200,6 +200,11 @@ $userRole = getCurrentUserRole();
                     <span class="nav-icon">🏆</span>
                     <span>Mata-Mata</span>
                 </a>
+                <a href="<?php echo SITE_URL; ?>/operator/knockout_manual.php" 
+                   class="nav-link <?php echo $currentPage === 'knockout_manual.php' ? 'active' : ''; ?>">
+                    <span class="nav-icon">✏️</span>
+                    <span>Mata-Mata Manual</span>
+                </a>
             </div>
             
         <?php elseif ($userRole === 'professor'): ?>
