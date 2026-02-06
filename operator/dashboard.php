@@ -94,6 +94,12 @@ $pageTitle = 'Painel do Operador';
     <div class="op-header">
         <div style="font-size: 1.2rem; font-weight: 800; letter-spacing: -0.5px; color: #10b981;">JEM OPERADOR</div>
         <div style="display: flex; align-items: center; gap: 1.5rem;">
+            <a href="knockout_manual.php" style="background: linear-gradient(135deg, #8b5cf6, #d946ef); color: white; padding: 0.5rem 1rem; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 0.9rem; display: flex; align-items: center; gap: 0.5rem; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                ✏️ Mata-Mata Manual
+            </a>
+            <a href="knockout_manager.php" style="background: #334155; color: white; padding: 0.5rem 1rem; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 0.9rem; display: flex; align-items: center; gap: 0.5rem; transition: background 0.2s;" onmouseover="this.style.background='#475569'" onmouseout="this.style.background='#334155'">
+                🏆 Mata-Mata Auto
+            </a>
             <span id="matchCount" style="font-size: 0.85rem; color: #64748b; font-weight: 600;"></span>
             <span style="font-size: 0.9rem; color: #94a3b8;"><?php echo htmlspecialchars($_SESSION['user_name']); ?></span>
             <a href="../logout.php" style="color: #ef4444; text-decoration: none; font-size: 0.9rem; font-weight: 600;">Sair</a>
