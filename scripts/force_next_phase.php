@@ -38,6 +38,28 @@ foreach ($phasesToCheck as $currentPhase) {
         if (checkPhaseComplete($eventId, $modId, $catId, $currentPhase)) {
             echo "Phase complete! Attempting generation... ";
             
+            // Determine next phase name manually for cleanup (simple version)
+            $nextPhaseMap = [
+                'quarter_final' => 'semi_final',
+                'semi_final' => 'final'
+            ];
+            $targetPhase = $nextPhaseMap[$currentPhase] ?? null;
+
+            if ($targetPhase) {
+                // DELETE existing partial generation (e.g. the 1 match generated before lucky loser logic)
+                $deletedObj = execute("
+                    DELETE FROM matches 
+                    WHERE competition_event_id = ? 
+                    AND modality_id = ? 
+                    AND category_id = ? 
+                    AND phase = ?
+                ", [$eventId, $modId, $catId, $targetPhase]);
+                
+                if ($deletedObj > 0) {
+                     echo "[Cleanup] Deleted $deletedObj existing $targetPhase matches to regenerate... ";
+                }
+            }
+            
             try {
                 $generated = generateNextKnockoutRound($eventId, $modId, $catId, $currentPhase);
                 

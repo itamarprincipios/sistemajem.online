@@ -275,10 +275,69 @@ function generateNextKnockoutRound($eventId, $modalityId, $categoryId, $currentP
     $winnerIds = array_column($winners, 'winner_team_id');
     $matchIds = array_column($winners, 'id');
     
-    if (empty($winnerIds)) {
-        return 0;
-    }
     
+    // Check if we have an odd number of winners (e.g. 3 winners for Semifinals)
+    // We need to find the "Lucky Loser" (Índice Técnico) from the current phase
+    if (count($winnerIds) % 2 !== 0) {
+        $needed = 1; // Usually just 1 to make even pair
+        
+        // precise SQL to find losers of the COMPLETED matches in this phase
+        $losersSql = "
+            SELECT CASE 
+                WHEN winner_team_id = team_a_id THEN team_b_id 
+                ELSE team_a_id 
+            END as loser_id
+            FROM matches
+            WHERE competition_event_id = ?
+            AND modality_id = ?
+            AND category_id = ?
+            AND phase = ?
+            AND status = 'finished'
+        ";
+        
+        $losersList = query($losersSql, [$eventId, $modalityId, $categoryId, $currentPhase]);
+        $loserIds = array_column($losersList, 'loser_id');
+        
+        // CRITICAL: Filter out any team that is already a winner!
+        // This handles cases where a team might have appeared twice or data anomalies
+        $loserIds = array_diff($loserIds, $winnerIds);
+        
+        if (!empty($loserIds)) {
+            // Get group standings again directly to compare these losers
+            // Using existing calculateGroupStandings function
+            $allStandings = calculateGroupStandings($eventId, $modalityId, $categoryId);
+            
+            // Filter only the losers
+            $loserStats = [];
+            foreach ($allStandings as $group => $teams) {
+                foreach ($teams as $team) {
+                    if (in_array($team['team_id'], $loserIds)) {
+                        $loserStats[] = $team;
+                    }
+                }
+            }
+            
+            // Sort by Points -> Goal Diff -> Goals For -> Wins
+            usort($loserStats, function($a, $b) {
+                if ($a['points'] != $b['points']) return $b['points'] - $a['points'];
+                if ($a['goal_difference'] != $b['goal_difference']) return $b['goal_difference'] - $a['goal_difference'];
+                if ($a['goals_for'] != $b['goals_for']) return $b['goals_for'] - $a['goals_for'];
+                if ($a['won'] != $b['won']) return $b['won'] - $a['won'];
+                return 0;
+            });
+            
+            // Pick the best one
+            if (!empty($loserStats)) {
+                $luckyLoser = $loserStats[0];
+                $winnerIds[] = $luckyLoser['team_id'];
+                // Note: We don't have a specific parent_match_id for the lucky loser as a 'winner', 
+                // but we could trace it back to their losing match if needed. 
+                // For now, we align matchIds array to keep length consistent, although lucky loser has no "won" match
+                $matchIds[] = null; 
+            }
+        }
+    }
+
     $defaultTime = date('Y-m-d 08:00:00', strtotime('+1 day'));
     $generatedCount = 0;
     
