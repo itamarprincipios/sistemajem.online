@@ -6,13 +6,50 @@ require_once '../includes/db.php';
 requireLogin(); // Operators can manage knockout stages
 
 $pageTitle = 'Lançamento Manual - Mata-Mata';
-include '../includes/header.php';
-include '../includes/sidebar.php';
 
 // Get active event
 $activeEvent = queryOne("SELECT id, name FROM competition_events WHERE active_flag = TRUE LIMIT 1");
 if (!$activeEvent) {
-    die("Nenhum evento ativo encontrado");
+    // Show friendly error page instead of die()
+    include '../includes/header.php';
+    include '../includes/sidebar.php';
+    ?>
+    <div class="main-content">
+        <div class="top-bar">
+            <h1 class="top-bar-title">⚠️ Nenhum Evento Ativo</h1>
+        </div>
+        <div class="content-wrapper">
+            <div class="glass-card" style="max-width: 600px; margin: 2rem auto; text-align: center;">
+                <div style="font-size: 4rem; margin-bottom: 1rem;">📅</div>
+                <h2 style="margin-bottom: 1rem;">Nenhum evento está ativo no momento</h2>
+                <p style="color: var(--text-secondary); margin-bottom: 2rem;">
+                    Para usar o sistema de mata-mata, é necessário que um evento esteja ativo.
+                </p>
+                <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid #3b82f6; border-radius: 8px; padding: 1.5rem; margin-bottom: 2rem; text-align: left;">
+                    <h3 style="margin-top: 0; color: #3b82f6;">Como ativar um evento:</h3>
+                    <ol style="color: var(--text-secondary); line-height: 1.8;">
+                        <li>Acesse o <strong>painel administrativo</strong></li>
+                        <li>Vá em <strong>Gestão de Eventos</strong></li>
+                        <li>Clique em <strong>"⭐ Definir como Principal"</strong> no evento desejado</li>
+                        <li>Volte para esta página</li>
+                    </ol>
+                </div>
+                <?php if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin'): ?>
+                    <a href="../admin/competition_events.php" class="btn btn-primary" style="display: inline-block;">
+                        🔧 Ir para Gestão de Eventos
+                    </a>
+                <?php else: ?>
+                    <p style="color: var(--warning);">
+                        ⚠️ Você precisa de permissões de <strong>administrador</strong> para ativar eventos.<br>
+                        Entre em contato com um administrador do sistema.
+                    </p>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+    <?php
+    include '../includes/footer.php';
+    exit;
 }
 
 $eventId = $activeEvent['id'];
@@ -20,6 +57,8 @@ $eventId = $activeEvent['id'];
 // Get modalities and categories
 $modalities = query("SELECT id, name FROM modalities ORDER BY name");
 $categories = query("SELECT id, name FROM categories ORDER BY name");
+include '../includes/header.php';
+include '../includes/sidebar.php';
 ?>
 
 <div class="main-content">
