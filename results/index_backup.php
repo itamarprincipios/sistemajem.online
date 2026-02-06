@@ -1,18 +1,14 @@
 <?php
-require_once '../config/config.php';
+require_once '../config/config.php'; // Public access, but need DB config
 require_once '../includes/db.php';
 
+// Get Active Event
 $event = queryOne("SELECT * FROM competition_events WHERE active_flag = 1 LIMIT 1");
+
 if (!$event) {
+    // Fallback: get latest live or planned
     $event = queryOne("SELECT * FROM competition_events ORDER BY created_at DESC LIMIT 1");
 }
-
-// Get modalities with matches
-$modalities = query("SELECT DISTINCT m.id, m.name 
-                     FROM modalities m
-                     JOIN matches mat ON mat.modality_id = m.id
-                     WHERE mat.competition_event_id = ?
-                     ORDER BY m.name", [$event['id']]);
 
 $pageTitle = 'JEM - Resultados';
 ?>
@@ -23,7 +19,6 @@ $pageTitle = 'JEM - Resultados';
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>JEM - Resultados <?php echo $event ? htmlspecialchars($event['name']) : ''; ?></title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="classification-styles.css">
     <style>
         :root { --primary: #10b981; --dark: #0f172a; --card: #1e293b; --text: #f8fafc; }
         body { margin: 0; font-family: 'Inter', sans-serif; background: var(--dark); color: var(--text); }
@@ -32,7 +27,7 @@ $pageTitle = 'JEM - Resultados';
         .header h1 { margin: 0; font-weight: 800; letter-spacing: -1px; }
         .header p { margin: 0.5rem 0 0; opacity: 0.9; }
         
-        .container { max-width: 900px; margin: 0 auto; padding: 2rem 1rem; }
+        .container { max-width: 800px; margin: 0 auto; padding: 2rem 1rem; }
         
         .section-title { font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; margin-bottom: 1rem; border-bottom: 1px solid #334155; padding-bottom: 0.5rem; }
         
@@ -51,7 +46,7 @@ $pageTitle = 'JEM - Resultados';
         
         .empty-state { text-align: center; padding: 3rem; color: #64748b; }
 
-        /* Main Tabs */
+        /* Tabs Styles */
         .tabs-container { 
             display: flex; 
             gap: 0.5rem; 
@@ -91,6 +86,17 @@ $pageTitle = 'JEM - Resultados';
             to { opacity: 1; transform: translateY(0); }
         }
 
+        .modality-header {
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        .modality-header h2 {
+            font-size: 1.5rem;
+            color: var(--primary);
+            margin: 0;
+        }
+
+        /* Scorer Styles */
         .scorers-list {
             font-size: 0.75rem;
             color: #94a3b8;
@@ -105,13 +111,6 @@ $pageTitle = 'JEM - Resultados';
             text-overflow: ellipsis;
             white-space: nowrap;
         }
-
-        .sub-tab-content {
-            display: none;
-        }
-        .sub-tab-content.active {
-            display: block;
-        }
     </style>
 </head>
 <body>
@@ -124,21 +123,18 @@ $pageTitle = 'JEM - Resultados';
     <div class="container">
         
         <div id="tabs-container" class="tabs-container">
-            <!-- Modality tabs generated here -->
+            <!-- Tabs generated here -->
         </div>
 
         <div id="results-container">
-            <!-- Content for each modality -->
+            <!-- Content grouped by modality -->
         </div>
 
     </div>
 
-<script src="classification.js"></script>
 <script>
-    const EVENT_ID = <?php echo $event['id']; ?>;
-    const API_URL = '../api/matches-api.php?action=list&event_id=' + EVENT_ID;
+    const API_URL = '../api/matches-api.php?action=list&event_id=<?php echo $event['id']; ?>';
     let currentTabId = null;
-    let currentSubTab = {};
 
     function switchTab(safeId) {
         currentTabId = safeId;
@@ -169,6 +165,7 @@ $pageTitle = 'JEM - Resultados';
 
             // Group by Modality
             const groups = matches.reduce((acc, m) => {
+                // Focus on finished and live only for results page
                 if (m.status !== 'finished' && m.status !== 'live') return acc;
                 
                 const mod = m.modality_name || 'Geral';
@@ -179,30 +176,19 @@ $pageTitle = 'JEM - Resultados';
 
             const sortedMods = Object.keys(groups).sort();
             
+            // Clean containers for redraw
             tabsContainer.innerHTML = '';
             resultsContainer.innerHTML = '';
 
+            // Handle Tab ID persistence
             const safeIds = sortedMods.map(mod => "mod_" + mod.replace(/[^a-z0-9]/gi, '_'));
             if (!currentTabId || !safeIds.includes(currentTabId)) {
                 currentTabId = safeIds[0];
             }
 
-            // Get categories for each modality
-            const modalityData = await Promise.all(sortedMods.map(async (mod, index) => {
-                const modalityId = matches.find(m => m.modality_name === mod)?.modality_id;
-                const categoriesRes = await fetch(`../api/standings-api.php?action=categories_by_modality&event_id=${EVENT_ID}&modality_id=${modalityId}`);
-                const categoriesData = await categoriesRes.json();
-                return {
-                    name: mod,
-                    id: modalityId,
-                    categories: categoriesData.success ? categoriesData.data : []
-                };
-            }));
-
             sortedMods.forEach((mod, index) => {
                 const safeId = safeIds[index];
                 const isActive = currentTabId === safeId;
-                const modData = modalityData[index];
 
                 // Create Tab
                 const btn = document.createElement('button');
@@ -217,85 +203,27 @@ $pageTitle = 'JEM - Resultados';
                 content.className = `tab-content ${isActive ? 'active' : ''}`;
                 content.id = `content-${safeId}`;
 
-                // Sub-tabs for this modality
-                const subTabsHtml = `
-                    <div class="sub-tabs-container">
-                        <button class="sub-tab-btn active" data-subtab="jogos" onclick="switchSubTab('content-${safeId}', 'jogos')">🎮 JOGOS</button>
-                        <button class="sub-tab-btn" data-subtab="classificacao" onclick="switchSubTab('content-${safeId}', 'classificacao'); loadClassificationForCategory('${safeId}', ${modData.id})">📊 CLASSIFICAÇÃO</button>
-                    </div>
-                `;
-
-                content.innerHTML = subTabsHtml;
-
-                // JOGOS sub-tab (existing functionality)
-                const jogosContent = document.createElement('div');
-                jogosContent.className = 'sub-tab-content active';
-                jogosContent.id = 'jogos';
-
+                // Separate Live and Finished in each tab
                 const liveMatches = groups[mod].filter(m => m.status === 'live');
                 const finishedMatches = groups[mod].filter(m => m.status === 'finished');
 
-                let jogosHtml = '';
+                let html = '';
                 if (liveMatches.length > 0) {
-                    jogosHtml += '<div class="section-title">AO VIVO AGORA</div>';
-                    liveMatches.forEach(m => jogosHtml += createCard(m, true));
+                    html += '<div class="section-title">AO VIVO AGORA</div>';
+                    liveMatches.forEach(m => html += createCard(m, true));
                 }
 
                 if (finishedMatches.length > 0) {
-                    jogosHtml += '<div class="section-title">RESULTADOS RECENTES</div>';
-                    finishedMatches.forEach(m => jogosHtml += createCard(m, false));
+                    html += '<div class="section-title">RESULTADOS RECENTES</div>';
+                    finishedMatches.forEach(m => html += createCard(m, false));
                 }
 
-                jogosContent.innerHTML = jogosHtml;
-                content.appendChild(jogosContent);
-
-                // CLASSIFICAÇÃO sub-tab
-                const classContent = document.createElement('div');
-                classContent.className = 'sub-tab-content';
-                classContent.id = 'classificacao';
-                
-                // Category selector + classification content
-                let classHtml = '<div style="margin-bottom: 1.5rem;">';
-                classHtml += '<label style="display: block; margin-bottom: 0.5rem; color: #94a3b8; font-size: 0.9rem;">Selecione a Categoria:</label>';
-                classHtml += `<select id="category-select-${safeId}" class="form-select" style="width: 100%; max-width: 300px; padding: 0.75rem; background: var(--card); color: var(--text); border: 1px solid #334155; border-radius: 8px; font-size: 0.9rem;" onchange="loadClassificationData(${EVENT_ID}, ${modData.id}, this.value)">`;
-                classHtml += '<option value="">Escolha uma categoria...</option>';
-                modData.categories.forEach(cat => {
-                    classHtml += `<option value="${cat.id}">${cat.name}</option>`;
-                });
-                classHtml += '</select></div>';
-                
-                // Sub-sub-tabs for classification
-                classHtml += `
-                    <div class="sub-tabs-container" style="display: none;" id="classification-tabs-${safeId}">
-                        <button class="sub-tab-btn active" data-subtab="group-standings" onclick="switchSubTab('classification-content-${safeId}', 'group-standings')">Fase de Grupos</button>
-                        <button class="sub-tab-btn" data-subtab="knockout-bracket" onclick="switchSubTab('classification-content-${safeId}', 'knockout-bracket')">Eliminatórias</button>
-                    </div>
-                    <div id="classification-content-${safeId}">
-                        <div id="group-standings" class="sub-tab-content active">
-                            <div id="group-standings-content"></div>
-                        </div>
-                        <div id="knockout-bracket" class="sub-tab-content">
-                            <div id="knockout-bracket-content"></div>
-                        </div>
-                    </div>
-                `;
-                
-                classContent.innerHTML = classHtml;
-                content.appendChild(classContent);
-
+                content.innerHTML = html;
                 resultsContainer.appendChild(content);
             });
             
         } catch(e) {
             console.error('Err', e);
-        }
-    }
-
-    function loadClassificationForCategory(safeId, modalityId) {
-        const select = document.getElementById(`category-select-${safeId}`);
-        if (select && select.value) {
-            document.getElementById(`classification-tabs-${safeId}`).style.display = 'flex';
-            loadClassificationData(EVENT_ID, modalityId, select.value);
         }
     }
 

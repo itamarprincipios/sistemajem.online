@@ -1,0 +1,221 @@
+/* Sub-tabs Styles */
+.sub-tabs-container {
+    display: flex;
+    gap: 0.5rem;
+    margin: 1.5rem 0 1rem 0;
+    border-bottom: 2px solid #334155;
+    padding-bottom: 0;
+}
+
+.sub-tab-btn {
+    background: transparent;
+    color: #94a3b8;
+    border: none;
+    border-bottom: 3px solid transparent;
+    padding: 0.75rem 1.25rem;
+    cursor: pointer;
+    font-weight: 600;
+    white-space: nowrap;
+    transition: all 0.2s;
+    font-size: 0.85rem;
+}
+
+.sub-tab-btn.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+}
+
+.sub-tab-btn:hover {
+    color: #e2e8f0;
+}
+
+/* Standings Table */
+.standings-container {
+    margin: 2rem 0;
+}
+
+.group-section {
+    margin-bottom: 2.5rem;
+}
+
+.group-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #334155;
+}
+
+.standings-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--card);
+    border-radius: 12px;
+    overflow: hidden;
+    font-size: 0.9rem;
+}
+
+.standings-table thead {
+    background: #334155;
+}
+
+.standings-table th {
+    padding: 0.75rem 0.5rem;
+    text-align: left;
+    font-weight: 600;
+    color: #e2e8f0;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.standings-table th:first-child {
+    text-align: center;
+    width: 40px;
+}
+
+.standings-table td {
+    padding: 0.75rem 0.5rem;
+    border-top: 1px solid #334155;
+    color: #e2e8f0;
+}
+
+.standings-table td:first-child {
+    text-align: center;
+    font-weight: 700;
+    color: #94a3b8;
+}
+
+.standings-table tr.qualified {
+    background: rgba(16, 185, 129, 0.15);
+    border-left: 3px solid var(--primary);
+}
+
+.standings-table tr.qualified td:first-child {
+    color: var(--primary);
+}
+
+.team-name {
+    font-weight: 600;
+}
+
+.standings-table td.points {
+    font-weight: 700;
+    color: var(--primary);
+    font-size: 1rem;
+}
+
+/* Knockout Bracket */
+.bracket-container {
+    margin: 2rem 0;
+}
+
+.bracket-phase {
+    margin-bottom: 3rem;
+}
+
+.bracket-phase-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 1.5rem;
+    text-align: center;
+}
+
+.bracket-matches {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+.bracket-match {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 1rem;
+    border: 1px solid #334155;
+}
+
+.bracket-match-info {
+    text-align: center;
+    font-size: 0.75rem;
+    color: #64748b;
+    margin-bottom: 0.75rem;
+}
+
+.bracket-teams {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.bracket-team {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    background: #0f172a;
+    border-radius: 8px;
+}
+
+.bracket-team.winner {
+    background: rgba(16, 185, 129, 0.15);
+    border: 1px solid var(--primary);
+}
+
+.bracket-team-name {
+    font-weight: 600;
+    color: #e2e8f0;
+    flex: 1;
+}
+
+.bracket-score {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #e2e8f0;
+    min-width: 40px;
+    text-align: center;
+}
+
+.bracket-vs {
+    text-align: center;
+    color: #475569;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin: 0.25rem 0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .standings-table {
+        font-size: 0.75rem;
+    }
+    
+    .standings-table th,
+    .standings-table td {
+        padding: 0.5rem 0.25rem;
+    }
+    
+    .bracket-matches {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Loading State */
+.loading-spinner {
+    text-align: center;
+    padding: 3rem;
+    color: #64748b;
+}
+
+.loading-spinner::after {
+    content: "⚽";
+    font-size: 3rem;
+    display: block;
+    animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
