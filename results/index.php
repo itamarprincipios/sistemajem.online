@@ -163,6 +163,33 @@ if (!$event) {
                     const status = m.status === 'live' ? 'live' : (m.status === 'finished' ? 'finished' : 'scheduled');
                     const statusText = status === 'live' ? 'Ao Vivo' : (status === 'finished' ? 'Encerrado' : 'Agendado');
                     
+                    // Clean school names
+                    const cleanName = (name) => {
+                        if (!name) return 'TBD';
+                        return name
+                            .replace(/^ESCOLA MUNICIPAL\s+/i, '')
+                            .replace(/^ESCOLA\s+/i, '')
+                            .replace(/^MUNICIPAL\s+/i, '');
+                    };
+                    
+                    const teamA = cleanName(m.team_a_name);
+                    const teamB = cleanName(m.team_b_name);
+                    
+                    // Determine winner/draw for finished matches
+                    let teamAStyle = '';
+                    let teamBStyle = '';
+                    if (status === 'finished') {
+                        if (m.score_team_a > m.score_team_b) {
+                            teamAStyle = 'color:#FFD700;font-weight:800;'; // Gold for winner
+                        } else if (m.score_team_b > m.score_team_a) {
+                            teamBStyle = 'color:#FFD700;font-weight:800;'; // Gold for winner
+                        } else {
+                            // Draw - both red
+                            teamAStyle = 'color:#ef4444;font-weight:800;';
+                            teamBStyle = 'color:#ef4444;font-weight:800;';
+                        }
+                    }
+                    
                     html += '<div class="card">';
                     html += `<div class="card-header">`;
                     html += `<span>📅 ${time.toLocaleDateString('pt-BR')} ${time.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'})}</span>`;
@@ -170,9 +197,9 @@ if (!$event) {
                     html += `</div>`;
                     html += `<div style="font-size:0.75rem;color:#10b981;font-weight:800;margin-bottom:0.5rem">${m.modality_name}${m.group_name ? ' • Grupo ' + m.group_name : ''}</div>`;
                     html += '<div class="teams">';
-                    html += `<div class="team"><span>${m.team_a_name || 'TBD'}</span>${status !== 'scheduled' ? '<span>'+m.score_team_a+'</span>' : ''}</div>`;
+                    html += `<div class="team"><span style="${teamAStyle}">${teamA}</span>${status !== 'scheduled' ? '<span>'+m.score_team_a+'</span>' : ''}</div>`;
                     html += '<div class="vs">VS</div>';
-                    html += `<div class="team"><span>${m.team_b_name || 'TBD'}</span>${status !== 'scheduled' ? '<span>'+m.score_team_b+'</span>' : ''}</div>`;
+                    html += `<div class="team"><span style="${teamBStyle}">${teamB}</span>${status !== 'scheduled' ? '<span>'+m.score_team_b+'</span>' : ''}</div>`;
                     html += '</div>';
                     html += `<div style="font-size:0.8rem;color:#64748b">📍 ${m.venue || 'Local TBD'}</div>`;
                     html += '</div>';
