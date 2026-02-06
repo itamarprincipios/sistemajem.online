@@ -57,6 +57,140 @@ if (!$event) {
         .vs { text-align: center; color: #475569; font-weight: 800; font-size: 0.8rem; }
         
         .empty { text-align: center; padding: 3rem; color: #64748b; }
+        
+        /* Podium Styles */
+        .podium-container {
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            gap: 2rem;
+            padding: 3rem 1rem;
+            min-height: 400px;
+        }
+        
+        .podium-place {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+            animation: slideUp 0.6s ease-out;
+        }
+        
+        .podium-place.first { order: 2; }
+        .podium-place.second { order: 1; }
+        .podium-place.third { order: 3; }
+        
+        .trophy {
+            font-size: 4rem;
+            margin-bottom: 0.5rem;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+        }
+        
+        .podium-card {
+            background: linear-gradient(135deg, #1e293b, #334155);
+            border-radius: 20px;
+            padding: 2rem 1.5rem;
+            text-align: center;
+            min-width: 200px;
+            border: 2px solid;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .podium-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+        }
+        
+        .podium-card.gold {
+            border-color: #FFD700;
+            box-shadow: 0 8px 32px rgba(255, 215, 0, 0.3);
+        }
+        .podium-card.gold::before { background: linear-gradient(90deg, #FFD700, #FFA500); }
+        
+        .podium-card.silver {
+            border-color: #C0C0C0;
+            box-shadow: 0 8px 32px rgba(192, 192, 192, 0.3);
+        }
+        .podium-card.silver::before { background: linear-gradient(90deg, #C0C0C0, #A8A8A8); }
+        
+        .podium-card.bronze {
+            border-color: #CD7F32;
+            box-shadow: 0 8px 32px rgba(205, 127, 50, 0.3);
+        }
+        .podium-card.bronze::before { background: linear-gradient(90deg, #CD7F32, #B87333); }
+        
+        .place-number {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--color-start), var(--color-end));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .podium-card.gold .place-number { --color-start: #FFD700; --color-end: #FFA500; }
+        .podium-card.silver .place-number { --color-start: #C0C0C0; --color-end: #A8A8A8; }
+        .podium-card.bronze .place-number { --color-start: #CD7F32; --color-end: #B87333; }
+        
+        .school-name {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 0.5rem;
+            line-height: 1.3;
+        }
+        
+        .podium-stats {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .stat {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        
+        .stat-label {
+            font-size: 0.7rem;
+            color: #94a3b8;
+            text-transform: uppercase;
+        }
+        
+        .stat-value {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: white;
+        }
+        
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(50px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .podium-title {
+            text-align: center;
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #FFD700, #FFA500, #FFD700);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 2rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
     </style>
 </head>
 <body>
@@ -83,9 +217,10 @@ if (!$event) {
             'quarter_final': 'QUARTAS',
             'semi_final': 'SEMIFINAL',
             'final': 'FINAL',
-            'third_place': '3º LUGAR'
+            'third_place': '3º LUGAR',
+            'podium': 'PÓDIO'
         };
-        const PHASE_ORDER = ['group_stage', 'round_of_16', 'quarter_final', 'semi_final', 'final', 'third_place'];
+        const PHASE_ORDER = ['group_stage', 'round_of_16', 'quarter_final', 'semi_final', 'final', 'third_place', 'podium'];
         
         async function load() {
             try {
@@ -154,7 +289,106 @@ if (!$event) {
             html += '<div class="subtitle">TABELA</div>';
             
             const phaseMatches = cat.matches.filter(m => m.phase === state.phase[catId]);
-            if (phaseMatches.length === 0) {
+            
+            // Special handling for podium
+            if (state.phase[catId] === 'podium') {
+                const finalMatch = cat.matches.find(m => m.phase === 'final' && m.status === 'finished');
+                const thirdPlaceMatch = cat.matches.find(m => m.phase === 'third_place' && m.status === 'finished');
+                
+                if (!finalMatch || !thirdPlaceMatch) {
+                    html += '<div class="empty">Aguardando conclusão da final e disputa de 3º lugar</div>';
+                } else {
+                    // Determine winners
+                    const champion = finalMatch.score_team_a > finalMatch.score_team_b ? 
+                        { name: finalMatch.team_a_name, id: finalMatch.team_a_id } : 
+                        { name: finalMatch.team_b_name, id: finalMatch.team_b_id };
+                    
+                    const runnerUp = finalMatch.score_team_a > finalMatch.score_team_b ? 
+                        { name: finalMatch.team_b_name, id: finalMatch.team_b_id } : 
+                        { name: finalMatch.team_a_name, id: finalMatch.team_a_id };
+                    
+                    const thirdPlace = thirdPlaceMatch.score_team_a > thirdPlaceMatch.score_team_b ? 
+                        { name: thirdPlaceMatch.team_a_name, id: thirdPlaceMatch.team_a_id } : 
+                        { name: thirdPlaceMatch.team_b_name, id: thirdPlaceMatch.team_b_id };
+                    
+                    // Clean names
+                    const cleanName = (name) => {
+                        if (!name) return 'TBD';
+                        return name
+                            .replace(/^ESCOLA MUNICIPAL\s+/i, '')
+                            .replace(/^ESCOLA\s+/i, '')
+                            .replace(/^MUNICIPAL\s+/i, '');
+                    };
+                    
+                    // Calculate stats for each team
+                    const getTeamStats = (teamId) => {
+                        const teamMatches = cat.matches.filter(m => 
+                            (m.team_a_id == teamId || m.team_b_id == teamId) && m.status === 'finished'
+                        );
+                        
+                        let wins = 0, goals = 0;
+                        teamMatches.forEach(m => {
+                            if (m.team_a_id == teamId) {
+                                goals += parseInt(m.score_team_a) || 0;
+                                if (m.score_team_a > m.score_team_b) wins++;
+                            } else {
+                                goals += parseInt(m.score_team_b) || 0;
+                                if (m.score_team_b > m.score_team_a) wins++;
+                            }
+                        });
+                        
+                        return { wins, goals };
+                    };
+                    
+                    const champStats = getTeamStats(champion.id);
+                    const runnerStats = getTeamStats(runnerUp.id);
+                    const thirdStats = getTeamStats(thirdPlace.id);
+                    
+                    html += '<h2 class="podium-title">🏆 Pódio da Categoria 🏆</h2>';
+                    html += '<div class="podium-container">';
+                    
+                    // 1st Place
+                    html += '<div class="podium-place first">';
+                    html += '<div class="trophy">🥇</div>';
+                    html += '<div class="podium-card gold">';
+                    html += '<div class="place-number">1º</div>';
+                    html += `<div class="school-name">${cleanName(champion.name)}</div>`;
+                    html += '<div class="podium-stats">';
+                    html += `<div class="stat"><span class="stat-label">Vitórias</span><span class="stat-value">${champStats.wins}</span></div>`;
+                    html += `<div class="stat"><span class="stat-label">Gols</span><span class="stat-value">${champStats.goals}</span></div>`;
+                    html += '</div>';
+                    html += '</div>';
+                    html += '</div>';
+                    
+                    // 2nd Place
+                    html += '<div class="podium-place second">';
+                    html += '<div class="trophy">🥈</div>';
+                    html += '<div class="podium-card silver">';
+                    html += '<div class="place-number">2º</div>';
+                    html += `<div class="school-name">${cleanName(runnerUp.name)}</div>`;
+                    html += '<div class="podium-stats">';
+                    html += `<div class="stat"><span class="stat-label">Vitórias</span><span class="stat-value">${runnerStats.wins}</span></div>`;
+                    html += `<div class="stat"><span class="stat-label">Gols</span><span class="stat-value">${runnerStats.goals}</span></div>`;
+                    html += '</div>';
+                    html += '</div>';
+                    html += '</div>';
+                    
+                    // 3rd Place
+                    html += '<div class="podium-place third">';
+                    html += '<div class="trophy">🥉</div>';
+                    html += '<div class="podium-card bronze">';
+                    html += '<div class="place-number">3º</div>';
+                    html += `<div class="school-name">${cleanName(thirdPlace.name)}</div>`;
+                    html += '<div class="podium-stats">';
+                    html += `<div class="stat"><span class="stat-label">Vitórias</span><span class="stat-value">${thirdStats.wins}</span></div>`;
+                    html += `<div class="stat"><span class="stat-label">Gols</span><span class="stat-value">${thirdStats.goals}</span></div>`;
+                    html += '</div>';
+                    html += '</div>';
+                    html += '</div>';
+                    
+                    html += '</div>';
+                }
+            } else if (phaseMatches.length === 0) {
                 html += '<div class="empty">Nenhum jogo nesta fase</div>';
             } else {
                 html += '<div class="grid">';
