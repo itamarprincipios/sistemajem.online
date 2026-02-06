@@ -264,19 +264,24 @@ function switchTab(safeId) {
 function switchPhase(category, direction) {
     const safeId = "cat_" + category.replace(/[^a-z0-9]/gi, '_');
     const currentPhase = currentPhases[safeId] || 'group_stage';
-    const currentIndex = PHASE_ORDER.indexOf(currentPhase);
+    
+    // Get matches for this category to determine available phases
+    const categoryMatches = allMatches.filter(m => m.category_name === category);
+    
+    // Always include group_stage, plus any phase that has matches
+    const availablePhases = PHASE_ORDER.filter(phase => 
+        phase === 'group_stage' || categoryMatches.some(m => m.phase === phase)
+    );
+    
+    const currentIndex = availablePhases.indexOf(currentPhase);
+    if (currentIndex === -1) return; // Should not happen
     
     let newIndex = currentIndex + direction;
-    if (newIndex < 0 || newIndex >= PHASE_ORDER.length) return;
+    if (newIndex < 0 || newIndex >= availablePhases.length) return;
     
-    // Check if phase has matches
-    const newPhase = PHASE_ORDER[newIndex];
-    const categoryMatches = allMatches.filter(m => m.category_name === category);
-    const phaseMatches = categoryMatches.filter(m => m.phase === newPhase);
-    
-    if (phaseMatches.length === 0 && direction > 0) return; // Can't go forward if no matches
-    
+    const newPhase = availablePhases[newIndex];
     currentPhases[safeId] = newPhase;
+    
     renderPhaseContent(category, safeId);
 }
 
@@ -290,12 +295,14 @@ function renderPhaseContent(category, safeId) {
     
     // Get available phases for this category
     const availablePhases = PHASE_ORDER.filter(phase => 
-        categoryMatches.some(m => m.phase === phase)
+        phase === 'group_stage' || categoryMatches.some(m => m.phase === phase)
     );
     
-    const currentIndex = PHASE_ORDER.indexOf(currentPhase);
-    const canGoPrev = currentIndex > 0 && availablePhases.includes(PHASE_ORDER[currentIndex - 1]);
-    const canGoNext = currentIndex < PHASE_ORDER.length - 1 && availablePhases.includes(PHASE_ORDER[currentIndex + 1]);
+    const currentIndex = availablePhases.indexOf(currentPhase);
+    
+    // Navigation Logic on Available Phases
+    const canGoPrev = currentIndex > 0;
+    const canGoNext = currentIndex < availablePhases.length - 1;
     
     contentDiv.innerHTML = `
         <div class="phase-navigation">
