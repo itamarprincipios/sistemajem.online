@@ -137,24 +137,29 @@ function checkPhaseComplete($eventId, $modalityId, $categoryId, $phase) {
  * Generate Round of 16 from group standings
  * Applies FIFA-style bracket: 1A vs 2B, 1B vs 2A, etc.
  */
-function generateRoundOf16FromGroups($eventId, $modalityId, $categoryId) {
+/**
+ * Generate First Knockout Round from group standings
+ * Automatically determines if it should be Round of 16, Quarter Final, or Semi Final
+ * based on the number of qualified teams/matches.
+ */
+function generateFirstKnockoutPhase($eventId, $modalityId, $categoryId) {
     // Check if groups are complete
     if (!checkPhaseComplete($eventId, $modalityId, $categoryId, 'group_stage')) {
         throw new Exception("Fase de grupos ainda não foi concluída");
     }
     
-    // Check if Round of 16 already exists
+    // Check if any knockout phase already exists
     $existing = queryOne("
         SELECT COUNT(*) as count 
         FROM matches 
         WHERE competition_event_id = ? 
         AND modality_id = ? 
         AND category_id = ? 
-        AND phase = 'round_of_16'
+        AND phase IN ('round_of_16', 'quarter_final', 'semi_final', 'final')
     ", [$eventId, $modalityId, $categoryId]);
     
     if ($existing['count'] > 0) {
-        throw new Exception("Oitavas de final já foram geradas");
+        throw new Exception("Fase de mata-mata já foi gerada");
     }
     
     // Get standings
@@ -184,6 +189,20 @@ function generateRoundOf16FromGroups($eventId, $modalityId, $categoryId) {
             'team_b' => $secondPlace[$groupB]['team_id']
         ];
     }
+
+    if (empty($matchups)) {
+        throw new Exception("Não há times suficientes para gerar mata-mata");
+    }
+
+    // Determine Phase Name based on number of matches
+    $count = count($matchups);
+    $phaseName = 'round_of_16'; // Default (8 matches)
+    
+    if ($count <= 2) {
+        $phaseName = 'semi_final';
+    } elseif ($count <= 4) {
+        $phaseName = 'quarter_final';
+    }
     
     // Insert matches
     $defaultTime = date('Y-m-d 08:00:00', strtotime('+1 day'));
@@ -193,8 +212,8 @@ function generateRoundOf16FromGroups($eventId, $modalityId, $categoryId) {
         execute("
             INSERT INTO matches 
             (competition_event_id, modality_id, category_id, phase, team_a_id, team_b_id, scheduled_time, venue, status)
-            VALUES (?, ?, ?, 'round_of_16', ?, ?, ?, 'A definir', 'scheduled')
-        ", [$eventId, $modalityId, $categoryId, $matchup['team_a'], $matchup['team_b'], $defaultTime]);
+            VALUES (?, ?, ?, ?, ?, ?, ?, 'A definir', 'scheduled')
+        ", [$eventId, $modalityId, $categoryId, $phaseName, $matchup['team_a'], $matchup['team_b'], $defaultTime]);
         
         $generatedCount++;
     }
@@ -337,7 +356,7 @@ function checkAndGenerateNextPhase($matchId) {
         // Check if groups are complete, then generate Round of 16
         if (checkPhaseComplete($eventId, $modalityId, $categoryId, 'group_stage')) {
             try {
-                return generateRoundOf16FromGroups($eventId, $modalityId, $categoryId);
+                return generateFirstKnockoutPhase($eventId, $modalityId, $categoryId);
             } catch (Exception $e) {
                 error_log("Auto-generation failed: " . $e->getMessage());
                 return 0;

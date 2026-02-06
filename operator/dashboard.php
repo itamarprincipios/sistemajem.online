@@ -230,10 +230,10 @@ let currentPhases = {}; // Track current phase for each category
 // Phase mapping
 const PHASE_NAMES = {
     'group_stage': 'FASE DE GRUPOS',
-    'round_of_16': 'PRIMEIRA FASE',
-    'quarter_final': 'SEGUNDA FASE',
-    'semi_final': 'TERCEIRA FASE',
-    'final': 'QUARTA FASE',
+    'round_of_16': 'OITAVAS DE FINAL',
+    'quarter_final': 'QUARTAS DE FINAL',
+    'semi_final': 'SEMIFINAL',
+    'final': 'FINAL',
     'third_place': 'DISPUTA DE 3º LUGAR'
 };
 
