@@ -3,6 +3,7 @@ ob_start(); // Buffer at VERY top
 require_once '../config/config.php';
 require_once '../includes/auth.php';
 require_once '../includes/db.php';
+require_once '../includes/knockout_generator.php'; // For automatic phase generation
 
 header('Content-Type: application/json');
 
@@ -45,6 +46,16 @@ try {
         $sql .= " WHERE id = ?";
         
         if (execute($sql, [$status, $matchId])) {
+            // Automatic phase generation when match is finished
+            if ($status === 'finished') {
+                try {
+                    autoGenerateNextPhase($matchId);
+                } catch (Exception $e) {
+                    // Log error but don't fail the request
+                    error_log("Auto-generation failed: " . $e->getMessage());
+                }
+            }
+            
             echo json_encode(['success' => true]);
         } else {
             echo json_encode(['success' => false, 'error' => 'Erro ao atualizar banco']);

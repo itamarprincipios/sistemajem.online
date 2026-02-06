@@ -160,9 +160,6 @@ function getQualifiedTeams($eventId, $modalityId, $categoryId, $gender = null, $
 }
 
 /**
- * Check if a phase is complete (all matches finished)
- */
-function isPhaseComplete($eventId, $modalityId, $categoryId, $phase, $gender = null) {
     $sql = "SELECT COUNT(*) as total, 
             SUM(CASE WHEN status = 'finished' THEN 1 ELSE 0 END) as finished
             FROM matches 
@@ -363,4 +360,110 @@ function generateFinal($eventId, $modalityId, $categoryId, $gender, $baseDateTim
     ]);
     
     return 1;
+}
+
+
+/**
+ * Automatically generate next knockout phase when current phase is complete
+ * Called after a match is finished
+ */
+function autoGenerateNextPhase($matchId) {
+    // Get match details
+    $match = queryOne("
+        SELECT m.competition_event_id, m.modality_id, m.category_id, m.phase, t.gender 
+        FROM matches m
+        LEFT JOIN competition_teams t ON m.team_a_id = t.id
+        WHERE m.id = ?
+    ", [$matchId]);
+    
+    if (!$match) return;
+    
+    // Only process knockout phases (not group stage)
+    if ($match['phase'] === 'group_stage') return;
+    
+    $eventId = $match['competition_event_id'];
+    $modalityId = $match['modality_id'];
+    $categoryId = $match['category_id'];
+    $currentPhase = $match['phase'];
+    $gender = $match['gender'];
+    
+    // Check if all matches in this phase are finished
+    if (!isPhaseComplete($eventId, $modalityId, $categoryId, $currentPhase, $gender)) {
+        return; // Phase not complete yet
+    }
+    
+    // Define phase progression
+    $phaseProgression = [
+        'round_of_16' => 'quarter_final',
+        'quarter_final' => 'semi_final',
+        'semi_final' => ['final', 'third_place'],
+        'third_place' => null,
+        'final' => null
+    ];
+    
+    $nextPhase = $phaseProgression[$currentPhase] ?? null;
+    if (!$nextPhase) return;
+    
+    // Check if next phase already exists
+    $phasesToCheck = is_array($nextPhase) ? $nextPhase : [$nextPhase];
+    foreach ($phasesToCheck as $phaseToCheck) {
+        $existing = queryOne("
+            SELECT COUNT(*) as count 
+            FROM matches 
+            WHERE competition_event_id = ? 
+            AND modality_id = ? 
+            AND category_id = ? 
+            AND phase = ?
+        ", [$eventId, $modalityId, $categoryId, $phaseToCheck]);
+        
+        if ($existing['count'] > 0) {
+            return; // Already generated
+        }
+    }
+    
+    // Get winners
+    $winners = query("
+        SELECT winner_team_id
+        FROM matches 
+        WHERE competition_event_id = ? 
+        AND modality_id = ? 
+        AND category_id = ? 
+        AND phase = ? 
+        AND status = 'finished'
+        ORDER BY id ASC
+    ", [$eventId, $modalityId, $categoryId, $currentPhase]);
+    
+    if (empty($winners)) return;
+    
+    $winnerTeamIds = array_column($winners, 'winner_team_id');
+    $defaultTime = date('Y-m-d H:i:s', strtotime('+1 day 08:00:00'));
+    $venue = 'A definir';
+    $generatedCount = 0;
+    
+    // Generate matches
+    if ($currentPhase === 'semi_final') {
+        // Final + 3rd Place
+        if (count($winnerTeamIds) >= 2) {
+            execute("INSERT INTO matches (competition_event_id, modality_id, category_id, team_a_id, team_b_id, phase, scheduled_time, venue, status) VALUES (?, ?, ?, ?, ?, 'final', ?, ?, 'scheduled')", [$eventId, $modalityId, $categoryId, $winnerTeamIds[0], $winnerTeamIds[1], $defaultTime, $venue]);
+            $generatedCount++;
+            
+            $losers = query("SELECT CASE WHEN winner_team_id = team_a_id THEN team_b_id ELSE team_a_id END as loser_team_id FROM matches WHERE competition_event_id = ? AND modality_id = ? AND category_id = ? AND phase = 'semi_final' AND status = 'finished' ORDER BY id ASC", [$eventId, $modalityId, $categoryId]);
+            
+            if (count($losers) >= 2) {
+                execute("INSERT INTO matches (competition_event_id, modality_id, category_id, team_a_id, team_b_id, phase, scheduled_time, venue, status) VALUES (?, ?, ?, ?, ?, 'third_place', ?, ?, 'scheduled')", [$eventId, $modalityId, $categoryId, $losers[0]['loser_team_id'], $losers[1]['loser_team_id'], $defaultTime, $venue]);
+                $generatedCount++;
+            }
+        }
+    } else {
+        for ($i = 0; $i < count($winnerTeamIds) - 1; $i += 2) {
+            execute("INSERT INTO matches (competition_event_id, modality_id, category_id, team_a_id, team_b_id, phase, scheduled_time, venue, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'scheduled')", [$eventId, $modalityId, $categoryId, $winnerTeamIds[$i], $winnerTeamIds[$i + 1], $nextPhase, $defaultTime, $venue]);
+            $generatedCount++;
+        }
+    }
+    
+    if ($generatedCount > 0) {
+        execute("INSERT INTO audit_logs (user_id, action, entity, entity_id, changes) VALUES (1, 'AUTO_KNOCKOUT_GENERATE', 'match', ?, ?)", [$matchId, "Auto-generated $generatedCount matches for next phase"]);
+    }
+    
+    return $generatedCount;
 }
