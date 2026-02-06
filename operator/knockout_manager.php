@@ -62,6 +62,18 @@ $categories = query("SELECT id, name FROM categories ORDER BY name");
                     </select>
                 </div>
                 
+                <div class="form-group">
+                    <label class="form-label">Fase (opcional)</label>
+                    <select id="phaseSelect" class="form-select">
+                        <option value="">Todas as fases</option>
+                        <option value="round_of_16">Oitavas de Final</option>
+                        <option value="quarter_final">Quartas de Final</option>
+                        <option value="semi_final">Semifinal</option>
+                        <option value="third_place">3º Lugar</option>
+                        <option value="final">Final</option>
+                    </select>
+                </div>
+                
                 <button type="submit" class="btn btn-primary" style="height: 42px;">🔍 Carregar</button>
             </form>
         </div>
