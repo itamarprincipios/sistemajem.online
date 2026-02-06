@@ -200,6 +200,11 @@ function switchTab(safeId) {
 // Add this JavaScript code to replace the existing renderGroups() function
 
 function renderGroups() {
+// Phase-First Layout Implementation
+// Main tabs: PHASES (Grupos, Oitavas, Quartas, Semi, Final)
+// Content: Matches grouped by CATEGORY within each phase
+
+function renderGroups() {
     const container = document.getElementById('matchesContainer');
     const tabsContainer = document.getElementById('tabsContainer');
     const countDisplay = document.getElementById('matchCount');
@@ -225,79 +230,60 @@ function renderGroups() {
         'final': '🏅 Final'
     };
 
-    // Group by Category first, then by Phase
-    const categoryGroups = {};
+    // Group by PHASE first, then by CATEGORY
+    const phaseGroups = {};
     allMatches.forEach(m => {
-        const cat = m.category_name || 'Sem Categoria';
         const phase = m.phase || 'group_stage';
+        const cat = m.category_name || 'Sem Categoria';
 
-        if (!categoryGroups[cat]) categoryGroups[cat] = {};
-        if (!categoryGroups[cat][phase]) categoryGroups[cat][phase] = [];
-        categoryGroups[cat][phase].push(m);
+        if (!phaseGroups[phase]) phaseGroups[phase] = {};
+        if (!phaseGroups[phase][cat]) phaseGroups[phase][cat] = [];
+        phaseGroups[phase][cat].push(m);
     });
 
-    const sortedCats = Object.keys(categoryGroups).sort();
+    // Get all phases that have matches
+    const availablePhases = phaseOrder.filter(phase => phaseGroups[phase]);
 
-    // Ensure currentTabId is still valid or pick first
-    const safeIds = sortedCats.map(cat => "cat_" + cat.replace(/[^a-z0-9]/gi, '_'));
+    // Ensure currentTabId is valid or pick first
+    const safeIds = availablePhases.map(phase => "phase_" + phase);
     if (!currentTabId || !safeIds.includes(currentTabId)) {
         currentTabId = safeIds[0];
     }
 
-    sortedCats.forEach((cat, index) => {
+    // Create Phase Tabs (Main Navigation)
+    availablePhases.forEach((phase, index) => {
         const safeId = safeIds[index];
         const isActive = currentTabId === safeId;
 
-        // Create Category Tab Button
+        // Create Phase Tab Button
         const tabBtn = document.createElement('button');
         tabBtn.className = `tab-btn ${isActive ? 'active' : ''}`;
-        tabBtn.innerHTML = `🏆 ${cat}`;
+        tabBtn.innerHTML = phaseNames[phase] || phase;
         tabBtn.setAttribute('data-id', safeId);
         tabBtn.onclick = () => switchTab(safeId);
         tabsContainer.appendChild(tabBtn);
 
-        // Create Category Content Section
+        // Create Phase Content Section
         const section = document.createElement('div');
         section.className = `tab-content ${isActive ? 'active' : ''}`;
         section.id = `content-${safeId}`;
 
-        // Get phases for this category
-        const phases = Object.keys(categoryGroups[cat]).sort((a, b) => {
-            return phaseOrder.indexOf(a) - phaseOrder.indexOf(b);
-        });
+        // Get categories for this phase, sorted alphabetically
+        const categories = Object.keys(phaseGroups[phase]).sort();
 
-        // Create Phase Tabs
-        const phaseTabsDiv = document.createElement('div');
-        phaseTabsDiv.className = 'phase-tabs';
+        // Create sections for each category
+        categories.forEach(cat => {
+            // Category Header
+            const catHeader = document.createElement('div');
+            catHeader.className = 'category-title';
+            catHeader.innerHTML = `🏆 ${cat}`;
+            section.appendChild(catHeader);
 
-        phases.forEach((phase, phaseIndex) => {
-            const phaseBtn = document.createElement('button');
-            phaseBtn.className = `phase-tab-btn ${phaseIndex === 0 ? 'active' : ''}`;
-            phaseBtn.innerHTML = phaseNames[phase] || phase;
-            phaseBtn.setAttribute('data-phase', phase);
-            phaseBtn.onclick = (e) => {
-                e.stopPropagation();
-                // Switch phase tabs within this category
-                section.querySelectorAll('.phase-tab-btn').forEach(b => b.classList.remove('active'));
-                section.querySelectorAll('.phase-content').forEach(c => c.classList.remove('active'));
-                phaseBtn.classList.add('active');
-                section.querySelector(`.phase-content[data-phase="${phase}"]`).classList.add('active');
-            };
-            phaseTabsDiv.appendChild(phaseBtn);
-        });
-
-        section.appendChild(phaseTabsDiv);
-
-        // Create Phase Contents
-        phases.forEach((phase, phaseIndex) => {
-            const phaseContent = document.createElement('div');
-            phaseContent.className = `phase-content ${phaseIndex === 0 ? 'active' : ''}`;
-            phaseContent.setAttribute('data-phase', phase);
-
+            // Matches Grid for this category
             const grid = document.createElement('div');
             grid.className = 'matches-grid';
 
-            categoryGroups[cat][phase].forEach(m => {
+            phaseGroups[phase][cat].forEach(m => {
                 const isLive = m.status === 'live';
                 const isFinished = m.status === 'finished';
                 const time = new Date(m.scheduled_time);
@@ -340,14 +326,17 @@ function renderGroups() {
                 grid.appendChild(card);
             });
 
-            phaseContent.appendChild(grid);
-            section.appendChild(phaseContent);
+            section.appendChild(grid);
+
+            // Add spacing between categories
+            const spacer = document.createElement('div');
+            spacer.style.marginBottom = '3rem';
+            section.appendChild(spacer);
         });
 
         container.appendChild(section);
     });
 }
-
 // Modal Logic
 function openModal(id) {
     const match = allMatches.find(m => m.id == id);
