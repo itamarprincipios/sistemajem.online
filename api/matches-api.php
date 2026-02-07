@@ -26,6 +26,7 @@ try {
                            t1.school_name_snapshot as team_a_name, 
                            t2.school_name_snapshot as team_b_name,
                            t1.group_name,
+                           t1.gender,
                            mdl.name as modality_name,
                            cat.name as category_name,
                            ce.name as event_name

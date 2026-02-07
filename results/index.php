@@ -33,6 +33,9 @@ if (!$event) {
         .category-tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; padding: 0.5rem; background: rgba(0,0,0,0.2); border-radius: 12px; overflow-x: auto; }
         .cat-btn { background: transparent; color: #94a3b8; border: 1px solid transparent; padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.85rem; }
         .cat-btn.active { background: rgba(16, 185, 129, 0.2); color: #10b981; border-color: #10b981; }
+        .cat-btn.active.fem { background: rgba(236, 72, 153, 0.2); color: #ec4899; border-color: #ec4899; }
+        .cat-btn.fem { color: #f472b6; }
+        .cat-btn.fem:hover { color: #ec4899; }
         
         .phase-nav { display: flex; align-items: center; justify-content: center; gap: 2rem; margin: 2rem 0; padding: 1.5rem; background: rgba(0,0,0,0.3); border-radius: 12px; }
         .phase-nav button { background: #1e293b; border: 1px solid #334155; color: #94a3b8; padding: 0.75rem 1.5rem; border-radius: 8px; cursor: pointer; font-size: 1.2rem; font-weight: 800; }
@@ -246,10 +249,20 @@ if (!$event) {
             const mods = {};
             matches.forEach(m => {
                 const mid = m.modality_id;
+                const gender = m.gender || 'M';
                 if (!mods[mid]) mods[mid] = { name: m.modality_name, cats: {} };
-                const cid = m.category_id;
-                if (!mods[mid].cats[cid]) mods[mid].cats[cid] = { name: m.category_name, matches: [] };
-                mods[mid].cats[cid].matches.push(m);
+                
+                // key is category_id + gender
+                const catKey = m.category_id + '_' + gender;
+                if (!mods[mid].cats[catKey]) {
+                    mods[mid].cats[catKey] = { 
+                        id: m.category_id,
+                        name: m.category_name, 
+                        gender: gender,
+                        matches: [] 
+                    };
+                }
+                mods[mid].cats[catKey].matches.push(m);
             });
             
             const modIds = Object.keys(mods);
@@ -262,19 +275,25 @@ if (!$event) {
             
             // Render active modality content
             const mod = mods[state.modality];
-            const catIds = Object.keys(mod.cats);
-            if (!state.category[state.modality]) state.category[state.modality] = catIds[0];
+            const catKeys = Object.keys(mod.cats);
+            if (!state.category[state.modality]) state.category[state.modality] = catKeys[0];
             
             let html = '<div class="category-tabs">';
-            html += catIds.map(cid => 
-                `<button class="cat-btn ${state.category[state.modality] == cid ? 'active' : ''}" onclick="switchCat('${cid}')">🏆 ${mod.cats[cid].name}</button>`
-            ).join('');
+            html += catKeys.map(key => {
+                const cat = mod.cats[key];
+                const isFem = cat.gender === 'F';
+                const label = isFem ? cat.name + ' Fem' : cat.name;
+                const activeClass = state.category[state.modality] == key ? 'active' : '';
+                const femClass = isFem ? 'fem' : '';
+                
+                return `<button class="cat-btn ${activeClass} ${femClass}" onclick="switchCat('${key}')">🏆 ${label}</button>`;
+            }).join('');
             html += '</div>';
             
             // Render active category content
-            const catId = state.category[state.modality];
-            const cat = mod.cats[catId];
-            if (!state.phase[catId]) state.phase[catId] = 'group_stage';
+            const catKey = state.category[state.modality];
+            const cat = mod.cats[catKey];
+            if (!state.phase[catKey]) state.phase[catKey] = 'group_stage';
             
             // Build available phases
             let phases = PHASE_ORDER.filter(p => {
@@ -288,21 +307,21 @@ if (!$event) {
                 return cat.matches.some(m => m.phase === p);
             });
             
-            const phaseIdx = phases.indexOf(state.phase[catId]);
+            const phaseIdx = phases.indexOf(state.phase[catKey]);
             const canPrev = phaseIdx > 0;
             const canNext = phaseIdx < phases.length - 1;
             
             html += '<div class="phase-nav">';
-            html += `<button ${!canPrev ? 'disabled' : ''} onclick="switchPhase('${catId}', -1)">←</button>`;
-            html += `<div class="phase-title">${PHASES[state.phase[catId]]}</div>`;
-            html += `<button ${!canNext ? 'disabled' : ''} onclick="switchPhase('${catId}', 1)">→</button>`;
+            html += `<button ${!canPrev ? 'disabled' : ''} onclick="switchPhase('${catKey}', -1)">←</button>`;
+            html += `<div class="phase-title">${PHASES[state.phase[catKey]]}</div>`;
+            html += `<button ${!canNext ? 'disabled' : ''} onclick="switchPhase('${catKey}', 1)">→</button>`;
             html += '</div>';
             html += '<div class="subtitle">TABELA</div>';
             
-            const phaseMatches = cat.matches.filter(m => m.phase === state.phase[catId]);
+            const phaseMatches = cat.matches.filter(m => m.phase === state.phase[catKey]);
             
             // Special handling for podium
-            if (state.phase[catId] === 'podium') {
+            if (state.phase[catKey] === 'podium') {
                 const finalMatch = cat.matches.find(m => m.phase === 'final' && m.status === 'finished');
                 const thirdPlaceMatch = cat.matches.find(m => m.phase === 'third_place' && m.status === 'finished');
                 
@@ -465,24 +484,29 @@ if (!$event) {
             render();
         }
         
-        function switchPhase(catId, dir) {
-            const cat = matches.filter(m => m.category_id == catId);
+        function switchPhase(key, dir) {
+            const mod = matches.filter(m => m.modality_id == state.modality);
+            
+            // Extract category_id and gender from key
+            const [catId, gender] = key.split('_');
+            
+            const catMatches = mod.filter(m => m.category_id == catId && (m.gender || 'M') == gender);
             
             // Build available phases (same logic as render)
             const phases = PHASE_ORDER.filter(p => {
                 if (p === 'group_stage') return true;
                 if (p === 'podium') {
-                    const finalMatch = cat.find(m => m.phase === 'final' && m.status === 'finished');
-                    const thirdMatch = cat.find(m => m.phase === 'third_place' && m.status === 'finished');
+                    const finalMatch = catMatches.find(m => m.phase === 'final' && m.status === 'finished');
+                    const thirdMatch = catMatches.find(m => m.phase === 'third_place' && m.status === 'finished');
                     return finalMatch && thirdMatch;
                 }
-                return cat.some(m => m.phase === p);
+                return catMatches.some(m => m.phase === p);
             });
             
-            const idx = phases.indexOf(state.phase[catId]);
+            const idx = phases.indexOf(state.phase[key]);
             const newIdx = idx + dir;
             if (newIdx >= 0 && newIdx < phases.length) {
-                state.phase[catId] = phases[newIdx];
+                state.phase[key] = phases[newIdx];
                 render();
             }
         }

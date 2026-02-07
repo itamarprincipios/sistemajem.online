@@ -69,6 +69,8 @@ $pageTitle = 'Painel do Operador';
             color: white;
             border-color: #10b981;
         }
+        .tab-btn.fem { color: #f472b6; }
+        .tab-btn.active.fem { background: #ec4899; color: white; border-color: #ec4899; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
         
@@ -252,21 +254,25 @@ async function loadMatches() {
     }
 }
 
-function switchTab(safeId) {
-    currentTabId = safeId;
+function switchTab(key) {
+    currentTabId = key;
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
     
-    document.querySelector(`.tab-btn[data-id="${safeId}"]`).classList.add('active');
-    document.getElementById(`content-${safeId}`).classList.add('active');
+    const btn = document.querySelector(`.tab-btn[data-id="${key}"]`);
+    const content = document.getElementById(`content-${key}`);
+    
+    if (btn) btn.classList.add('active');
+    if (content) {
+        content.classList.add('active');
+        renderPhaseContent(key);
+    }
 }
 
-function switchPhase(category, direction) {
-    const safeId = "cat_" + category.replace(/[^a-z0-9]/gi, '_');
-    const currentPhase = currentPhases[safeId] || 'group_stage';
-    
-    // Get matches for this category to determine available phases
-    const categoryMatches = allMatches.filter(m => m.category_name === category);
+function switchPhase(key, direction) {
+    const currentPhase = currentPhases[key] || 'group_stage';
+    const [catId, gender] = key.split('_');
+    const categoryMatches = allMatches.filter(m => m.category_id == catId && (m.gender || 'M') == gender);
     
     // Always include group_stage, plus any phase that has matches
     const availablePhases = PHASE_ORDER.filter(phase => 
@@ -274,44 +280,40 @@ function switchPhase(category, direction) {
     );
     
     const currentIndex = availablePhases.indexOf(currentPhase);
-    if (currentIndex === -1) return; // Should not happen
+    if (currentIndex === -1) return; 
     
-    let newIndex = currentIndex + direction;
+    const newIndex = currentIndex + direction;
     if (newIndex < 0 || newIndex >= availablePhases.length) return;
     
-    const newPhase = availablePhases[newIndex];
-    currentPhases[safeId] = newPhase;
-    
-    renderPhaseContent(category, safeId);
+    currentPhases[key] = availablePhases[newIndex];
+    renderPhaseContent(key);
 }
 
-function renderPhaseContent(category, safeId) {
-    const currentPhase = currentPhases[safeId] || 'group_stage';
-    const categoryMatches = allMatches.filter(m => m.category_name === category);
+function renderPhaseContent(key) {
+    const currentPhase = currentPhases[key] || 'group_stage';
+    const [catId, gender] = key.split('_');
+    const categoryMatches = allMatches.filter(m => m.category_id == catId && (m.gender || 'M') == gender);
     const phaseMatches = categoryMatches.filter(m => m.phase === currentPhase);
     
-    const contentDiv = document.getElementById(`content-${safeId}`);
+    const contentDiv = document.getElementById(`content-${key}`);
     if (!contentDiv) return;
     
-    // Get available phases for this category
     const availablePhases = PHASE_ORDER.filter(phase => 
         phase === 'group_stage' || categoryMatches.some(m => m.phase === phase)
     );
-    
     const currentIndex = availablePhases.indexOf(currentPhase);
     
-    // Navigation Logic on Available Phases
     const canGoPrev = currentIndex > 0;
     const canGoNext = currentIndex < availablePhases.length - 1;
     
     contentDiv.innerHTML = `
         <div class="phase-navigation">
-            <button class="phase-nav-btn" onclick="switchPhase('${category}', -1)" ${!canGoPrev ? 'disabled' : ''}>←</button>
+            <button class="phase-nav-btn" onclick="switchPhase('${key}', -1)" ${!canGoPrev ? 'disabled' : ''}>←</button>
             <h2 class="phase-title">${PHASE_NAMES[currentPhase] || currentPhase.toUpperCase()}</h2>
-            <button class="phase-nav-btn" onclick="switchPhase('${category}', 1)" ${!canGoNext ? 'disabled' : ''}>→</button>
+            <button class="phase-nav-btn" onclick="switchPhase('${key}', 1)" ${!canGoNext ? 'disabled' : ''}>→</button>
         </div>
         <div class="phase-subtitle">TABELA</div>
-        <div class="matches-grid" id="grid-${safeId}"></div>
+        <div class="matches-grid" id="grid-${key}"></div>
     `;
     
     const grid = document.getElementById(`grid-${safeId}`);
@@ -380,48 +382,60 @@ function renderGroups() {
         return;
     }
 
-    // Grouping by Category
+    // Grouping by Category and Gender
     const groups = allMatches.reduce((acc, m) => {
-        const cat = m.category_name || 'Sem Categoria';
-        if (!acc[cat]) acc[cat] = [];
-        acc[cat].push(m);
+        const catName = m.category_name || 'Sem Categoria';
+        const gender = m.gender || 'M';
+        const catKey = m.category_id + '_' + gender;
+        
+        if (!acc[catKey]) {
+            acc[catKey] = {
+                name: catName,
+                gender: gender,
+                matches: []
+            };
+        }
+        acc[catKey].matches.push(m);
         return acc;
     }, {});
 
-    const sortedCats = Object.keys(groups).sort();
+    const sortedKeys = Object.keys(groups).sort((a, b) => {
+        return groups[a].name.localeCompare(groups[b].name) || groups[a].gender.localeCompare(groups[b].gender);
+    });
     
-    const safeIds = sortedCats.map(cat => "cat_" + cat.replace(/[^a-z0-9]/gi, '_'));
-    if (!currentTabId || !safeIds.includes(currentTabId)) {
-        currentTabId = safeIds[0];
+    if (!currentTabId || !sortedKeys.includes(currentTabId)) {
+        currentTabId = sortedKeys[0];
     }
 
-    sortedCats.forEach((cat, index) => {
-        const safeId = safeIds[index];
-        const isActive = currentTabId === safeId;
+    sortedKeys.forEach((key) => {
+        const group = groups[key];
+        const isActive = currentTabId === key;
+        const isFem = group.gender === 'F';
+        const label = isFem ? group.name + ' Fem' : group.name;
 
         // Initialize current phase for this category if not set
-        if (!currentPhases[safeId]) {
-            currentPhases[safeId] = 'group_stage';
+        if (!currentPhases[key]) {
+            currentPhases[key] = 'group_stage';
         }
 
         // Create Tab Button
         const tabBtn = document.createElement('button');
-        tabBtn.className = `tab-btn ${isActive ? 'active' : ''}`;
-        tabBtn.innerHTML = `🏆 ${cat}`;
-        tabBtn.setAttribute('data-id', safeId);
-        tabBtn.onclick = () => switchTab(safeId);
+        tabBtn.className = `tab-btn ${isActive ? 'active' : ''} ${isFem ? 'fem' : ''}`;
+        tabBtn.innerHTML = `🏆 ${label}`;
+        tabBtn.setAttribute('data-id', key);
+        tabBtn.onclick = () => switchTab(key);
         tabsContainer.appendChild(tabBtn);
 
         // Create Content Section
         const section = document.createElement('div');
         section.className = `tab-content ${isActive ? 'active' : ''}`;
-        section.id = `content-${safeId}`;
+        section.id = `content-${key}`;
         
         container.appendChild(section);
         
         // Render phase content
         if (isActive) {
-            renderPhaseContent(cat, safeId);
+            renderPhaseContent(key);
         }
     });
 }
