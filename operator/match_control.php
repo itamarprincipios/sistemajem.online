@@ -271,9 +271,6 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
             </div>
             </div>
         </div>
-
-        <div class="app-section-title" style="margin-top: 1.5rem;">RELATO DO ÁRBITRO (OBSERVAÇÕES)</div>
-        <textarea id="observations" class="staff-input" style="height: 100px; margin-top: 0.5rem;" placeholder="Descreva incidentes, motivos de cartões ou atrasos..."><?php echo htmlspecialchars($match['observations'] ?? ''); ?></textarea>
     </div>
 
     <script>
