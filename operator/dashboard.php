@@ -79,70 +79,21 @@ $pageTitle = 'Painel do Operador';
         .tab-content { display: none; }
         .tab-content.active { display: block; }
         
-        /* Phase Sub-tabs */
-        .phase-tabs {
-            display: flex;
-            gap: 0.5rem;
-            margin-bottom: 1.5rem;
-            padding: 0.5rem;
-            background: rgba(0,0,0,0.2);
-            border-radius: 12px;
-            overflow-x: auto;
-        }
-        .phase-tab-btn {
-            background: transparent;
-            color: #94a3b8;
-            border: 1px solid transparent;
-            padding: 0.5rem 1rem;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 0.85rem;
-            white-space: nowrap;
-            transition: all 0.2s;
-        }
-        .phase-tab-btn:hover {
-            background: rgba(255,255,255,0.05);
-        }
-        .phase-tab-btn.active {
-            background: #334155;
-            color: white;
-            border-color: #475569;
-        }
-        .phase-content { display: none; }
-        .phase-content.active { display: block; }
-
-        .schedule-btn { background: #334155; color: white; border: none; padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; flex: 1; transition: background 0.2s; }
-        .schedule-btn:hover { background: #475569; }
+        /* Category Tabs (aligned with results) */
+        .category-tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; padding: 0.5rem; background: rgba(0,0,0,0.2); border-radius: 12px; overflow-x: auto; }
+        .cat-btn { background: transparent; color: #94a3b8; border: 1px solid transparent; padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.85rem; transition: all 0.2s; }
+        .cat-btn.active { background: rgba(16, 185, 129, 0.2); color: #10b981; border-color: #10b981; }
+        .cat-btn.active.fem { background: rgba(236, 72, 153, 0.2); color: #ec4899; border-color: #ec4899; }
+        .cat-btn.fem { color: #f472b6; }
+        .cat-btn.fem:hover { color: #ec4899; }
         
-        .btn-control { background: linear-gradient(135deg, #8b5cf6, #d946ef); color: white; border: none; padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer; font-weight: 700; flex: 2; text-decoration: none; text-align: center; font-size: 0.9rem; }
-        .btn-live { background: #ef4444; }
-
-        .phase-tab-btn.active {
-            background: rgba(16, 185, 129, 0.2);
-            color: #10b981;
-            border-color: #10b981;
-        }
-        
-        /* Phase Navigation - Horizontal */
-        .phase-navigation {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 2rem;
-            margin: 2rem 0;
-            padding: 1.5rem;
-            background: rgba(0,0,0,0.3);
-            border-radius: 12px;
-        }
-        .phase-nav-btn {
-            background: #1e293b;
-            border: 1px solid #334155;
-            color: #94a3b8;
-            padding: 0.75rem 1.5rem;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 1.2rem;
+        /* Phase Navigation (aligned with results) */
+        .phase-navigation { display: flex; align-items: center; justify-content: center; gap: 2rem; margin: 2rem 0; padding: 1.5rem; background: rgba(0,0,0,0.3); border-radius: 12px; }
+        .phase-navigation button { background: #1e293b; border: 1px solid #334155; color: #94a3b8; padding: 0.75rem 1.5rem; border-radius: 8px; cursor: pointer; font-size: 1.2rem; font-weight: 800; transition: all 0.2s; }
+        .phase-navigation button:hover:not(:disabled) { background: #10b981; color: white; border-color: #10b981; }
+        .phase-navigation button:disabled { opacity: 0.3; cursor: not-allowed; }
+        .phase-title { font-size: 1.8rem; font-weight: 800; color: #10b981; min-width: 300px; text-align: center; }
+        .phase-subtitle { font-size: 1.2rem; font-weight: 700; color: #64748b; text-align: center; margin-bottom: 1.5rem; }
             font-weight: 800;
             transition: all 0.2s;
         }
@@ -199,8 +150,11 @@ $pageTitle = 'Painel do Operador';
     </div>
 
     <div class="dashboard-container">
-        <div id="tabsContainer" class="tabs-container">
-            <!-- Tabs generated here -->
+        <div id="modalityTabs" class="tabs-container">
+            <!-- Modality Tabs generated here -->
+        </div>
+        <div id="categoryTabs" class="category-tabs" style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; padding: 0.5rem; background: rgba(0,0,0,0.2); border-radius: 12px; overflow-x: auto;">
+            <!-- Category Tabs generated here -->
         </div>
         <div id="matchesContainer">
             <!-- Populated by JS grouped by Category -->
@@ -231,8 +185,11 @@ $pageTitle = 'Painel do Operador';
 
 <script>
 let allMatches = []; 
-let currentTabId = null;
-let currentPhases = {}; // Track current phase for each category
+let state = {
+    modality: null,
+    category: {}, // key: modality_id, value: catKey (cid_gender)
+    phase: {}     // key: catKey, value: phase_id
+};
 
 // Phase mapping
 const PHASE_NAMES = {
@@ -248,38 +205,30 @@ const PHASE_ORDER = ['group_stage', 'round_of_16', 'quarter_final', 'semi_final'
 
 async function loadMatches() {
     try {
-        // Cache busting with timestamp
         const res = await fetch(`../api/matches-api.php?action=list&_t=${Date.now()}`); 
         const data = await res.json();
         allMatches = data.data;
-        
-        renderGroups();
+        render();
     } catch(e) {
         console.error(e);
     }
 }
 
-function switchTab(key) {
-    currentTabId = key;
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-    
-    const btn = document.querySelector(`.tab-btn[data-id="${key}"]`);
-    const content = document.getElementById(`content-${key}`);
-    
-    if (btn) btn.classList.add('active');
-    if (content) {
-        content.classList.add('active');
-        renderPhaseContent(key);
-    }
+function switchMod(id) {
+    state.modality = id;
+    render();
+}
+
+function switchCat(key) {
+    state.category[state.modality] = key;
+    render();
 }
 
 function switchPhase(key, direction) {
-    const currentPhase = currentPhases[key] || 'group_stage';
+    const currentPhase = state.phase[key] || 'group_stage';
     const [catId, gender] = key.split('_');
-    const categoryMatches = allMatches.filter(m => m.category_id == catId && (m.team_gender || 'M') == gender);
+    const categoryMatches = allMatches.filter(m => m.modality_id == state.modality && m.category_id == catId && (m.team_gender || 'M') == gender);
     
-    // Always include group_stage, plus any phase that has matches
     const availablePhases = PHASE_ORDER.filter(phase => 
         phase === 'group_stage' || categoryMatches.some(m => m.phase === phase)
     );
@@ -290,99 +239,19 @@ function switchPhase(key, direction) {
     const newIndex = currentIndex + direction;
     if (newIndex < 0 || newIndex >= availablePhases.length) return;
     
-    currentPhases[key] = availablePhases[newIndex];
-    renderPhaseContent(key);
+    state.phase[key] = availablePhases[newIndex];
+    render();
 }
 
-function renderPhaseContent(key) {
-    const currentPhase = currentPhases[key] || 'group_stage';
-    const [catId, gender] = key.split('_');
-    const categoryMatches = allMatches.filter(m => m.category_id == catId && (m.team_gender || 'M') == gender);
-    const phaseMatches = categoryMatches.filter(m => m.phase === currentPhase);
-    
-    const contentDiv = document.getElementById(`content-${key}`);
-    if (!contentDiv) return;
-    
-    const availablePhases = PHASE_ORDER.filter(phase => 
-        phase === 'group_stage' || categoryMatches.some(m => m.phase === phase)
-    );
-    const currentIndex = availablePhases.indexOf(currentPhase);
-    
-    const canGoPrev = currentIndex > 0;
-    const canGoNext = currentIndex < availablePhases.length - 1;
-    
-    contentDiv.innerHTML = `
-        <div class="phase-navigation">
-            <button class="phase-nav-btn" onclick="switchPhase('${key}', -1)" ${!canGoPrev ? 'disabled' : ''}>←</button>
-            <h2 class="phase-title">${PHASE_NAMES[currentPhase] || currentPhase.toUpperCase()}</h2>
-            <button class="phase-nav-btn" onclick="switchPhase('${key}', 1)" ${!canGoNext ? 'disabled' : ''}>→</button>
-        </div>
-        <div class="phase-subtitle">TABELA</div>
-        <div class="matches-grid" id="grid-${key}"></div>
-    `;
-    
-    const grid = document.getElementById(`grid-${safeId}`);
-    
-    if (phaseMatches.length === 0) {
-        grid.innerHTML = '<p style="text-align:center; color: #64748b; padding: 3rem;">Nenhum jogo nesta fase.</p>';
-        return;
-    }
-    
-    phaseMatches.forEach(m => {
-        const isLive = m.status === 'live';
-        const isFinished = m.status === 'finished';
-        const time = new Date(m.scheduled_time);
-        const isFem = m.team_gender === 'F';
-        const genderLabel = isFem ? '♀️ Fem' : '♂️ Masc';
-        const genderColor = isFem ? '#ec4899' : '#10b981';
-
-        const card = document.createElement('div');
-        card.className = `match-card ${isFem ? 'fem' : ''}`;
-        card.innerHTML = `
-            <div class="match-header">
-                <span>📅 ${time.toLocaleDateString('pt-BR')} às ${time.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})}</span>
-                <span class="status-badge" style="background:${genderColor}20; color:${genderColor}; border:1px solid ${genderColor}40; padding:2px 8px; border-radius:4px; font-weight:600; font-size:0.75rem;">${genderLabel}</span>
-                <span class="status-badge ${isLive ? 'status-live' : (isFinished ? 'status-finished' : 'status-scheduled')}">
-                    ${isLive ? 'Ao Vivo' : (isFinished ? 'Encerrado' : 'Agendado')}
-                </span>
-            </div>
-            <div class="modality-label" style="margin-bottom: 0.5rem; font-size: 0.75rem; color: #10b981; font-weight: 800;">
-                ${m.modality_name}${m.group_name ? ' • Grupo ' + m.group_name : ''}
-            </div>
-            <div class="match-teams">
-                <div class="team-row">
-                    <span>${m.team_a_name || 'A definir'}</span>
-                    ${isFinished || isLive ? `<span style="color:white">${m.score_team_a}</span>` : ''}
-                </div>
-                <div class="vs-divider">VS</div>
-                <div class="team-row">
-                    <span>${m.team_b_name || 'A definir'}</span>
-                    ${isFinished || isLive ? `<span style="color:white">${m.score_team_b}</span>` : ''}
-                </div>
-            </div>
-            <div style="margin-bottom: 1rem; font-size: 0.8rem; color: #64748b;">
-                📍 ${m.venue || 'Local não definido'}
-            </div>
-            <div class="match-footer">
-                ${!isFinished ? `
-                    <button class="schedule-btn" onclick="openModal(${m.id})">🕒 Agendar</button>
-                    <a href="match_control.php?id=${m.id}" class="btn-control ${isLive ? 'btn-live' : ''}">
-                        ${isLive ? 'RETOMAR' : 'INICIAR'}
-                    </a>
-                ` : `<div style="text-align:center; width:100%; color:#64748b; font-weight:700">PARTIDA ENCERRADA</div>`}
-            </div>
-        `;
-        grid.appendChild(card);
-    });
-}
-
-function renderGroups() {
+function render() {
+    const modalityTabs = document.getElementById('modalityTabs');
+    const categoryTabs = document.getElementById('categoryTabs');
     const container = document.getElementById('matchesContainer');
-    const tabsContainer = document.getElementById('tabsContainer');
     const countDisplay = document.getElementById('matchCount');
     
+    modalityTabs.innerHTML = '';
+    categoryTabs.innerHTML = '';
     container.innerHTML = '';
-    tabsContainer.innerHTML = '';
     
     if (countDisplay) countDisplay.textContent = `(${allMatches.length} jogos)`;
     
@@ -391,62 +260,130 @@ function renderGroups() {
         return;
     }
 
-    // Grouping by Category and Gender
-    const groups = allMatches.reduce((acc, m) => {
-        const catName = m.category_name || 'Sem Categoria';
+    // Grouping by Modality
+    const mods = {};
+    allMatches.forEach(m => {
+        const mid = m.modality_id;
         const gender = m.team_gender || 'M';
-        const catKey = m.category_id + '_' + gender;
+        if (!mods[mid]) mods[mid] = { name: m.modality_name, cats: {} };
         
-        if (!acc[catKey]) {
-            acc[catKey] = {
-                name: catName,
+        const catKey = m.category_id + '_' + gender;
+        if (!mods[mid].cats[catKey]) {
+            mods[mid].cats[catKey] = { 
+                id: m.category_id,
+                name: m.category_name, 
                 gender: gender,
-                matches: []
+                matches: [] 
             };
         }
-        acc[catKey].matches.push(m);
-        return acc;
-    }, {});
-
-    const sortedKeys = Object.keys(groups).sort((a, b) => {
-        return groups[a].name.localeCompare(groups[b].name) || groups[a].gender.localeCompare(groups[b].gender);
+        mods[mid].cats[catKey].matches.push(m);
     });
-    
-    if (!currentTabId || !sortedKeys.includes(currentTabId)) {
-        currentTabId = sortedKeys[0];
+
+    const modIds = Object.keys(mods).sort();
+    if (!state.modality || !modIds.includes(state.modality)) state.modality = modIds[0];
+
+    // Render Modality Tabs
+    modalityTabs.innerHTML = modIds.map(mid => 
+        `<button class="tab-btn ${state.modality == mid ? 'active' : ''}" onclick="switchMod('${mid}')">${mods[mid].name}</button>`
+    ).join('');
+
+    // Render Category Tabs for Active Modality
+    const activeMod = mods[state.modality];
+    const catKeys = Object.keys(activeMod.cats).sort((a,b) => {
+        return activeMod.cats[a].name.localeCompare(activeMod.cats[b].name) || activeMod.cats[a].gender.localeCompare(activeMod.cats[b].gender);
+    });
+
+    if (!state.category[state.modality] || !catKeys.includes(state.category[state.modality])) {
+        state.category[state.modality] = catKeys[0];
     }
 
-    sortedKeys.forEach((key) => {
-        const group = groups[key];
-        const isActive = currentTabId === key;
-        const isFem = group.gender === 'F';
-        const label = isFem ? group.name + ' Fem' : group.name;
+    categoryTabs.innerHTML = catKeys.map(key => {
+        const cat = activeMod.cats[key];
+        const isFem = cat.gender === 'F';
+        const label = isFem ? cat.name + ' Fem' : cat.name;
+        const activeClass = state.category[state.modality] == key ? 'active' : '';
+        const femClass = isFem ? 'fem' : '';
+        return `<button class="cat-btn ${activeClass} ${femClass}" onclick="switchCat('${key}')">🏆 ${label}</button>`;
+    }).join('');
 
-        // Initialize current phase for this category if not set
-        if (!currentPhases[key]) {
-            currentPhases[key] = 'group_stage';
-        }
+    // Render Matches for Selected Category and Phase
+    const currentCatKey = state.category[state.modality];
+    const cat = activeMod.cats[currentCatKey];
+    if (!state.phase[currentCatKey]) state.phase[currentCatKey] = 'group_stage';
+    
+    const currentPhase = state.phase[currentCatKey];
+    const categoryMatches = cat.matches;
+    const phaseMatches = categoryMatches.filter(m => m.phase === currentPhase);
 
-        // Create Tab Button
-        const tabBtn = document.createElement('button');
-        tabBtn.className = `tab-btn ${isActive ? 'active' : ''} ${isFem ? 'fem' : ''}`;
-        tabBtn.innerHTML = `🏆 ${label}`;
-        tabBtn.setAttribute('data-id', key);
-        tabBtn.onclick = () => switchTab(key);
-        tabsContainer.appendChild(tabBtn);
+    const availablePhases = PHASE_ORDER.filter(phase => 
+        phase === 'group_stage' || categoryMatches.some(m => m.phase === phase)
+    );
+    const phaseIdx = availablePhases.indexOf(currentPhase);
+    const canPrev = phaseIdx > 0;
+    const canNext = phaseIdx < availablePhases.length - 1;
 
-        // Create Content Section
-        const section = document.createElement('div');
-        section.className = `tab-content ${isActive ? 'active' : ''}`;
-        section.id = `content-${key}`;
-        
-        container.appendChild(section);
-        
-        // Render phase content
-        if (isActive) {
-            renderPhaseContent(key);
-        }
-    });
+    let html = `
+        <div class="phase-navigation">
+            <button class="phase-nav-btn" onclick="switchPhase('${currentCatKey}', -1)" ${!canPrev ? 'disabled' : ''}>←</button>
+            <h2 class="phase-title">${PHASE_NAMES[currentPhase] || currentPhase.toUpperCase()}</h2>
+            <button class="phase-nav-btn" onclick="switchPhase('${currentCatKey}', 1)" ${!canNext ? 'disabled' : ''}>→</button>
+        </div>
+        <div class="phase-subtitle">TABELA</div>
+        <div class="matches-grid">
+    `;
+
+    if (phaseMatches.length === 0) {
+        html += '<p style="text-align:center; color: #64748b; padding: 3rem; width: 100%;">Nenhum jogo nesta fase.</p>';
+    } else {
+        phaseMatches.forEach(m => {
+            const isLive = m.status === 'live';
+            const isFinished = m.status === 'finished';
+            const time = new Date(m.scheduled_time);
+            const isFem = m.team_gender === 'F';
+            const genderLabel = isFem ? '♀️ Fem' : '♂️ Masc';
+            const genderColor = isFem ? '#ec4899' : '#10b981';
+
+            html += `
+                <div class="match-card ${isFem ? 'fem' : ''}">
+                    <div class="match-header">
+                        <span>📅 ${time.toLocaleDateString('pt-BR')} às ${time.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})}</span>
+                        <span class="status-badge" style="background:${genderColor}20; color:${genderColor}; border:1px solid ${genderColor}40; padding:2px 8px; border-radius:4px; font-weight:600; font-size:0.75rem;">${genderLabel}</span>
+                        <span class="status-badge ${isLive ? 'status-live' : (isFinished ? 'status-finished' : 'status-scheduled')}">
+                            ${isLive ? 'Ao Vivo' : (isFinished ? 'Encerrado' : 'Agendado')}
+                        </span>
+                    </div>
+                    <div class="modality-label" style="margin-bottom: 0.5rem; font-size: 0.75rem; color: #10b981; font-weight: 800;">
+                        ${m.modality_name}${m.group_name ? ' • Grupo ' + m.group_name : ''}
+                    </div>
+                    <div class="match-teams">
+                        <div class="team-row">
+                            <span>${m.team_a_name || 'A definir'}</span>
+                            ${isFinished || isLive ? `<span style="color:white">${m.score_team_a}</span>` : ''}
+                        </div>
+                        <div class="vs-divider">VS</div>
+                        <div class="team-row">
+                            <span>${m.team_b_name || 'A definir'}</span>
+                            ${isFinished || isLive ? `<span style="color:white">${m.score_team_b}</span>` : ''}
+                        </div>
+                    </div>
+                    <div style="margin-bottom: 1rem; font-size: 0.8rem; color: #64748b;">
+                        📍 ${m.venue || 'Local não definido'}
+                    </div>
+                    <div class="match-footer">
+                        ${!isFinished ? `
+                            <button class="schedule-btn" onclick="openModal(${m.id})">🕒 Agendar</button>
+                            <a href="match_control.php?id=${m.id}" class="btn-control ${isLive ? 'btn-live' : ''}">
+                                ${isLive ? 'RETOMAR' : 'INICIAR'}
+                            </a>
+                        ` : `<div style="text-align:center; width:100%; color:#64748b; font-weight:700">PARTIDA ENCERRADA</div>`}
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    html += '</div>';
+    container.innerHTML = html;
 }
 
 // Modal Logic
@@ -493,9 +430,6 @@ document.getElementById('scheduleForm').onsubmit = async (e) => {
         const result = await res.json();
         if (result.success) {
             closeModal();
-            if (result.affected === 0) {
-                alert('Aviso: Os dados já eram os mesmos ou a partida não foi encontrada.');
-            }
             loadMatches();
         } else {
             alert('Erro ao salvar: ' + result.error);
