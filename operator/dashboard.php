@@ -373,7 +373,7 @@ function switchPhase(key, direction) {
 
     // Smart Arrow: Allow moving to the next phase if the current one is complete
     const isCurrentComplete = categoryMatches.length > 0 && 
-                               categoryMatches.filter(m => m.phase === currentPhase).every(m => m.status === 'finished' || (m.score_team_a !== null && m.score_team_b !== null));
+                               categoryMatches.filter(m => m.phase === currentPhase).every(m => m.status === 'finished');
 
     if (newIndex >= availablePhases.length && isCurrentComplete && globalIdx < PHASE_ORDER.length - 1) {
         // Move to the next logical phase even if matches don't exist yet
