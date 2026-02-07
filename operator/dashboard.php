@@ -424,6 +424,23 @@ function switchPhase(key, direction) {
     render();
 }
 
+function renderTabs(modalityTabs, categoryTabs, modIds, mods, catKeys) {
+    // Render Modality Tabs
+    modalityTabs.innerHTML = modIds.map(mid => 
+        `<button class="tab-btn ${state.modality == mid ? 'active' : ''}" onclick="switchMod('${mid}')">${mods[mid].name}</button>`
+    ).join('');
+
+    // Render Category Tabs
+    categoryTabs.innerHTML = catKeys.map(key => {
+        const cat = mods[state.modality].cats[key];
+        const isFem = cat.gender === 'F';
+        const label = isFem ? cat.name + ' Fem' : cat.name;
+        const activeClass = state.category[state.modality] == key ? 'active' : '';
+        const femClass = isFem ? 'fem' : '';
+        return `<button class="cat-btn ${activeClass} ${femClass}" onclick="switchCat('${key}')">🏆 ${label}</button>`;
+    }).join('');
+}
+
 function render() {
     const modalityTabs = document.getElementById('modalityTabs');
     const categoryTabs = document.getElementById('categoryTabs');
@@ -441,26 +458,10 @@ function render() {
         return;
     }
 
-    // Check if we are in PREVIEW mode
-    const [currCatId, currGender] = (state.category[state.modality] || '0_M').split('_');
-    const currCatKey = state.category[state.modality];
-    const currPhase = state.phase[currCatKey] || 'group_stage';
-    const phaseMatches = allMatches.filter(m => 
-        m.modality_id == state.modality && 
-        m.category_id == currCatId && 
-        (m.team_gender || 'M') == currGender && 
-        m.phase === currPhase
-    );
-
-    if (phaseMatches.length === 0 && currPhase !== 'group_stage') {
-        renderBracketPreview(container, currCatId, currGender, currPhase);
-        return;
-    }
-
     // Grouping by Modality
     const mods = {};
     allMatches.forEach(m => {
-        const mid = m.modality_id;
+        const mid = String(m.modality_id);
         const gender = m.team_gender || 'M';
         if (!mods[mid]) mods[mid] = { name: m.modality_name, cats: {} };
         
@@ -477,14 +478,12 @@ function render() {
     });
 
     const modIds = Object.keys(mods).sort();
-    if (!state.modality || !modIds.includes(state.modality)) state.modality = modIds[0];
+    if (modIds.length === 0) return; // Should not happen if allMatches.length > 0
 
-    // Render Modality Tabs
-    modalityTabs.innerHTML = modIds.map(mid => 
-        `<button class="tab-btn ${state.modality == mid ? 'active' : ''}" onclick="switchMod('${mid}')">${mods[mid].name}</button>`
-    ).join('');
+    if (!state.modality || !modIds.includes(String(state.modality))) {
+        state.modality = modIds[0];
+    }
 
-    // Render Category Tabs for Active Modality
     const activeMod = mods[state.modality];
     const catKeys = Object.keys(activeMod.cats).sort((a,b) => {
         return activeMod.cats[a].name.localeCompare(activeMod.cats[b].name) || activeMod.cats[a].gender.localeCompare(activeMod.cats[b].gender);
@@ -494,19 +493,26 @@ function render() {
         state.category[state.modality] = catKeys[0];
     }
 
-    categoryTabs.innerHTML = catKeys.map(key => {
-        const cat = activeMod.cats[key];
-        const isFem = cat.gender === 'F';
-        const label = isFem ? cat.name + ' Fem' : cat.name;
-        const activeClass = state.category[state.modality] == key ? 'active' : '';
-        const femClass = isFem ? 'fem' : '';
-        return `<button class="cat-btn ${activeClass} ${femClass}" onclick="switchCat('${key}')">🏆 ${label}</button>`;
-    }).join('');
+    // Now we can safely check for PREVIEW mode
+    const currCatKey = state.category[state.modality];
+    const [currCatId, currGender] = currCatKey.split('_');
+    const currPhase = state.phase[currCatKey] || 'group_stage';
+    const catMatches = activeMod.cats[currCatKey].matches;
+    const phaseMatches = catMatches.filter(m => m.phase === currPhase);
 
-    // Render Matches for Selected Category and Phase
-    const currentCatKey = state.category[state.modality];
-    const cat = activeMod.cats[currentCatKey];
-    if (!state.phase[currentCatKey]) state.phase[currentCatKey] = 'group_stage';
+    if (phaseMatches.length === 0 && currPhase !== 'group_stage') {
+        renderBracketPreview(container, currCatId, currGender, currPhase);
+        
+        // Still render tabs so user can switch back
+        renderTabs(modalityTabs, categoryTabs, modIds, mods, catKeys);
+        return;
+    }
+
+    // Render Tabs
+    renderTabs(modalityTabs, categoryTabs, modIds, mods, catKeys);
+
+    // Render Matches Header
+    if (!state.phase[currCatKey]) state.phase[currCatKey] = 'group_stage';
     
     const currentPhase = state.phase[currentCatKey];
     const categoryMatches = cat.matches;
