@@ -22,18 +22,19 @@ $activeEventId = $activeEvent['id'] ?? 'null';
     <title>JEM - Operador</title>
     <link rel="stylesheet" href="../assets/css/styles.css">
     <style>
+        :root { --theme-color: #10b981; --theme-color-rgb: 16, 185, 129; }
         body { background: #0f172a; color: white; margin: 0; }
         .op-header { padding: 1rem 2rem; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; background: #1e293b; position: sticky; top: 0; z-index: 100; }
         
         .dashboard-container { padding: 2rem; max-width: 1400px; margin: 0 auto; }
         
         .category-section { margin-bottom: 3rem; }
-        .category-title { font-size: 1.5rem; font-weight: 800; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.75rem; color: #10b981; border-left: 4px solid #10b981; padding-left: 1rem; }
+        .category-title { font-size: 1.5rem; font-weight: 800; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.75rem; color: var(--theme-color); border-left: 4px solid var(--theme-color); padding-left: 1rem; }
         
         .matches-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 1.5rem; }
         
         .match-card { background: #1e293b; padding: 1.5rem; border-radius: 16px; border: 1px solid #334155; transition: transform 0.2s, border-color 0.2s; position: relative; }
-        .match-card:hover { transform: translateY(-4px); border-color: #10b981; }
+        .match-card:hover { transform: translateY(-4px); border-color: var(--theme-color); }
         
         /* Female Card Styles */
         .match-card.fem { border-color: rgba(236, 72, 153, 0.3); }
@@ -74,9 +75,9 @@ $activeEventId = $activeEvent['id'] ?? 'null';
             border-bottom: none;
         }
         .tab-btn.active {
-            background: #10b981;
+            background: var(--theme-color);
             color: white;
-            border-color: #10b981;
+            border-color: var(--theme-color);
         }
         .tab-btn.fem { color: #f472b6; }
         .tab-btn.active.fem { background: #ec4899; color: white; border-color: #ec4899; }
@@ -86,7 +87,7 @@ $activeEventId = $activeEvent['id'] ?? 'null';
         /* Category Tabs (aligned with results) */
         .category-tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; padding: 0.5rem; background: rgba(0,0,0,0.2); border-radius: 12px; overflow-x: auto; }
         .cat-btn { background: transparent; color: #94a3b8; border: 1px solid transparent; padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.85rem; transition: all 0.2s; }
-        .cat-btn.active { background: rgba(16, 185, 129, 0.2); color: #10b981; border-color: #10b981; }
+        .cat-btn.active { background: rgba(var(--theme-color-rgb), 0.2); color: var(--theme-color); border-color: var(--theme-color); }
         .cat-btn.active.fem { background: rgba(236, 72, 153, 0.2); color: #ec4899; border-color: #ec4899; }
         .cat-btn.fem { color: #f472b6; }
         .cat-btn.fem:hover { color: #ec4899; }
@@ -94,9 +95,9 @@ $activeEventId = $activeEvent['id'] ?? 'null';
         /* Phase Navigation (aligned with results) */
         .phase-navigation { display: flex; align-items: center; justify-content: center; gap: 2rem; margin: 2rem 0; padding: 1.5rem; background: rgba(0,0,0,0.3); border-radius: 12px; }
         .phase-nav-btn { background: #1e293b; border: 1px solid #334155; color: #94a3b8; padding: 0.75rem 1.5rem; border-radius: 8px; cursor: pointer; font-size: 1.2rem; font-weight: 800; transition: all 0.2s; }
-        .phase-nav-btn:hover:not(:disabled) { background: #10b981; color: white; border-color: #10b981; }
+        .phase-nav-btn:hover:not(:disabled) { background: var(--theme-color); color: white; border-color: var(--theme-color); }
         .phase-nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-        .phase-title { font-size: 1.8rem; font-weight: 800; color: #10b981; min-width: 300px; text-align: center; }
+        .phase-title { font-size: 1.8rem; font-weight: 800; color: var(--theme-color); min-width: 300px; text-align: center; }
         .phase-subtitle { font-size: 1.2rem; font-weight: 700; color: #64748b; text-align: center; margin-bottom: 1.5rem; }
 
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
@@ -114,7 +115,7 @@ $activeEventId = $activeEvent['id'] ?? 'null';
             font-family: inherit;
         }
         .inline-input:hover { border-color: #475569; background: rgba(0,0,0,0.3); }
-        .inline-input:focus { border-color: #10b981; outline: none; background: #0f172a; box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1); }
+        .inline-input:focus { border-color: var(--theme-color); outline: none; background: #0f172a; box-shadow: 0 0 0 3px rgba(var(--theme-color-rgb), 0.1); }
         
         /* Hide number input spinners */
         input::-webkit-outer-spin-button,
@@ -127,7 +128,7 @@ $activeEventId = $activeEvent['id'] ?? 'null';
         }
         
         .inline-save-btn { 
-            background: #10b981; 
+            background: var(--theme-color); 
             color: white; 
             border: none; 
             border-radius: 6px; 
@@ -201,7 +202,7 @@ $activeEventId = $activeEvent['id'] ?? 'null';
 </head>
 <body>
     <div class="op-header">
-        <div style="font-size: 1.2rem; font-weight: 800; letter-spacing: -0.5px; color: #10b981;">JEM OPERADOR <span style="font-size: 0.6rem; color: #64748b; vertical-align: middle; margin-left: 5px;">V2.1</span></div>
+        <div style="font-size: 1.2rem; font-weight: 800; letter-spacing: -0.5px; color: var(--theme-color);">JEM OPERADOR <span style="font-size: 0.6rem; color: #64748b; vertical-align: middle; margin-left: 5px;">V2.1</span></div>
         <div style="display: flex; align-items: center; gap: 1.5rem;">
             <span id="matchCount" style="font-size: 0.85rem; color: #64748b; font-weight: 600;"></span>
             <span style="font-size: 0.9rem; color: #94a3b8;"><?php echo htmlspecialchars($_SESSION['user_name']); ?></span>
@@ -226,7 +227,7 @@ $activeEventId = $activeEvent['id'] ?? 'null';
         <div class="sumula-content">
             <div class="sumula-header">
                 <div>
-                    <h3 style="margin: 0; color: #10b981;">📜 Súmula Oficial da Partida</h3>
+                    <h3 style="margin: 0; color: var(--theme-color);">📜 Súmula Oficial da Partida</h3>
                     <p style="margin: 0; font-size: 0.8rem; color: #94a3b8;">Texto formatado para documento técnico</p>
                 </div>
                 <button onclick="closeSumula()" style="background: none; border: none; color: #94a3b8; font-size: 1.5rem; cursor: pointer;">&times;</button>
@@ -362,18 +363,22 @@ function switchPhase(key, direction) {
 
 function renderTabs(modalityTabs, categoryTabs, modIds, mods, catKeys) {
     // Render Modality Tabs
-    modalityTabs.innerHTML = modIds.map(mid => 
-        `<button class="tab-btn ${state.modality == mid ? 'active' : ''}" onclick="switchMod('${mid}')">${mods[mid].name}</button>`
-    ).join('');
+    modalityTabs.innerHTML = modIds.map(mid => {
+        const mod = mods[mid];
+        const isSociety = mod.name.toLowerCase().includes('society');
+        return `<button class="tab-btn ${state.modality == mid ? 'active' : ''} ${isSociety ? 'society' : ''}" onclick="switchMod('${mid}')">${mod.name}</button>`;
+    }).join('');
 
     // Render Category Tabs
     categoryTabs.innerHTML = catKeys.map(key => {
         const cat = mods[state.modality].cats[key];
         const isFem = cat.gender === 'F';
+        const isSociety = mods[state.modality].name.toLowerCase().includes('society');
         const label = isFem ? cat.name + ' Fem' : cat.name;
         const activeClass = state.category[state.modality] == key ? 'active' : '';
         const femClass = isFem ? 'fem' : '';
-        return `<button class="cat-btn ${activeClass} ${femClass}" onclick="switchCat('${key}')">🏆 ${label}</button>`;
+        const societyClass = isSociety ? 'society' : '';
+        return `<button class="cat-btn ${activeClass} ${femClass} ${societyClass}" onclick="switchCat('${key}')">🏆 ${label}</button>`;
     }).join('');
 }
 
@@ -421,6 +426,14 @@ function render() {
     }
 
     const activeMod = mods[state.modality];
+    
+    // Set dynamic theme color
+    const isSocietyMod = activeMod.name.toLowerCase().includes('society');
+    const themeColor = isSocietyMod ? '#3b82f6' : '#10b981';
+    const themeColorRgb = isSocietyMod ? '59, 130, 246' : '16, 185, 129';
+    document.documentElement.style.setProperty('--theme-color', themeColor);
+    document.documentElement.style.setProperty('--theme-color-rgb', themeColorRgb);
+
     const catKeys = Object.keys(activeMod.cats).sort((a,b) => {
         return activeMod.cats[a].name.localeCompare(activeMod.cats[b].name) || activeMod.cats[a].gender.localeCompare(activeMod.cats[b].gender);
     });
@@ -449,10 +462,13 @@ function render() {
     const canNext = (currPhaseIdx < availablePhases.length - 1) || 
                     (isCurrentComplete && PHASE_ORDER.indexOf(currPhase) < PHASE_ORDER.length - 1);
 
+    const isSocietyMod = activeMod.name.toLowerCase().includes('society');
+    const themeColor = isSocietyMod ? '#3b82f6' : '#10b981';
+
     const navHtml = `
         <div class="phase-navigation">
-            <button class="phase-nav-btn" onclick="switchPhase('${currCatKey}', -1)" ${!canPrev ? 'disabled' : ''}>←</button>
-            <h2 class="phase-title">${PHASE_NAMES[currPhase] || currPhase.toUpperCase()}</h2>
+            <button class="phase-nav-btn" onclick="switchPhase('${currCatKey}', -1)" ${!canPrev ? 'disabled' : ''} style="${!canPrev ? '' : `&:hover{background:${themeColor};border-color:${themeColor};}`}">←</button>
+            <h2 class="phase-title" style="color: ${themeColor}">${PHASE_NAMES[currPhase] || currPhase.toUpperCase()}</h2>
             <button class="phase-nav-btn" onclick="switchPhase('${currCatKey}', 1)" ${!canNext ? 'disabled' : ''}>→</button>
         </div>
     `;
@@ -502,12 +518,15 @@ function render() {
                 return `${y}-${mo}-${d}T${h}:${mi}`;
             };
 
+            const isSociety = m.modality_name.toLowerCase().includes('society');
+            const modColor = isSociety ? '#3b82f6' : '#10b981';
+
             html += `
-                <div class="match-card ${isFem ? 'fem' : ''}" id="card-${m.id}" style="padding: 1.25rem;">
+                <div class="match-card ${isFem ? 'fem' : ''} ${isSociety ? 'society' : ''}" id="card-${m.id}" style="padding: 1.25rem;">
                     <div class="match-header" style="margin-bottom: 1.25rem; align-items: flex-start;">
                         <div style="flex: 1;">
                             <span class="label-pill">MODALIDADE</span>
-                            <div class="modality-label" style="font-size: 0.85rem; color: #10b981; font-weight: 800; margin-bottom: 0;">
+                            <div class="modality-label" style="font-size: 0.85rem; color: ${modColor}; font-weight: 800; margin-bottom: 0;">
                                 ${m.modality_name}${m.group_name ? ' • Grupo ' + m.group_name : ''}
                             </div>
                         </div>
@@ -552,7 +571,7 @@ function render() {
                             <div style="display: flex; flex-direction: column; gap: 0.5rem; width: 100%;">
                                 <div style="display: flex; align-items: center; gap: 0.5rem; width: 100%;">
                                     <button class="inline-save-btn" id="save-${m.id}" onclick="saveMatch(${m.id})" style="flex: 1;">💾 SALVAR</button>
-                                    <button onclick="finishMatchDirectly(${m.id})" class="inline-save-btn" style="flex: 1; background: #10b981; border-color: #059669;">🏁 ENCERRAR</button>
+                                    <button onclick="finishMatchDirectly(${m.id})" class="inline-save-btn" style="flex: 1; opacity: 1; transform: none; pointer-events: auto; background: var(--theme-color); border: 1px solid rgba(0,0,0,0.2);">🏁 ENCERRAR</button>
                                 </div>
                                 <a href="match_control.php?id=${m.id}" class="btn-control ${isLive ? 'btn-live' : ''}" style="width: 100%; padding: 0.75rem;">
                                     ${isLive ? '⏱️ GERENCIAR PLACAR' : '🎮 INICIAR PARTIDA'}
@@ -652,7 +671,7 @@ async function saveMatch(id) {
         if (result.success) {
             if (statusSpan) {
                 statusSpan.textContent = '✅ Salvo!';
-                statusSpan.style.color = '#10b981';
+                statusSpan.style.color = 'var(--theme-color)';
                 setTimeout(() => { statusSpan.textContent = ''; }, 2000);
             }
             if (btn) btn.classList.remove('active');
@@ -819,7 +838,7 @@ async function saveBestPlayer(catId, gender) {
         btn.innerHTML = '✅ SALVO';
         btn.style.background = '#059669';
         status.innerHTML = 'Eleito salvo no banco com sucesso!';
-        status.style.color = '#10b981';
+        status.style.color = 'var(--theme-color)';
     } catch (e) {
         status.innerHTML = 'Erro ao salvar no banco.';
         status.style.color = '#ef4444';
@@ -827,7 +846,7 @@ async function saveBestPlayer(catId, gender) {
     
     setTimeout(() => {
         btn.innerHTML = 'SALVAR';
-        btn.style.background = '#10b981';
+        btn.style.background = 'var(--theme-color)';
         status.innerHTML = 'Nome e escola do eleito.';
         status.style.color = '#64748b';
     }, 2000);
@@ -859,7 +878,7 @@ async function saveBestGk(catId, gender) {
         btn.innerHTML = '✅ SALVO';
         btn.style.background = '#059669';
         status.innerHTML = 'Goleiro salvo no banco com sucesso!';
-        status.style.color = '#10b981';
+        status.style.color = 'var(--theme-color)';
     } catch (e) {
         status.innerHTML = 'Erro ao salvar no banco.';
         status.style.color = '#ef4444';
@@ -981,12 +1000,12 @@ async function renderPodium(container, catId, gender, navHtml, catMatches) {
         const savedGk = findAward('BEST_GK');
 
         awardsWrapper.innerHTML = `
-            <h3 style="color: #10b981; margin: 0 0 1rem 0; display: flex; align-items: center; gap: 10px;">✨ DESTAQUES INDIVIDUAIS</h3>
+            <h3 style="color: var(--theme-color); margin: 0 0 1rem 0; display: flex; align-items: center; gap: 10px;">✨ DESTAQUES INDIVIDUAIS</h3>
             
             <div style="background: rgba(255,255,255,0.03); padding: 1rem; border-radius: 12px; margin-bottom: 0.5rem;">
                 <div style="color: #94a3b8; font-size: 0.75rem; font-weight: 800; text-transform: uppercase;">⚽ ARTILHEIRO (AUTOMÁTICO)</div>
                 <div style="color: white; font-size: 1.2rem; font-weight: 700;">${topScorer ? topScorer.name : '---'}</div>
-                <div style="color: #10b981; font-size: 0.9rem; font-weight: 800;">${topScorer ? topScorer.goals + ' GOLS' : ''}</div>
+                <div style="color: var(--theme-color); font-size: 0.9rem; font-weight: 800;">${topScorer ? topScorer.goals + ' GOLS' : ''}</div>
             </div>
 
             <div style="background: rgba(255,255,255,0.03); padding: 1.25rem; border-radius: 12px; border: 1px dashed rgba(59, 130, 246, 0.3); margin-bottom: 0.5rem;">
@@ -1004,14 +1023,14 @@ async function renderPodium(container, catId, gender, navHtml, catMatches) {
                 <div id="saveGkStatus" style="font-size: 0.7rem; color: #64748b; margin-top: 5px;">Digite o nome e a escola do goleiro.</div>
             </div>
 
-            <div style="background: rgba(16, 185, 129, 0.05); padding: 1.25rem; border-radius: 12px; border: 1px dashed #10b981;">
-                <div style="color: #10b981; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; margin-bottom: 8px;">⭐ MELHOR JOGADOR (ELEITO PELOS TÉCNICOS)</div>
+            <div style="background: rgba(var(--theme-color-rgb), 0.05); padding: 1.25rem; border-radius: 12px; border: 1px dashed var(--theme-color);">
+                <div style="color: var(--theme-color); font-size: 0.75rem; font-weight: 800; text-transform: uppercase; margin-bottom: 8px;">⭐ MELHOR JOGADOR (ELEITO PELOS TÉCNICOS)</div>
                 <div style="display: flex; gap: 8px;">
                     <input type="text" id="bestPlayerInput" value="${savedPlayer}" 
                            placeholder="Ex: Samuel Silva - Escola Francisco de Assis" 
                            style="flex: 1; background: #0f172a; border: 1px solid #334155; color: white; padding: 10px; border-radius: 8px; font-weight: 600;">
                     <button onclick="saveBestPlayer(${catId}, '${gender}')" 
-                            style="background: #10b981; color: white; border: none; padding: 0 15px; border-radius: 8px; cursor: pointer; font-weight: 800; font-size: 0.8rem; transition: all 0.2s;"
+                            style="background: var(--theme-color); color: white; border: none; padding: 0 15px; border-radius: 8px; cursor: pointer; font-weight: 800; font-size: 0.8rem; transition: all 0.2s;"
                             id="saveBestBtn">
                         SALVAR
                     </button>
@@ -1033,7 +1052,7 @@ async function renderBracketPreview(container, catId, gender, phase, navHtml = '
         ${navHtml}
         <div style="text-align:center; padding: 3rem;">
             <div class="preview-badge">✨ PRÉ-VISUALIZAÇÃO</div>
-            <h2 style="color: #10b981; margin-bottom: 0.5rem;">${PHASE_NAMES[phase]}</h2>
+            <h2 style="color: var(--theme-color); margin-bottom: 0.5rem;">${PHASE_NAMES[phase]}</h2>
             <p style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 2rem;">Os jogos ainda não foram gerados. Confira o chaveamento previsto:</p>
             <div id="bracketLoading" class="bracket-container">Calculando cruzamentos...</div>
             <div id="bracketActions" style="display:none;" class="bracket-btn-container">
