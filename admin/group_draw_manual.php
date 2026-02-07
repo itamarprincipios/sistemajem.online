@@ -105,6 +105,13 @@ include '../includes/sidebar.php';
 </style>
 
 <script>
+const Toast = window.Toast || { 
+    info: (msg) => console.log('Info:', msg),
+    success: (msg) => console.log('Success:', msg),
+    error: (msg) => console.error('Error:', msg),
+    warn: (msg) => console.warn('Warn:', msg)
+};
+
 const eventId = <?php echo $eventId; ?>;
 const categoryId = <?php echo $categoryId; ?>;
 const gender = '<?php echo $gender; ?>';
@@ -171,6 +178,10 @@ function renderGrid() {
         slot.querySelector('.team-name').innerText = 'Clique para sortear...';
         slot.querySelector('.team-name').style.color = 'rgba(255,255,255,0.3)';
         slot.querySelector('.team-name').style.fontStyle = 'italic';
+        // Re-enable individual click handler if disabled
+        const group = slot.closest('[data-group]').dataset.group;
+        const slotIdx = Array.from(slot.parentNode.children).indexOf(slot) + 1;
+        slot.onclick = () => openSelection(group, slotIdx);
     });
 
     // Fill slots based on data
@@ -207,11 +218,11 @@ function openSelection(group, slot) {
         </div>
     `).join('');
 
-    document.getElementById('selectionModal').style.display = 'flex';
+    document.getElementById('selectionModal').classList.add('active');
 }
 
 function closeSelection() {
-    document.getElementById('selectionModal').style.display = 'none';
+    document.getElementById('selectionModal').classList.remove('active');
 }
 
 async function assignTeam(teamId) {
