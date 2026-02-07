@@ -868,42 +868,83 @@ function copySumula() {
     });
 }
 
-function saveBestPlayer(catId, gender) {
+async function saveBestPlayer(catId, gender) {
     const val = document.getElementById('bestPlayerInput').value;
     const btn = document.getElementById('saveBestBtn');
     const status = document.getElementById('saveBestStatus');
     
-    localStorage.setItem(`jem_best_player_${catId}_${gender}`, val);
-    
-    btn.innerHTML = '✅ SALVO';
-    btn.style.background = '#059669';
-    status.innerHTML = 'Eleito salvo com sucesso!';
-    status.style.color = '#10b981';
+    // Parse name and school (assuming format "Name - School")
+    const parts = val.split('-').map(p => p.trim());
+    const winnerName = parts[0] || '';
+    const schoolName = parts[1] || '';
+
+    try {
+        const res = await fetch('../api/awards-api.php', {
+            method: 'POST',
+            body: JSON.stringify({
+                event_id: EVENT_ID,
+                modality_id: state.modality,
+                category_id: catId,
+                gender: gender,
+                award_type: 'BEST_PLAYER',
+                winner_name: winnerName,
+                school_name: schoolName
+            })
+        });
+        
+        btn.innerHTML = '✅ SALVO';
+        btn.style.background = '#059669';
+        status.innerHTML = 'Eleito salvo no banco com sucesso!';
+        status.style.color = '#10b981';
+    } catch (e) {
+        status.innerHTML = 'Erro ao salvar no banco.';
+        status.style.color = '#ef4444';
+    }
     
     setTimeout(() => {
         btn.innerHTML = 'SALVAR';
         btn.style.background = '#10b981';
-        status.innerHTML = 'Digite o nome e a escola do eleito.';
+        status.innerHTML = 'Nome e escola do eleito.';
         status.style.color = '#64748b';
     }, 2000);
 }
 
-function saveBestGk(catId, gender) {
+async function saveBestGk(catId, gender) {
     const val = document.getElementById('bestGkInput').value;
     const btn = document.getElementById('saveGkBtn');
     const status = document.getElementById('saveGkStatus');
     
-    localStorage.setItem(`jem_best_gk_${catId}_${gender}`, val);
-    
-    btn.innerHTML = '✅ SALVO';
-    btn.style.background = '#059669';
-    status.innerHTML = 'Goleiro salvo com sucesso!';
-    status.style.color = '#10b981';
+    const parts = val.split('-').map(p => p.trim());
+    const winnerName = parts[0] || '';
+    const schoolName = parts[1] || '';
+
+    try {
+        const res = await fetch('../api/awards-api.php', {
+            method: 'POST',
+            body: JSON.stringify({
+                event_id: EVENT_ID,
+                modality_id: state.modality,
+                category_id: catId,
+                gender: gender,
+                award_type: 'BEST_GK',
+                winner_name: winnerName,
+                school_name: schoolName
+            })
+        });
+        
+        btn.innerHTML = '✅ SALVO';
+        btn.style.background = '#059669';
+        status.innerHTML = 'Goleiro salvo no banco com sucesso!';
+        status.style.color = '#10b981';
+    } catch (e) {
+        status.innerHTML = 'Erro ao salvar no banco.';
+        status.style.color = '#ef4444';
+    }
     
     setTimeout(() => {
         btn.innerHTML = 'SALVAR';
-        btn.style.background = '#10b981';
-        status.innerHTML = 'Digite o nome e a escola do goleiro.';
+        btn.style.background = '#3b82f6';
+        status.innerHTML = 'Nome e escola do goleiro.';
         status.style.color = '#64748b';
     }, 2000);
 }
@@ -945,6 +986,20 @@ async function renderPodium(container, catId, gender, navHtml, catMatches) {
         const first = getWinner(finalMatch);
         const second = getLoser(finalMatch);
         const third = getWinner(thirdMatch);
+
+        // Fetch saved awards from DB
+        let dbAwards = [];
+        try {
+            const res = await fetch(`../api/awards-api.php?event_id=${EVENT_ID}&modality_id=${state.modality}&category_id=${catId}&gender=${gender}`);
+            const result = await res.json();
+            dbAwards = result.data || [];
+        } catch(e) { console.error('Error fetching awards', e); }
+
+        const findAward = (type) => {
+            const a = dbAwards.find(x => x.award_type === type);
+            if (!a) return '';
+            return a.school_name ? `${a.winner_name} - ${a.school_name}` : a.winner_name;
+        };
 
         const podiumDiv = document.getElementById('podiumContent');
         podiumDiv.innerHTML = '';
@@ -997,9 +1052,9 @@ async function renderPodium(container, catId, gender, navHtml, catMatches) {
         });
         const topScorer = Object.values(scorers).sort((a,b) => b.goals - a.goals)[0];
 
-        // 3. Best Player / Gk (MANUAL)
-        const savedPlayer = localStorage.getItem(`jem_best_player_${catId}_${gender}`) || '';
-        const savedGk = localStorage.getItem(`jem_best_gk_${catId}_${gender}`) || '';
+        // 3. Best Player / Gk (FROM DB)
+        const savedPlayer = findAward('BEST_PLAYER');
+        const savedGk = findAward('BEST_GK');
 
         awardsWrapper.innerHTML = `
             <h3 style="color: #10b981; margin: 0 0 1rem 0; display: flex; align-items: center; gap: 10px;">✨ DESTAQUES INDIVIDUAIS</h3>

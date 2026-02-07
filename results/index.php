@@ -231,6 +231,7 @@ if (!$event) {
         }
 
         let matches = [];
+        let awards = [];
         let state = { modality: null, category: {}, phase: {} };
         
         const PHASES = {
@@ -246,10 +247,14 @@ if (!$event) {
         
         async function load() {
             try {
-                console.log('Loading matches...');
-                const res = await fetch(`../api/matches-api.php?action=list&event_id=${EVENT_ID}&_t=${Date.now()}`);
-                const data = await res.json();
-                matches = data.data || [];
+                console.log('Loading matches and awards...');
+                const [matchRes, awardRes] = await Promise.all([
+                    fetch(`../api/matches-api.php?action=list&event_id=${EVENT_ID}&_t=${Date.now()}`),
+                    fetch(`../api/awards-api.php?event_id=${EVENT_ID}&modality_id=${state.modality || 0}&category_id=0&_t=${Date.now()}`) // Basic fetch to warm up
+                ]);
+                const matchData = await matchRes.json();
+                matches = matchData.data || [];
+                
                 console.log('Loaded', matches.length, 'matches');
                 render();
             } catch(e) {
@@ -337,9 +342,75 @@ if (!$event) {
             html += '<div class="subtitle">TABELA</div>';
             
             const phaseMatches = cat.matches.filter(m => m.phase === state.phase[catKey]);
-            
+
+            // Load awards for this category/gender
+            const loadAwards = async () => {
+                const [catId, gender] = catKey.split('_');
+                try {
+                    const res = await fetch(`../api/awards-api.php?event_id=${EVENT_ID}&modality_id=${state.modality}&category_id=${catId}&gender=${gender}`);
+                    const data = await res.json();
+                    awards = data.data || [];
+                    
+                    // Re-render ONLY if we are still on the same podium
+                    if (state.phase[catKey] === 'podium') {
+                        const awardSection = document.getElementById('awards-section');
+                        if (awardSection) renderAwards(awardSection, cat.matches);
+                    }
+                } catch(e) { console.error('Awards load error', e); }
+            };
+
+            // Shared rendering for awards
+            const renderAwards = (container, catMatches) => {
+                // 1. Calculate Top Scorer
+                const scorers = {};
+                catMatches.forEach(m => {
+                    (m.events || []).forEach(ev => {
+                        if (ev.event_type === 'GOAL') {
+                            if (!scorers[ev.athlete_id]) scorers[ev.athlete_id] = { name: ev.athlete_name, goals: 0 };
+                            scorers[ev.athlete_id].goals++;
+                        }
+                    });
+                });
+                const topScorer = Object.values(scorers).sort((a,b) => b.goals - a.goals)[0];
+
+                const findAward = (type) => {
+                    const a = awards.find(x => x.award_type === type);
+                    if (!a) return '---';
+                    return a.school_name ? `${a.winner_name} • ${a.school_name}` : a.winner_name;
+                };
+
+                container.innerHTML = `
+                    <div style="max-width: 1000px; margin: 2rem auto; background: rgba(30, 41, 59, 0.5); border-radius: 24px; padding: 2.5rem; border: 1px solid rgba(255,255,255,0.05); backdrop-filter: blur(10px);">
+                        <h3 style="color: #10b981; font-size: 1.5rem; font-weight: 800; text-align: center; margin-bottom: 2rem; display: flex; align-items: center; justify-content: center; gap: 12px;">
+                            ✨ DESTAQUES INDIVIDUAIS
+                        </h3>
+                        
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem;">
+                            <div style="background: rgba(16, 185, 129, 0.1); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(16, 185, 129, 0.2); text-align: center;">
+                                <div style="color: #10b981; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; margin-bottom: 10px; letter-spacing: 1px;">⚽ ARTILHEIRO</div>
+                                <div style="color: white; font-size: 1.4rem; font-weight: 800; margin-bottom: 5px;">${topScorer ? topScorer.name : '---'}</div>
+                                <div style="color: #10b981; font-size: 1rem; font-weight: 900; background: rgba(16,185,129,0.2); display: inline-block; padding: 4px 12px; border-radius: 8px;">
+                                    ${topScorer ? topScorer.goals + ' GOLS' : '---'}
+                                </div>
+                            </div>
+
+                            <div style="background: rgba(59, 130, 246, 0.1); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(59, 130, 246, 0.2); text-align: center;">
+                                <div style="color: #3b82f6; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; margin-bottom: 10px; letter-spacing: 1px;">🧤 GOLEIRO MENOS VAZADO</div>
+                                <div style="color: white; font-size: 1.25rem; font-weight: 700; line-height: 1.3;">${findAward('BEST_GK')}</div>
+                            </div>
+
+                            <div style="background: rgba(245, 158, 11, 0.1); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(245, 158, 11, 0.2); text-align: center;">
+                                <div style="color: #f59e0b; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; margin-bottom: 10px; letter-spacing: 1px;">⭐ MELHOR JOGADOR</div>
+                                <div style="color: white; font-size: 1.25rem; font-weight: 700; line-height: 1.3;">${findAward('BEST_PLAYER')}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            };
+
             // Special handling for podium
             if (state.phase[catKey] === 'podium') {
+                loadAwards(); // Trigger async load
                 const finalMatch = cat.matches.find(m => m.phase === 'final' && m.status === 'finished');
                 const thirdPlaceMatch = cat.matches.find(m => m.phase === 'third_place' && m.status === 'finished');
                 
@@ -437,6 +508,13 @@ if (!$event) {
                     html += '</div>';
                     
                     html += '</div>';
+                    html += '<div id="awards-section"></div>';
+                    
+                    // Initial render for awards (will be updated when loadAwards finishes)
+                    setTimeout(() => {
+                        const awardSection = document.getElementById('awards-section');
+                        if (awardSection) renderAwards(awardSection, cat.matches);
+                    }, 0);
                 }
             } else if (phaseMatches.length === 0) {
                 html += '<div class="empty">Nenhum jogo nesta fase</div>';
