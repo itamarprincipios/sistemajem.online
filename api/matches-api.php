@@ -275,6 +275,28 @@ try {
                 ]);
                 exit;
 
+            } elseif ($action === 'clear_group_stage') {
+                $eventId = $data['event_id'];
+                $categoryId = $data['category_id'];
+                $gender = $data['gender'];
+
+                // 1. Clear matches for this category/gender
+                execute("
+                    DELETE FROM matches 
+                    WHERE competition_event_id = ? AND category_id = ? 
+                    AND team_a_id IN (SELECT id FROM competition_teams WHERE gender = ?)
+                ", [$eventId, $categoryId, $gender]);
+
+                // 2. Reset team groups
+                execute("
+                    UPDATE competition_teams 
+                    SET group_name = NULL 
+                    WHERE competition_event_id = ? AND category_id = ? AND gender = ?
+                ", [$eventId, $categoryId, $gender]);
+
+                echo json_encode(['success' => true, 'message' => 'Grupos e partidas excluídos com sucesso!']);
+                exit;
+
             } elseif ($action === 'generate') {
                 $eventId = $data['event_id'];
                 $modalityId = $data['modality_id'];

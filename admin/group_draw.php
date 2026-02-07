@@ -41,6 +41,9 @@ include '../includes/sidebar.php';
                     </p>
                 </div>
                 <div style="display: flex; gap: 1rem;">
+                    <button class="btn btn-danger" onclick="clearGroups()">
+                        🗑️ Excluir todos os grupos
+                    </button>
                     <button class="btn btn-primary" onclick="generateGroupsAutomatically()">
                         ⚡ Gerar Fase de Grupos Automaticamente
                     </button>
@@ -51,7 +54,7 @@ include '../includes/sidebar.php';
             </div>
         </div>
 
-        <div id="groupsContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1rem;">
+        <div id="groupsContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem;">
             <!-- Groups will be loaded here -->
         </div>
     </div>
@@ -158,8 +161,37 @@ async function generateGroupsAutomatically() {
     }
 }
 
+async function clearGroups() {
+    if (!confirm('ATENÇÃO: Isso excluirá TODOS os grupos e partidas desta categoria. Esta ação não pode ser desfeita. Continuar?')) return;
+    
+    Toast.info('Excluindo grupos e partidas...');
+    
+    try {
+        const res = await fetch('../api/matches-api.php?action=clear_group_stage', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                event_id: eventId,
+                category_id: categoryId,
+                gender: gender
+            })
+        });
+        
+        const result = await res.json();
+        
+        if (result.success) {
+            Toast.success(result.message);
+            loadGroups();
+        } else {
+            Toast.error(result.error || 'Erro ao excluir grupos');
+        }
+    } catch (e) {
+        console.error(e);
+        Toast.error('Erro na conexão com o servidor');
+    }
+}
+
 async function drawGroups() {
-    // Para esta fase, vamos focar no automático primeiro conforme solicitado
     Toast.info('Esta funcionalidade será integrada no sorteio automático.');
 }
 </script>
