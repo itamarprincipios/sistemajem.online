@@ -14,7 +14,7 @@ $event = queryOne("SELECT * FROM competition_events WHERE id = ?", [$eventId]);
 $category = queryOne("SELECT * FROM categories WHERE id = ?", [$categoryId]);
 
 if (!$event || !$category) {
-    header('Location: matches_generator_new.php');
+    header('Location: matches_generator.php');
     exit;
 }
 
@@ -28,7 +28,7 @@ include '../includes/sidebar.php';
 <div class="main-content">
     <div class="top-bar">
         <h1 class="top-bar-title"><?php echo htmlspecialchars($pageTitle); ?></h1>
-        <a href="matches_generator_new.php" class="btn btn-secondary">← Voltar</a>
+        <a href="matches_generator.php" class="btn btn-secondary">← Voltar</a>
     </div>
     
     <div class="content-wrapper">

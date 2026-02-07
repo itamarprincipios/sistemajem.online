@@ -32,6 +32,18 @@ include '../includes/sidebar.php';
                         Acessar Gerador
                     </a>
                 </div>
+
+                <!-- Society Card -->
+                <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 12px; padding: 2rem; text-align: center;">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">🏟️</div>
+                    <h3 style="color: #3b82f6; margin-bottom: 1rem;">Gerador de jogos society</h3>
+                    <p style="color: var(--text-secondary); font-size: 0.95rem; margin-bottom: 2rem; max-width: 300px; margin-left: auto; margin-right: auto;">
+                        Gerador automático de fase de grupos e chaves para torneios de Futebol Society.
+                    </p>
+                    <a href="matches_generator_society.php" class="btn btn-primary" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); border: none; width: 100%; display: block; padding: 0.8rem;">
+                        Acessar Gerador
+                    </a>
+                </div>
             </div>
         </div>
     </div>

@@ -276,12 +276,15 @@ try {
 
                 $categoriesProcessed = 0;
                 $matchesGenerated = 0;
-                $futsalId = queryOne("SELECT id FROM modalities WHERE name LIKE '%Futsal%'")['id'] ?? 1;
                 $groupNames = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
 
                 foreach ($segments as $segment) {
                     $catId = $segment['category_id'];
                     $gender = $segment['gender'];
+
+                    // Get modality ID for this segment (should be the same for all teams in the segment)
+                    $modalityId = queryOne("SELECT modality_id FROM competition_teams WHERE competition_event_id = ? AND category_id = ? AND gender = ? LIMIT 1", 
+                        [$eventId, $catId, $gender])['modality_id'] ?? 1;
 
                     // Clear previous matches for this segment
                     execute("
@@ -311,7 +314,7 @@ try {
                                     VALUES (?, ?, ?, ?, ?, 'group_stage', ?, 'scheduled')
                                 ", [
                                     $eventId,
-                                    $futsalId,
+                                    $modalityId,
                                     $catId,
                                     $groupTeams[$i]['id'],
                                     $groupTeams[$j]['id'],
@@ -366,7 +369,8 @@ try {
                 
                 // Clear existing matches for this category/gender if any?
                 // Ideally we should warn the user before this. Assuming UI handles confirmation.
-                $futsalId = queryOne("SELECT id FROM modalities WHERE name LIKE '%Futsal%'")['id'] ?? 1; // Fallback
+                $modalityId = queryOne("SELECT modality_id FROM competition_teams WHERE competition_event_id = ? AND category_id = ? AND gender = ? LIMIT 1", 
+                    [$eventId, $categoryId, $gender])['modality_id'] ?? 1;
                 
                 // Clear previous matches for this specific segment
                 // This is important to avoid duplicates if re-generating
@@ -411,7 +415,7 @@ try {
                                 VALUES (?, ?, ?, ?, ?, 'group_stage', ?, 'scheduled')
                             ", [
                                 $eventId,
-                                $futsalId,
+                                $modalityId,
                                 $categoryId,
                                 $groupTeams[$i]['id'],
                                 $groupTeams[$j]['id'],
