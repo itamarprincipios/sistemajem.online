@@ -16,9 +16,14 @@ include '../includes/sidebar.php';
     </div>
     
     <div class="content-wrapper">
-        <div class="glass-card" style="margin-bottom: 2rem;">
-            <h2>Eventos Cadastrados</h2>
-            <p style="color: var(--text-secondary);">Selecione uma categoria para sortear os grupos</p>
+        <div class="glass-card" style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h2>Eventos Cadastrados</h2>
+                <p style="color: var(--text-secondary);">Selecione uma categoria para sortear os grupos ou use o sorteio mestre.</p>
+            </div>
+            <a href="master_draw.php" class="btn" style="background: linear-gradient(135deg, #FFD700 0%, #D4AF37 100%); color: #000; border: none; font-weight: bold; padding: 0.8rem 1.5rem; text-decoration: none; border-radius: 8px; display: flex; align-items: center; gap: 0.5rem; box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);">
+                🏆 Sorteio Mestre (Geral)
+            </a>
         </div>
 
         <div id="eventsContainer">

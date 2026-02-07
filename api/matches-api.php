@@ -201,6 +201,25 @@ try {
                 echo json_encode(['success' => true, 'data' => $teams]);
                 exit;
             }
+
+            if ($action === 'list_schools_for_master_draw') {
+                $eventId = $_GET['event_id'] ?? 0;
+                
+                // Get all schools with at least one team in this event
+                $schools = query("
+                    SELECT DISTINCT s.id, s.name as school_name, 
+                           (SELECT group_name FROM competition_teams 
+                            WHERE competition_event_id = ? AND school_id = s.id 
+                            AND group_name IS NOT NULL LIMIT 1) as assigned_group
+                    FROM competition_teams ct
+                    JOIN schools s ON ct.school_id = s.id
+                    WHERE ct.competition_event_id = ?
+                    ORDER BY s.name
+                ", [$eventId, $eventId]);
+                
+                echo json_encode(['success' => true, 'data' => $schools]);
+                exit;
+            }
             break;
 
         case 'POST':
@@ -208,6 +227,36 @@ try {
             
             $data = json_decode(file_get_contents('php://input'), true);
             
+            if ($action === 'assign_school_master_group') {
+                $eventId = $data['event_id'];
+                $schoolId = $data['school_id'];
+                $groupName = $data['group_name'];
+
+                // Update all teams of this school in this event
+                execute("
+                    UPDATE competition_teams 
+                    SET group_name = ? 
+                    WHERE competition_event_id = ? AND school_id = ?
+                ", [$groupName, $eventId, $schoolId]);
+                
+                echo json_encode(['success' => true, 'message' => 'Escola vinculada ao grupo (todas as categorias atualizadas)!']);
+                exit;
+            }
+
+            if ($action === 'clear_master_draw') {
+                $eventId = $data['event_id'];
+
+                // Reset all team groups for this event
+                execute("
+                    UPDATE competition_teams 
+                    SET group_name = NULL 
+                    WHERE competition_event_id = ?
+                ", [$eventId]);
+
+                echo json_encode(['success' => true, 'message' => 'Sorteio mestre reiniciado com sucesso!']);
+                exit;
+            }
+
             if ($action === 'assign_team_group') {
                 $teamId = $data['team_id'];
                 $groupName = $data['group_name'];
