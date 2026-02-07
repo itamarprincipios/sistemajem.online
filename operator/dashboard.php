@@ -409,7 +409,7 @@ function switchPhase(key, direction) {
 
     // Smart Arrow: Allow moving to the next phase if the current one is complete
     const isCurrentComplete = categoryMatches.length > 0 && 
-                               categoryMatches.filter(m => m.phase === currentPhase).every(m => m.status === 'finished');
+                               categoryMatches.filter(m => m.phase === currentPhase).every(m => m.status === 'finished' || (m.score_team_a !== null && m.score_team_b !== null));
 
     if (newIndex >= availablePhases.length && isCurrentComplete && currentIndex < PHASE_ORDER.length - 1) {
         // Move to the next logical phase even if matches don't exist yet
@@ -519,7 +519,7 @@ function render() {
     );
     const phaseIdx = availablePhases.indexOf(currPhase);
     const isCurrentComplete = catMatches.length > 0 && 
-                               catMatches.filter(m => m.phase === currPhase).every(m => m.status === 'finished');
+                               catMatches.filter(m => m.phase === currPhase).every(m => m.status === 'finished' || (m.score_team_a !== null && m.score_team_b !== null));
 
     const canPrev = phaseIdx > 0;
     const canNext = (phaseIdx < availablePhases.length - 1) || 
@@ -582,12 +582,18 @@ function render() {
                     <div class="match-teams" style="gap: 1.25rem; margin-bottom: 1.25rem;">
                         <div class="team-row">
                             <span style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${teamA}</span>
-                            ${isFinished || isLive ? `<span style="background:#0f172a; padding: 4px 12px; border-radius: 8px; min-width: 40px; text-align: center;">${m.score_team_a}</span>` : ''}
+                            <input type="number" min="0" class="inline-input" value="${m.score_team_a || 0}" 
+                                   onchange="markDirty(${m.id})" id="score-a-${m.id}" 
+                                   style="width: 50px; text-align: center; font-weight: 800; background: #0f172a; ${isFinished ? 'pointer-events: none;' : ''}"
+                                   ${isFinished ? 'readonly' : ''}>
                         </div>
                         <div class="vs-divider" style="margin: 0; color: #334155;">VS</div>
                         <div class="team-row">
                             <span style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${teamB}</span>
-                            ${isFinished || isLive ? `<span style="background:#0f172a; padding: 4px 12px; border-radius: 8px; min-width: 40px; text-align: center;">${m.score_team_b}</span>` : ''}
+                            <input type="number" min="0" class="inline-input" value="${m.score_team_b || 0}" 
+                                   onchange="markDirty(${m.id})" id="score-b-${m.id}" 
+                                   style="width: 50px; text-align: center; font-weight: 800; background: #0f172a; ${isFinished ? 'pointer-events: none;' : ''}"
+                                   ${isFinished ? 'readonly' : ''}>
                         </div>
                     </div>
 
@@ -599,13 +605,14 @@ function render() {
                     <div class="match-footer" style="flex-direction: column; gap: 10px;">
                         ${!isFinished ? `
                             <div style="display: flex; flex-direction: column; gap: 0.5rem; width: 100%;">
-                                <div style="display: flex; align-items: center; gap: 1rem; width: 100%;">
-                                    <button class="inline-save-btn" id="save-${m.id}" onclick="saveMatch(${m.id})" style="flex: 1;">SALVAR AGENDAMENTO</button>
-                                    <span id="status-${m.id}" class="save-status"></span>
+                                <div style="display: flex; align-items: center; gap: 0.5rem; width: 100%;">
+                                    <button class="inline-save-btn" id="save-${m.id}" onclick="saveMatch(${m.id})" style="flex: 1;">💾 SALVAR</button>
+                                    <button onclick="finishMatchDirectly(${m.id})" class="inline-save-btn" style="flex: 1; background: #10b981; border-color: #059669;">🏁 ENCERRAR</button>
                                 </div>
                                 <a href="match_control.php?id=${m.id}" class="btn-control ${isLive ? 'btn-live' : ''}" style="width: 100%; padding: 0.75rem;">
-                                    ${isLive ? 'ABRIR PLACAR' : 'INICIAR PARTIDA'}
+                                    ${isLive ? '⏱️ GERENCIAR PLACAR' : '🎮 INICIAR PARTIDA'}
                                 </a>
+                                <span id="status-${m.id}" class="save-status" style="text-align: center;"></span>
                             </div>
                         ` : `
                             <div style="display: flex; flex-direction: column; gap: 10px;">
@@ -627,6 +634,52 @@ function render() {
 function markDirty(id) {
     const btn = document.getElementById(`save-${id}`);
     if (btn) btn.classList.add('active');
+}
+
+async function finishMatchDirectly(id) {
+    const match = allMatches.find(m => m.id == id);
+    if (!match) return;
+
+    const scoreA = parseInt(document.getElementById(`score-a-${id}`).value);
+    const scoreB = parseInt(document.getElementById(`score-b-${id}`).value);
+
+    let winnerId = null;
+    if (scoreA > scoreB) winnerId = match.team_a_id;
+    else if (scoreB > scoreA) winnerId = match.team_b_id;
+    else {
+        // Tie handling
+        if (confirm('A partida terminou empatada. Houve disputa de pênaltis? Se sim, clique OK para ir à tela de gerenciamento de súmula e registrar o vencedor.')) {
+            window.location.href = `match_control.php?id=${id}`;
+            return;
+        }
+        return; 
+    }
+
+    if (!confirm(`Deseja encerrar a partida com o placar ${scoreA} x ${scoreB}?`)) return;
+
+    try {
+        const res = await fetch('../api/matches-api.php', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                id: id,
+                status: 'finished',
+                score_team_a: scoreA,
+                score_team_b: scoreB,
+                winner_team_id: winnerId
+            })
+        });
+        const result = await res.json();
+        if (result.success) {
+            alert('Partida encerrada com sucesso!');
+            loadMatches();
+        } else {
+            alert('Erro: ' + result.error);
+        }
+    } catch(err) {
+        console.error(err);
+        alert('Erro ao encerrar partida.');
+    }
 }
 
 async function saveMatch(id) {
@@ -799,8 +852,8 @@ async function renderBracketPreview(container, catId, gender, phase) {
         <div style="text-align:center; padding: 3rem;">
             <div class="preview-badge">✨ PRÉ-VISUALIZAÇÃO</div>
             <h2 style="color: #10b981; margin-bottom: 0.5rem;">${PHASE_NAMES[phase]}</h2>
-            <p style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 2rem;">Os jogos ainda não foram gerados. Confira o chaveamento baseado na classificação atual:</p>
-            <div id="bracketLoading" class="bracket-container">Calculando classificação...</div>
+            <p style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 2rem;">Os jogos ainda não foram gerados. Confira o chaveamento previsto:</p>
+            <div id="bracketLoading" class="bracket-container">Calculando cruzamentos...</div>
             <div id="bracketActions" style="display:none;" class="bracket-btn-container">
                 <button onclick="generateKnockout('${phase}')" class="btn btn-primary" style="padding: 1rem 2rem; font-size: 1rem; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3);">
                     ⚡ Confirmar e Gerar Jogos
@@ -810,55 +863,102 @@ async function renderBracketPreview(container, catId, gender, phase) {
     `;
 
     try {
-        const res = await fetch(`../api/standings-api.php?action=group_standings&event_id=${EVENT_ID}&modality_id=${state.modality}&category_id=${catId}&gender=${gender}`);
-        const result = await res.json();
-        const standings = result.data;
-        
         const bracketDiv = document.getElementById('bracketLoading');
-        bracketDiv.innerHTML = '';
-        bracketDiv.className = 'bracket-container';
+        let matches = [];
 
-        // Prepare matchups logic (1A vs 2B, 1B vs 2A, etc.)
-        const groups = Object.keys(standings).sort();
-        const matches = [];
+        if (phase === 'round_of_16') {
+            // Group Stage -> Round of 16 (Existing logic)
+            const res = await fetch(`../api/standings-api.php?action=group_standings&event_id=${EVENT_ID}&modality_id=${state.modality}&category_id=${catId}&gender=${gender}`);
+            const result = await res.json();
+            const standings = result.data;
+            const groups = Object.keys(standings).sort();
+            for(let i=0; i < groups.length; i++) {
+                const groupA = groups[i];
+                const groupB = groups[(i + 1) % groups.length];
+                const firstA = (standings[groupA] || []).find(t => t.position === 1);
+                const secondB = (standings[groupB] || []).find(t => t.position === 2);
+                if (firstA && secondB) {
+                    matches.push({ 
+                        a: { name: firstA.team_name, rank: `1º ${groupA}` }, 
+                        b: { name: secondB.team_name, rank: `2º ${groupB}` }, 
+                        label: `Jogo ${matches.length + 1}` 
+                    });
+                }
+            }
+        } else {
+            // Subsequent phases: Find winners of the previous phase
+            const prevPhaseMap = {
+                'quarter_final': 'round_of_16',
+                'semi_final': 'quarter_final',
+                'final': 'semi_final',
+                'third_place': 'semi_final'
+            };
+            const prevPhase = prevPhaseMap[phase];
+            const prevMatches = allMatches.filter(m => 
+                m.modality_id == state.modality && m.category_id == catId && 
+                (m.team_gender || 'M') == gender && m.phase === prevPhase
+            ).sort((a,b) => new Date(a.scheduled_time) - new Date(b.scheduled_time));
 
-        for(let i=0; i < groups.length; i++) {
-            const groupA = groups[i];
-            const groupB = groups[(i + 1) % groups.length];
-            
-            const firstA = (standings[groupA] || []).find(t => t.position === 1);
-            const secondB = (standings[groupB] || []).find(t => t.position === 2);
+            if (prevMatches.length === 0) {
+                bracketDiv.innerHTML = `<p style="color: #ef4444;">Fase anterior (${PHASE_NAMES[prevPhase]}) não encontrada.</p>`;
+                return;
+            }
 
-            if (firstA && secondB) {
-                matches.push({ a: firstA, b: secondB, label: `1º ${groupA} vs 2º ${groupB}` });
+            for(let i=0; i < prevMatches.length; i += 2) {
+                const m1 = prevMatches[i];
+                const m2 = prevMatches[i+1];
+                if (!m1 || !m2) break;
+
+                const getWinner = (m) => {
+                    if (m.status !== 'finished') return { name: `Vencedor Jogo ${m.id}`, rank: '...' };
+                    const isA = (m.score_team_a || 0) > (m.score_team_b || 0); // Simplified, ignores penalties for now
+                    return { 
+                        name: isA ? m.team_a_name : m.team_b_name, 
+                        rank: isA ? `Venc. Jogo ${m.id}` : `Venc. Jogo ${m.id}` 
+                    };
+                };
+
+                const getLoser = (m) => {
+                    if (m.status !== 'finished') return { name: `Perdedor Jogo ${m.id}`, rank: '...' };
+                    const isA = (m.score_team_a || 0) > (m.score_team_b || 0);
+                    return { 
+                        name: isA ? m.team_b_name : m.team_a_name, 
+                        rank: isA ? `Perd. Jogo ${m.id}` : `Perd. Jogo ${m.id}` 
+                    };
+                };
+
+                if (phase === 'third_place') {
+                    matches.push({ a: getLoser(m1), b: getLoser(m2), label: 'Disputa de 3º' });
+                } else {
+                    matches.push({ a: getWinner(m1), b: getWinner(m2), label: `Jogo ${matches.length + 1}` });
+                }
             }
         }
 
         if (matches.length === 0) {
-            bracketDiv.innerHTML = '<p style="color: #ef4444;">Não há times suficientes classificados para gerar esta fase.</p>';
+            bracketDiv.innerHTML = '<p style="color: #ef4444;">Não há dados suficientes para prever esta fase.</p>';
             return;
         }
 
+        bracketDiv.innerHTML = '';
         const column = document.createElement('div');
         column.className = 'bracket-column';
-        
         matches.forEach(m => {
             const matchDiv = document.createElement('div');
             matchDiv.className = 'bracket-match';
             matchDiv.innerHTML = `
                 <div style="padding: 4px 10px; font-size: 0.6rem; color: #64748b; background: rgba(0,0,0,0.2); border-bottom: 1px solid #334155;">${m.label}</div>
                 <div class="bracket-team">
-                    <span class="team-name">${cleanName(m.a.team_name)}</span>
-                    <span class="team-rank">1º ${m.a.group}</span>
+                    <span class="team-name">${cleanName(m.a.name)}</span>
+                    <span class="team-rank">${m.a.rank}</span>
                 </div>
                 <div class="bracket-team">
-                    <span class="team-name">${cleanName(m.b.team_name)}</span>
-                    <span class="team-rank">2º ${m.b.group}</span>
+                    <span class="team-name">${cleanName(m.b.name)}</span>
+                    <span class="team-rank">${m.b.rank}</span>
                 </div>
             `;
             column.appendChild(matchDiv);
         });
-
         bracketDiv.appendChild(column);
         document.getElementById('bracketActions').style.display = 'block';
 

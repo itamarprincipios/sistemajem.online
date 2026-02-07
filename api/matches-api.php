@@ -578,6 +578,21 @@ try {
                 $params[] = $data['status'];
             }
 
+            if (isset($data['score_team_a'])) {
+                $fields[] = "score_team_a = ?";
+                $params[] = $data['score_team_a'];
+            }
+
+            if (isset($data['score_team_b'])) {
+                $fields[] = "score_team_b = ?";
+                $params[] = $data['score_team_b'];
+            }
+
+            if (isset($data['winner_team_id'])) {
+                $fields[] = "winner_team_id = ?";
+                $params[] = $data['winner_team_id'];
+            }
+
             if (empty($fields)) {
                 echo json_encode(['success' => true, 'message' => 'Nada a atualizar']);
                 exit;
