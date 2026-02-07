@@ -29,10 +29,13 @@ try {
                 $athleteCount = queryOne("SELECT COUNT(*) as c FROM competition_team_athletes cta JOIN competition_teams ct ON cta.competition_team_id = ct.id WHERE ct.competition_event_id = ?", [$_GET['id']])['c'];
                 $matchCount = queryOne("SELECT COUNT(*) as c FROM matches WHERE competition_event_id = ?", [$_GET['id']])['c'];
                 
+                // Debug: log the counts
+                error_log("Event {$_GET['id']}: Teams=$teamCount, Athletes=$athleteCount, Matches=$matchCount");
+                
                 $event['stats'] = [
-                    'teams' => $teamCount,
-                    'athletes' => $athleteCount,
-                    'matches' => $matchCount
+                    'teams' => (int)$teamCount,
+                    'athletes' => (int)$athleteCount,
+                    'matches' => (int)$matchCount
                 ];
 
                 echo json_encode(['success' => true, 'data' => $event]);
