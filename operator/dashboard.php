@@ -140,6 +140,49 @@ $pageTitle = 'Painel do Operador';
             margin-bottom: 4px;
             display: block;
         }
+            display: block;
+        }
+
+        /* Modal Súmula */
+        .modal-sumula {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(5px);
+            z-index: 2000;
+            padding: 2rem;
+            box-sizing: border-box;
+        }
+        .modal-sumula.active { display: flex; align-items: center; justify-content: center; }
+        .sumula-content {
+            background: #1e293b;
+            width: 100%;
+            max-width: 900px;
+            max-height: 90vh;
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #334155;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+        .sumula-header { padding: 1.5rem; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; }
+        .sumula-body { padding: 1.5rem; overflow-y: auto; flex: 1; font-family: 'Inter', sans-serif; }
+        .sumula-text {
+            background: #0f172a;
+            color: #f8fafc;
+            padding: 2rem;
+            border-radius: 12px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            border: 1px solid #1e293b;
+        }
+        .sumula-footer { padding: 1.5rem; border-top: 1px solid #334155; display: flex; gap: 1rem; justify-content: flex-end; }
     </style>
 </head>
 <body>
@@ -167,6 +210,26 @@ $pageTitle = 'Painel do Operador';
         </div>
         <div id="matchesContainer">
             <!-- Populated by JS grouped by Category -->
+        </div>
+    </div>
+
+    <!-- Modal Súmula -->
+    <div id="sumulaModal" class="modal-sumula">
+        <div class="sumula-content">
+            <div class="sumula-header">
+                <div>
+                    <h3 style="margin: 0; color: #10b981;">📜 Súmula Oficial da Partida</h3>
+                    <p style="margin: 0; font-size: 0.8rem; color: #94a3b8;">Texto formatado para documento técnico</p>
+                </div>
+                <button onclick="closeSumula()" style="background: none; border: none; color: #94a3b8; font-size: 1.5rem; cursor: pointer;">&times;</button>
+            </div>
+            <div class="sumula-body">
+                <div id="sumulaText" class="sumula-text">Gerando...</div>
+            </div>
+            <div class="sumula-footer">
+                <button class="btn btn-secondary" onclick="closeSumula()">Fechar</button>
+                <button class="btn btn-primary" onclick="copySumula()">📋 Copiar Texto</button>
+            </div>
         </div>
     </div>
 
@@ -411,10 +474,16 @@ function render() {
                                 <button class="inline-save-btn" id="save-${m.id}" onclick="saveMatch(${m.id})" style="flex: 1;">SALVAR AGENDAMENTO</button>
                                 <span id="status-${m.id}" class="save-status"></span>
                             </div>
-                            <a href="match_control.php?id=${m.id}" class="btn-control ${isLive ? 'btn-live' : ''}" style="width: 100%; padding: 0.75rem;">
-                                ${isLive ? 'ABRIR PLACAR' : 'INICIAR PARTIDA'}
-                            </a>
-                        ` : `<div style="text-align:center; width:100%; color:#64748b; font-weight:800; padding: 1rem; background: rgba(0,0,0,0.1); border-radius: 8px;">PARTIDA ENCERRADA</div>`}
+                                <a href="match_control.php?id=${m.id}" class="btn-control ${isLive ? 'btn-live' : ''}" style="width: 100%; padding: 0.75rem;">
+                                    ${isLive ? 'ABRIR PLACAR' : 'INICIAR PARTIDA'}
+                                </a>
+                            </div>
+                        ` : `
+                            <div style="display: flex; flex-direction: column; gap: 10px;">
+                                <div style="text-align:center; width:100%; color:#64748b; font-weight:800; padding: 0.75rem; background: rgba(0,0,0,0.1); border-radius: 8px; font-size: 0.8rem;">PARTIDA ENCERRADA</div>
+                                <button class="btn btn-primary" onclick="generateSumula(${m.id})" style="width: 100%; background: #334155; border: 1px solid #475569; padding: 0.75rem;">📜 VER SÚMULA</button>
+                            </div>
+                        `}
                     </div>
                 </div>
             `;
@@ -477,6 +546,121 @@ async function saveMatch(id) {
             statusSpan.style.color = '#ef4444';
         }
     }
+}
+
+async function generateSumula(id) {
+    const modal = document.getElementById('sumulaModal');
+    const textDiv = document.getElementById('sumulaText');
+    modal.classList.add('active');
+    textDiv.textContent = 'Gerando súmula detalhada...';
+
+    try {
+        const res = await fetch(`../api/match-events-api.php?action=get_match_sumula&match_id=${id}`);
+        const result = await res.json();
+        
+        if (!result.success) throw new Exception(result.error);
+        
+        const data = result.data;
+        const m = data.match;
+        const e = data.events;
+        const placeholder = "----XXXX----";
+
+        // Helper to format date
+        const dateObj = new Date(m.scheduled_time);
+        const day = String(dateObj.getDate()).padStart(2, '0');
+        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const year = dateObj.getFullYear();
+        const hour = String(dateObj.getHours()).padStart(2, '0');
+        const min = String(dateObj.getMinutes()).padStart(2, '0');
+
+        // Lists
+        const goals = e.filter(ev => ev.event_type === 'GOAL').map(ev => 
+            `- ${ev.event_time}' | ${ev.team_id == m.team_a_id ? 'EQUIPE A' : 'EQUIPE B'} | Nº ${ev.jersey_number || '??'} - ${ev.athlete_name || 'ATLETA NÃO LISTADO'}`
+        ).join('\n') || placeholder;
+
+        const subs = e.filter(ev => ev.event_type === 'SUBSTITUTION').map(ev => 
+            `- ${ev.event_time}' | ${ev.team_id == m.team_a_id ? 'EQUIPE A' : 'EQUIPE B'} | SAIU: ${ev.athlete_name} | ENTROU: ${ev.athlete_in_name}`
+        ).join('\n') || placeholder;
+
+        const cards = e.filter(ev => ['YELLOW_CARD', 'RED_CARD'].includes(ev.event_type)).map(ev => 
+            `- ${ev.event_time}' | ${ev.team_id == m.team_a_id ? 'EQUIPE A' : 'EQUIPE B'} | Nº ${ev.jersey_number || '??'} (${ev.athlete_name}) | ${ev.event_type === 'YELLOW_CARD' ? 'CA' : 'CV'}`
+        ).join('\n') || placeholder;
+
+        const formatAthletes = (list, captainId) => {
+            return list.map(a => `${String(a.jersey_number || '??').padStart(2, '0')} - ${a.name_snapshot}${a.id == captainId ? ' (C)' : ''}`).join('\n') || placeholder;
+        };
+
+        const markdown = `
+# SÚMULA OFICIAL DE PARTIDA
+
+### DADOS DA PARTIDA
+- COMPETIÇÃO: ${m.modality_name.toUpperCase()} | FASE: ${PHASE_NAMES[m.phase] || m.phase.toUpperCase()}
+- DATA: ${day}/${month}/${year} ÀS ${hour}:${min} | LOCAL: ${m.venue || placeholder}
+- ÁRBITRO PRINCIPAL: ${m.referee_primary || placeholder}
+- EQUIPE DE ARBITRAGEM: ${[m.referee_assistant, m.referee_fourth].filter(x => x).join(' / ') || placeholder}
+
+---
+
+### EQUIPE A: ${m.team_a_name.toUpperCase()}
+**ATLETAS (Nº E NOME):**
+${formatAthletes(data.athletes_a, m.team_a_captain_id)}
+
+**COMISSÃO TÉCNICA:**
+- TÉCNICO: ${m.team_a_coach || placeholder}
+- AUXILIAR: ${m.team_a_assistant || placeholder}
+
+---
+
+### EQUIPE B: ${m.team_b_name.toUpperCase()}
+**ATLETAS (Nº E NOME):**
+${formatAthletes(data.athletes_b, m.team_b_captain_id)}
+
+**COMISSÃO TÉCNICA:**
+- TÉCNICO: ${m.team_b_coach || placeholder}
+- AUXILIAR: ${m.team_b_assistant || placeholder}
+
+---
+
+### EVENTOS CRONOLÓGICOS (GOLS)
+${goals}
+
+---
+
+### SUBSTITUIÇÕES
+${subs}
+
+---
+
+### RELATO DISCIPLINAR (CARTÕES)
+${cards}
+
+---
+
+### RELATÓRIO TÉCNICO E OBSERVAÇÕES
+- **PLACAR FINAL:** ${m.team_a_name}: ${m.score_team_a} X ${m.team_b_name}: ${m.score_team_b} 
+- **OBSERVAÇÕES DO ÁRBITRO:**
+${m.observations || 'NADA HOUVE'}
+
+---
+*Gerado automaticamente pelo Sistema JEM em ${new Date().toLocaleString('pt-BR')}*
+        `.trim();
+
+        textDiv.textContent = markdown;
+    } catch (err) {
+        console.error(err);
+        textDiv.textContent = 'Erro ao carregar dados da súmula. Verifique se a partida possui todos os dados registrados.';
+    }
+}
+
+function closeSumula() {
+    document.getElementById('sumulaModal').classList.remove('active');
+}
+
+function copySumula() {
+    const text = document.getElementById('sumulaText').textContent;
+    navigator.clipboard.writeText(text).then(() => {
+        alert('Súmula copiada para a área de transferência!');
+    });
 }
 
 loadMatches();

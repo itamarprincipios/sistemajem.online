@@ -17,6 +17,7 @@ $match = queryOne("
            t2.registration_id as team_b_reg_id,
            m.referee_primary, m.referee_assistant, m.referee_fourth,
            m.team_a_lineup, m.team_b_lineup,
+           m.team_a_captain_id, m.team_b_captain_id, m.observations,
            TIMESTAMPDIFF(SECOND, m.start_time, NOW()) as elapsed_seconds
     FROM matches m
     JOIN competition_teams t1 ON m.team_a_id = t1.id
@@ -133,6 +134,8 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
         .player-name-small { flex: 1; font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .staff-input { background: #0f172a; border: 1px solid #334155; color: white; padding: 8px; border-radius: 6px; font-size: 0.9rem; width: 100%; }
         .staff-label { font-size: 0.75rem; color: #94a3b8; margin-top: 4px; }
+        .captain-radio { width: 18px; height: 18px; cursor: pointer; accent-color: #10b981; }
+        .captain-label { font-size: 0.65rem; color: #10b981; font-weight: bold; margin-left: 2px; }
     </style>
 </head>
 <body>
@@ -263,7 +266,11 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
                 <div class="staff-label">Quarto Árbitro</div>
                 <input type="text" id="ref-fourth" class="staff-input" placeholder="Nome do Quarto Árbitro" value="<?php echo htmlspecialchars($match['referee_fourth'] ?? ''); ?>">
             </div>
+            </div>
         </div>
+
+        <div class="app-section-title" style="margin-top: 1.5rem;">RELATO DO ÁRBITRO (OBSERVAÇÕES)</div>
+        <textarea id="observations" class="staff-input" style="height: 100px; margin-top: 0.5rem;" placeholder="Descreva incidentes, motivos de cartões ou atrasos..."><?php echo htmlspecialchars($match['observations'] ?? ''); ?></textarea>
 
         <div style="margin-top: 2rem; display: flex; gap: 1rem;">
             <button class="btn btn-secondary" style="flex: 1; background: #334155; border: none; color: white;" onclick="closeModals()">Voltar</button>
@@ -286,9 +293,10 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
         const teamA_id = <?php echo $match['team_a_id']; ?>;
         const teamB_id = <?php echo $match['team_b_id']; ?>;
         
-        let onFieldA = <?php echo $match['team_a_lineup'] ?: '[]'; ?>;
         let onFieldB = <?php echo $match['team_b_lineup'] ?: '[]'; ?>;
         let selectedOut = null; // {teamSide, athleteId}
+        let captainA = <?php echo $match['team_a_captain_id'] ?: 'null'; ?>;
+        let captainB = <?php echo $match['team_b_captain_id'] ?: 'null'; ?>;
 
         function initLineups() {
             // Auto-pick first 5 if none stored
@@ -414,18 +422,24 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
             document.getElementById('modal-team-a-name').textContent = cleanName('<?php echo $match['team_a_name']; ?>');
             document.getElementById('modal-team-b-name').textContent = cleanName('<?php echo $match['team_b_name']; ?>');
             
-            const renderList = (athletes, containerId) => {
+            const renderList = (athletes, containerId, teamSide) => {
                 const container = document.getElementById(containerId);
+                const currentCaptainId = teamSide === 'A' ? captainA : captainB;
+                
                 container.innerHTML = athletes.map(at => `
                     <div class="player-row">
                         <input type="number" class="jersey-input" value="${at.jersey_number || ''}" onchange="updateAthleteJersey(${at.id}, this.value)">
                         <span class="player-name-small">${at.name_snapshot}</span>
+                        <div style="display: flex; align-items: center;">
+                            <input type="radio" name="captain-${teamSide}" class="captain-radio" ${currentCaptainId == at.id ? 'checked' : ''} value="${at.id}">
+                            <span class="captain-label">CAP</span>
+                        </div>
                     </div>
                 `).join('');
             };
 
-            renderList(athletesA, 'list-a-appointments');
-            renderList(athletesB, 'list-b-appointments');
+            renderList(athletesA, 'list-a-appointments', 'A');
+            renderList(athletesB, 'list-b-appointments', 'B');
             
             document.getElementById('appointmentsModal').classList.add('active');
         }
@@ -454,6 +468,11 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
                         assistant: document.getElementById('ref-assistant').value,
                         fourth: document.getElementById('ref-fourth').value
                     },
+                    captains: {
+                        team_a: document.querySelector('input[name="captain-A"]:checked')?.value || null,
+                        team_b: document.querySelector('input[name="captain-B"]:checked')?.value || null
+                    },
+                    observations: document.getElementById('observations').value,
                     athletes: [...athletesA, ...athletesB].map(a => ({ id: a.id, jersey_number: a.jersey_number }))
                 };
 
