@@ -514,12 +514,8 @@ function render() {
     // Render Matches Header
     if (!state.phase[currCatKey]) state.phase[currCatKey] = 'group_stage';
     
-    const currentPhase = state.phase[currentCatKey];
-    const categoryMatches = cat.matches;
-    const phaseMatches = categoryMatches.filter(m => m.phase === currentPhase);
-
     const availablePhases = PHASE_ORDER.filter(phase => 
-        phase === 'group_stage' || categoryMatches.some(m => m.phase === phase)
+        phase === 'group_stage' || catMatches.some(m => m.phase === phase)
     );
     const phaseIdx = availablePhases.indexOf(currentPhase);
     const canPrev = phaseIdx > 0;
