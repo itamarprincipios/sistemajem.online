@@ -176,13 +176,24 @@ $pageTitle = 'Painel do Operador';
 // Global Utilities
 const cleanName = (name) => {
     if (!name) return 'A definir';
-    // Remove complex prefixes in sequence
-    return name
-        .replace(/^(ESCOLA MUNICIPAL|MUNICIPAL|ESCOLA|EDUCAÇÃO INFANTIL|ENSINO FUNDAMENTAL|PROFESSORA|PROFESSOR|EMEIF|EMEF|E\s+ENSINO\s+FUNDAMENTAL)/gi, '')
-        .replace(/^[\s\-DEe,]+/gi, '') // Remove leading garbage like " DE ", " E ", "-", etc.
-        .replace(/^(ESCOLA MUNICIPAL|MUNICIPAL|ESCOLA|EDUCAÇÃO INFANTIL|ENSINO FUNDAMENTAL|PROFESSORA|PROFESSOR|EMEIF|EMEF)/gi, '') // Second pass for nested prefixes
-        .replace(/^[\s\-DEe,]+/gi, '')
-        .trim();
+    let cleaned = name;
+    
+    // Iteratively remove known prefixes until no more can be removed
+    const prefixes = [
+        /^(ESCOLA MUNICIPAL|MUNICIPAL|ESCOLA|EMEIF|EMEF)\b/gi,
+        /^(EDUCAÇÃO INFANTIL|ENSINO FUNDAMENTAL|ENSINO MÉDIO)\b/gi,
+        /^(PROFESSOR[A]?)\b/gi,
+        /^[\s\-–—,]+/gi, // Symbols and spaces
+        /^(DE|E|DO|DA)\s+/gi // Prepositions
+    ];
+
+    let lastCleaned;
+    do {
+        lastCleaned = cleaned;
+        prefixes.forEach(p => cleaned = cleaned.replace(p, '').trim());
+    } while (cleaned !== lastCleaned && cleaned.length > 0);
+
+    return cleaned || 'A definir';
 };
 
 let allMatches = []; 

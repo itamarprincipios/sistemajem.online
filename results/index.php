@@ -436,9 +436,20 @@ if (!$event) {
 
                     const cleanName = (name) => {
                         if (!name) return 'A definir';
-                        return name
-                            .replace(/^(ESCOLA MUNICIPAL |MUNICIPAL |ESCOLA |EDUCAÇÃO INFANTIL E ENSINO FUNDAMENTAL |ENSINO FUNDAMENTAL |ENSINO INFANTIL |PROFESSORA |PROFESSOR |EMEIF |EMEF |DE |E )+/gi, '')
-                            .trim();
+                        let cleaned = name;
+                        const prefixes = [
+                            /^(ESCOLA MUNICIPAL|MUNICIPAL|ESCOLA|EMEIF|EMEF)\b/gi,
+                            /^(EDUCAÇÃO INFANTIL|ENSINO FUNDAMENTAL|ENSINO MÉDIO)\b/gi,
+                            /^(PROFESSOR[A]?)\b/gi,
+                            /^[\s\-–—,]+/gi,
+                            /^(DE|E|DO|DA)\s+/gi
+                        ];
+                        let lastCleaned;
+                        do {
+                            lastCleaned = cleaned;
+                            prefixes.forEach(p => cleaned = cleaned.replace(p, '').trim());
+                        } while (cleaned !== lastCleaned && cleaned.length > 0);
+                        return cleaned || 'A definir';
                     };
 
                     const teamA = cleanName(m.team_a_name);
