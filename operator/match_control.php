@@ -46,6 +46,9 @@ if (!$match['team_a_coach'] || !$match['team_b_coach']) {
 $athletesA = query("SELECT id, name_snapshot, jersey_number FROM competition_team_athletes WHERE competition_team_id = ?", [$match['team_a_id']]);
 $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_team_athletes WHERE competition_team_id = ?", [$match['team_b_id']]);
 
+$isSociety = strpos(strtolower($match['modality_name'] ?? ''), 'society') !== false;
+$themeColor = $isSociety ? '#3b82f6' : '#10b981';
+$themeColorRgb = $isSociety ? '59, 130, 246' : '16, 185, 129';
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -74,6 +77,10 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
         };
     </script>
     <style>
+        :root {
+            --theme-color: <?php echo $themeColor; ?>;
+            --theme-color-rgb: <?php echo $themeColorRgb; ?>;
+        }
         body { background: #000; color: white; overflow-x: hidden; font-family: 'Inter', sans-serif; }
         .score-board { display: grid; grid-template-columns: 1fr auto 1fr; gap: 0.5rem; align-items: center; padding: 0.5rem; background: #111; border-bottom: 2px solid #333; }
         .team-box { text-align: center; }
@@ -86,7 +93,7 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
         .controls { padding: 0.5rem; display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; height: auto; align-content: start; }
         .team-controls { display: flex; flex-direction: column; gap: 0.4rem; }
         
-        .btn-goal { background: #10b981; color: white; border: none; padding: 0.8rem; font-size: 1rem; font-weight: bold; border-radius: 8px; cursor: pointer; box-shadow: 0 3px #059669; }
+        .btn-goal { background: var(--theme-color); color: white; border: none; padding: 0.8rem; font-size: 1rem; font-weight: bold; border-radius: 8px; cursor: pointer; box-shadow: 0 3px rgba(0,0,0,0.3); }
         .btn-goal:active { transform: translateY(2px); box-shadow: none; }
         .btn-card { font-size: 0.8rem; padding: 0.5rem; border-radius: 6px; font-weight: bold; border: none; cursor: pointer; }
 
@@ -95,7 +102,7 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
         .bench-team { display: flex; flex-direction: column; gap: 0.25rem; }
         .bench-title { font-size: 0.65rem; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 2px; }
         .player-chip { display: flex; align-items: center; gap: 4px; padding: 4px 6px; background: #1e293b; border-radius: 4px; font-size: 0.8rem; cursor: pointer; border: 1px solid transparent; transition: 0.2s; }
-        .player-chip.field { background: rgba(16,185,129,0.1); border-color: rgba(16,185,129,0.3); }
+        .player-chip.field { background: rgba(var(--theme-color-rgb),0.1); border-color: rgba(var(--theme-color-rgb),0.3); }
         .player-chip.selected { border-color: #fbbf24; background: rgba(251,191,36,0.2); }
         .player-chip .p-num { font-weight: bold; color: #fbbf24; min-width: 18px; }
         .player-chip .p-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
@@ -117,8 +124,8 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
         /* Timeline Styles */
         .timeline-container { padding: 1rem; flex: 1; overflow-y: auto; margin-bottom: 80px; min-height: 300px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; margin-top: 1rem; }
         .timeline-item { display: flex; align-items: center; gap: 1rem; margin-bottom: 0.75rem; padding: 0.5rem 1rem; border-radius: 8px; background: rgba(255,255,255,0.05); font-size: 0.95rem; }
-        .timeline-item.side-A { flex-direction: row; border-left: 4px solid #10b981; }
-        .timeline-item.side-B { flex-direction: row-reverse; border-right: 4px solid #10b981; }
+        .timeline-item.side-A { flex-direction: row; border-left: 4px solid var(--theme-color); }
+        .timeline-item.side-B { flex-direction: row-reverse; border-right: 4px solid var(--theme-color); }
         .time-badge { background: #334155; color: #fbbf24; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-weight: bold; min-width: 45px; text-align: center; }
         .event-icon { font-size: 1.2rem; }
         .player-info { font-weight: 600; flex: 1; }
@@ -127,14 +134,14 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
         /* Appointments Modal Styles */
         .appointments-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
         .team-app-col { display: flex; flex-direction: column; gap: 0.5rem; }
-        .app-section-title { font-size: 0.9rem; font-weight: 800; color: #10b981; margin-top: 1rem; border-bottom: 1px solid rgba(16,185,129,0.3); padding-bottom: 4px; }
+        .app-section-title { font-size: 0.9rem; font-weight: 800; color: var(--theme-color); margin-top: 1rem; border-bottom: 1px solid rgba(var(--theme-color-rgb),0.3); padding-bottom: 4px; }
         .player-row { display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.05); padding: 6px 10px; border-radius: 6px; }
         .jersey-input { width: 45px; background: #0f172a; border: 1px solid #334155; color: #fbbf24; text-align: center; border-radius: 4px; font-weight: bold; padding: 4px; }
         .player-name-small { flex: 1; font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .staff-input { background: #0f172a; border: 1px solid #334155; color: white; padding: 8px; border-radius: 6px; font-size: 0.9rem; width: 100%; }
         .staff-label { font-size: 0.75rem; color: #94a3b8; margin-top: 4px; }
-        .captain-radio { width: 18px; height: 18px; cursor: pointer; accent-color: #10b981; }
-        .captain-label { font-size: 0.65rem; color: #10b981; font-weight: bold; margin-left: 2px; }
+        .captain-radio { width: 18px; height: 18px; cursor: pointer; accent-color: var(--theme-color); }
+        .captain-label { font-size: 0.65rem; color: var(--theme-color); font-weight: bold; margin-left: 2px; }
     </style>
 </head>
 <body>
@@ -180,14 +187,14 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
     <div class="bench-container">
         <!-- Team A Bench -->
         <div class="bench-team">
-            <div class="bench-title">QUADRA (A)</div>
+            <div class="bench-title"><?php echo $isSociety ? 'EM CAMPO' : 'QUADRA'; ?> (A)</div>
             <div id="field-A" class="quadra-grid"></div>
             <div class="bench-title">BANCO</div>
             <div id="bench-A" class="banco-grid"></div>
         </div>
         <!-- Team B Bench -->
         <div class="bench-team">
-            <div class="bench-title">QUADRA (B)</div>
+            <div class="bench-title"><?php echo $isSociety ? 'EM CAMPO' : 'QUADRA'; ?> (B)</div>
             <div id="field-B" class="quadra-grid"></div>
             <div class="bench-title">BANCO</div>
             <div id="bench-B" class="banco-grid"></div>
@@ -222,7 +229,7 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
     <!-- Appointments Modal -->
     <div id="appointmentsModal" class="modal-sheet" style="max-height: 90vh;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; gap: 1rem;">
-            <h2 style="color: #10b981; margin: 0;">📋 Apontamentos da Partida</h2>
+            <h2 style="color: var(--theme-color); margin: 0;">📋 Apontamentos da Partida <span style="font-size: 0.6rem; vertical-align: middle; opacity: 0.5;">v2.2</span></h2>
             <div style="display: flex; gap: 0.5rem; align-items: center;">
                 <button class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.9rem;" onclick="saveAppointments()">💾 SALVAR</button>
                 <button onclick="closeModals()" style="background: none; border: none; color: #94a3b8; font-size: 1.5rem; cursor: pointer; padding: 0;">&times;</button>
@@ -269,8 +276,10 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
                 <div class="staff-label">Quarto Árbitro</div>
                 <input type="text" id="ref-fourth" class="staff-input" placeholder="Nome do Quarto Árbitro" value="<?php echo htmlspecialchars($match['referee_fourth'] ?? ''); ?>">
             </div>
-            </div>
         </div>
+
+        <div class="app-section-title" style="margin-top: 1.5rem;">OBSERVAÇÕES</div>
+        <textarea id="observations" class="staff-input" style="height: 100px; margin-top: 0.5rem;" placeholder="Relate incidentes, atrasos ou observações gerais..."><?php echo htmlspecialchars($match['observations'] ?? ''); ?></textarea>
     </div>
 
     <script>
@@ -450,27 +459,35 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
 
         async function saveAppointments() {
             try {
+                console.log("Saving appointments...");
+                
+                const getVal = (id) => document.getElementById(id)?.value || '';
+                
                 const payload = {
                     action: 'save_appointments',
                     match_id: matchId,
                     staff: {
-                        team_a_coach: document.getElementById('coach-a').value,
-                        team_a_assistant: document.getElementById('assistant-a').value,
-                        team_b_coach: document.getElementById('coach-b').value,
-                        team_b_assistant: document.getElementById('assistant-b').value
+                        team_a_coach: getVal('coach-a'),
+                        team_a_assistant: getVal('assistant-a'),
+                        team_b_coach: getVal('coach-b'),
+                        team_b_assistant: getVal('assistant-b')
                     },
                     referees: {
-                        primary: document.getElementById('ref-primary').value,
-                        assistant: document.getElementById('ref-assistant').value,
-                        fourth: document.getElementById('ref-fourth').value
+                        primary: getVal('ref-primary'),
+                        assistant: getVal('ref-assistant'),
+                        fourth: getVal('ref-fourth')
                     },
                     captains: {
                         team_a: document.querySelector('input[name="captain-A"]:checked')?.value || null,
                         team_b: document.querySelector('input[name="captain-B"]:checked')?.value || null
                     },
-                    observations: document.getElementById('observations').value,
-                    athletes: [...athletesA, ...athletesB].map(a => ({ id: a.id, jersey_number: a.jersey_number }))
+                    observations: getVal('observations'),
+                    athletes: [...(athletesA || []), ...(athletesB || [])]
+                        .filter(a => a && a.id)
+                        .map(a => ({ id: a.id, jersey_number: a.jersey_number || '' }))
                 };
+
+                console.log("Payload:", payload);
 
                 const res = await fetch('../api/match-events-api.php', {
                     method: 'POST',
@@ -478,17 +495,22 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
                     body: JSON.stringify(payload)
                 });
                 
+                if (!res.ok) {
+                    const text = await res.text();
+                    throw new Error(`Server returned ${res.status}: ${text.substring(0, 100)}`);
+                }
+
                 const data = await res.json();
                 if (data.success) {
                     closeModals();
                     alert('Apontamentos salvos com sucesso!');
-                    loadTimeline(); // Para atualizar os números na timeline se mudaram
+                    window.location.reload(); 
                 } else {
-                    alert('Erro ao salvar: ' + data.error);
+                    alert('Erro ao salvar: ' + (data.error || 'Erro desconhecido'));
                 }
             } catch (e) {
-                console.error(e);
-                alert('Erro de conexão ao salvar apontamentos');
+                console.error("Save error:", e);
+                alert('Erro de salvamento. Detalhes: ' + e.message);
             }
         }
         
