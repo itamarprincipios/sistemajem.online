@@ -11,23 +11,35 @@ if (!$matchId) {
     die("ID da partida não fornecido.");
 }
 
-// Get match data
-$match = queryOne("
-    SELECT m.*, 
-           COALESCE(t1.school_name_snapshot, 'Equipe A') as team_a_name, 
-           COALESCE(t2.school_name_snapshot, 'Equipe B') as team_b_name,
-           COALESCE(c.name, 'Categoria') as category_name,
-           COALESCE(mod.name, 'Modalidade') as modality_name
-    FROM matches m
-    LEFT JOIN competition_teams t1 ON m.team_a_id = t1.id
-    LEFT JOIN competition_teams t2 ON m.team_b_id = t2.id
-    LEFT JOIN categories c ON m.category_id = c.id
-    LEFT JOIN modalities mod ON m.modality_id = mod.id
-    WHERE m.id = ?
-", [$matchId]);
-
-if (!$match) {
-    die("Partida não encontrada (ID: $matchId)");
+// Get match data - with detailed debugging
+try {
+    // First, try simple query
+    $matchSimple = queryOne("SELECT * FROM matches WHERE id = ?", [$matchId]);
+    
+    if (!$matchSimple) {
+        die("Erro: Partida ID $matchId não existe na tabela matches. Verifique se o ID está correto.");
+    }
+    
+    // Now try with joins
+    $match = queryOne("
+        SELECT m.*, 
+               COALESCE(t1.school_name_snapshot, 'Equipe A') as team_a_name, 
+               COALESCE(t2.school_name_snapshot, 'Equipe B') as team_b_name,
+               COALESCE(c.name, 'Categoria') as category_name,
+               COALESCE(mod.name, 'Modalidade') as modality_name
+        FROM matches m
+        LEFT JOIN competition_teams t1 ON m.team_a_id = t1.id
+        LEFT JOIN competition_teams t2 ON m.team_b_id = t2.id
+        LEFT JOIN categories c ON m.category_id = c.id
+        LEFT JOIN modalities mod ON m.modality_id = mod.id
+        WHERE m.id = ?
+    ", [$matchId]);
+    
+    if (!$match) {
+        die("Erro: Query com JOINs falhou. Match simples existe mas query complexa retornou vazio. IDs: team_a={$matchSimple['team_a_id']}, team_b={$matchSimple['team_b_id']}, category={$matchSimple['category_id']}, modality={$matchSimple['modality_id']}");
+    }
+} catch (Exception $e) {
+    die("Erro na query: " . $e->getMessage());
 }
 
 // Get athletes
