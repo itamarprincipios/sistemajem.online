@@ -487,9 +487,6 @@ function render() {
     const canNext = (currPhaseIdx < availablePhases.length - 1) || 
                     (isCurrentComplete && PHASE_ORDER.indexOf(currPhase) < PHASE_ORDER.length - 1);
 
-    const isSocietyMod = activeMod.name.toLowerCase().includes('society');
-    const themeColor = isSocietyMod ? '#3b82f6' : '#10b981';
-
     const navHtml = `
         <div class="phase-navigation">
             <button class="phase-nav-btn" onclick="switchPhase('${currCatKey}', -1)" ${!canPrev ? 'disabled' : ''} style="${!canPrev ? '' : `&:hover{background:${themeColor};border-color:${themeColor};}`}">←</button>
