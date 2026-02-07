@@ -518,8 +518,12 @@ function render() {
         phase === 'group_stage' || catMatches.some(m => m.phase === phase)
     );
     const phaseIdx = availablePhases.indexOf(currPhase);
+    const isCurrentComplete = catMatches.length > 0 && 
+                               catMatches.filter(m => m.phase === currPhase).every(m => m.status === 'finished');
+
     const canPrev = phaseIdx > 0;
-    const canNext = phaseIdx < availablePhases.length - 1;
+    const canNext = (phaseIdx < availablePhases.length - 1) || 
+                    (isCurrentComplete && PHASE_ORDER.indexOf(currPhase) < PHASE_ORDER.length - 1);
 
     let html = `
         <div class="phase-navigation">
