@@ -196,76 +196,6 @@ $activeEventId = $activeEvent['id'] ?? 'null';
         }
         .sumula-footer { padding: 1.5rem; border-top: 1px solid #334155; display: flex; gap: 1rem; justify-content: flex-end; }
 
-        /* Bracket Styles */
-        .bracket-container {
-            display: flex;
-            gap: 2rem;
-            padding: 2rem;
-            overflow-x: auto;
-            align-items: center;
-            justify-content: center;
-            min-height: 400px;
-        }
-        .bracket-column {
-            display: flex;
-            flex-direction: column;
-            justify-content: space-around;
-            gap: 2rem;
-        }
-        .bracket-match {
-            background: #1e293b;
-            border: 1px solid #334155;
-            border-radius: 12px;
-            width: 250px;
-            overflow: hidden;
-            position: relative;
-        }
-        .bracket-match::after {
-            content: '';
-            position: absolute;
-            right: -2rem;
-            top: 50%;
-            width: 2rem;
-            height: 2px;
-            background: #334155;
-            display: none; /* Will show based on logic */
-        }
-        .bracket-team {
-            padding: 0.75rem 1rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 0.9rem;
-            font-weight: 600;
-        }
-        .bracket-team:first-child { border-bottom: 1px solid #334155; }
-        .bracket-team .team-name {
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            max-width: 180px;
-        }
-        .bracket-team .team-rank {
-            font-size: 0.7rem;
-            color: #64748b;
-            background: rgba(0,0,0,0.3);
-            padding: 2px 6px;
-            border-radius: 4px;
-        }
-        .bracket-btn-container {
-            margin-top: 2rem;
-            text-align: center;
-        }
-        .preview-badge {
-            background: #f59e0b;
-            color: #000;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            font-weight: 800;
-            margin-bottom: 1rem;
-            display: inline-block;
-        }
 
     </style>
 </head>
@@ -273,12 +203,6 @@ $activeEventId = $activeEvent['id'] ?? 'null';
     <div class="op-header">
         <div style="font-size: 1.2rem; font-weight: 800; letter-spacing: -0.5px; color: #10b981;">JEM OPERADOR <span style="font-size: 0.6rem; color: #64748b; vertical-align: middle; margin-left: 5px;">V2.1</span></div>
         <div style="display: flex; align-items: center; gap: 1.5rem;">
-            <a href="knockout_manual.php" style="background: linear-gradient(135deg, #8b5cf6, #d946ef); color: white; padding: 0.5rem 1rem; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 0.9rem; display: flex; align-items: center; gap: 0.5rem; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
-                ✏️ Mata-Mata Manual
-            </a>
-            <a href="knockout_manager.php" style="background: #334155; color: white; padding: 0.5rem 1rem; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 0.9rem; display: flex; align-items: center; gap: 0.5rem; transition: background 0.2s;" onmouseover="this.style.background='#475569'" onmouseout="this.style.background='#334155'">
-                🏆 Mata-Mata Auto
-            </a>
             <span id="matchCount" style="font-size: 0.85rem; color: #64748b; font-weight: 600;"></span>
             <span style="font-size: 0.9rem; color: #94a3b8;"><?php echo htmlspecialchars($_SESSION['user_name']); ?></span>
             <a href="../logout.php" style="color: #ef4444; text-decoration: none; font-size: 0.9rem; font-weight: 600;">Sair</a>
