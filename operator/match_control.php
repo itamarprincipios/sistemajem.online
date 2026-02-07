@@ -291,6 +291,7 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
         const teamA_id = <?php echo $match['team_a_id']; ?>;
         const teamB_id = <?php echo $match['team_b_id']; ?>;
         
+        let onFieldA = <?php echo $match['team_a_lineup'] ?: '[]'; ?>;
         let onFieldB = <?php echo $match['team_b_lineup'] ?: '[]'; ?>;
         let selectedOut = null; // {teamSide, athleteId}
         let captainA = <?php echo $match['team_a_captain_id'] ?: 'null'; ?>;
