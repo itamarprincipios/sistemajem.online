@@ -343,6 +343,26 @@ if (!$event) {
             
             const phaseMatches = cat.matches.filter(m => m.phase === state.phase[catKey]);
 
+            const cleanSchoolName = (name) => {
+                if (!name) return '---';
+                let cleaned = name;
+                const prefixes = [
+                    /^(ESCOLA MUNICIPAL|MUNICIPAL|ESCOLA|EMEIF|EMEF|CENTRO)\b/gi,
+                    /^(EDUCAÇÃO INFANTIL|ENSINO FUNDAMENTAL|ENSINO MÉDIO|ENSINO INFANTIL|EDUCAÇÃO INFANTIL E ENSINO FUNDAMENTAL|INFANTIL|FUNDAMENTAL|MÉDIO)\b/gi,
+                    /^(PROFESSOR[A]?)\b/gi,
+                    /^[\s\-–—,]+/gi,
+                    /^(DE|E|DO|DA)\s+/gi
+                ];
+                let lastCleaned;
+                let iterations = 0;
+                do {
+                    lastCleaned = cleaned;
+                    prefixes.forEach(p => cleaned = cleaned.replace(p, '').trim());
+                    iterations++;
+                } while (cleaned !== lastCleaned && cleaned.length > 0 && iterations < 10);
+                return cleaned || '---';
+            };
+
             // Load awards for this category/gender
             const loadAwards = async () => {
                 const [catId, gender] = catKey.split('_');
@@ -376,7 +396,7 @@ if (!$event) {
                 const findAward = (type) => {
                     const a = awards.find(x => x.award_type === type);
                     if (!a) return '---';
-                    return a.school_name ? `${a.winner_name} • ${a.school_name}` : a.winner_name;
+                    return a.school_name ? `${a.winner_name} • ${cleanSchoolName(a.school_name)}` : a.winner_name;
                 };
 
                 container.innerHTML = `
@@ -431,15 +451,7 @@ if (!$event) {
                         { name: thirdPlaceMatch.team_b_name, id: thirdPlaceMatch.team_b_id };
                     
                     // Clean names
-                    const cleanName = (name) => {
-                        if (!name) return 'TBD';
-                        return name
-                            .replace(/^ESCOLA MUNICIPAL\s+/i, '')
-                            .replace(/^ESCOLA\s+/i, '')
-                            .replace(/^MUNICIPAL\s+/i, '')
-                            .replace(/^FUNDAMENTAL\s+/i, '');
-
-                    };
+                    const cleanName = (name) => cleanSchoolName(name);
                     
                     // Calculate stats for each team
                     const getTeamStats = (teamId) => {
@@ -528,24 +540,7 @@ if (!$event) {
                     const genderLabel = isFem ? '♀️ Fem' : '♂️ Masc';
                     const genderColor = isFem ? '#ec4899' : '#10b981';
 
-                    const cleanName = (name) => {
-                        if (!name) return 'A definir';
-                        let cleaned = name;
-                        const prefixes = [
-                            /^(ESCOLA MUNICIPAL|MUNICIPAL|ESCOLA|EMEIF|EMEF)\b/gi,
-                            /^(EDUCAÇÃO INFANTIL|ENSINO FUNDAMENTAL|ENSINO MÉDIO|ENSINO INFANTIL|EDUCAÇÃO INFANTIL E ENSINO FUNDAMENTAL|FUNDAMENTAL)\b/gi,
-                            /^(PROFESSOR[A]?)\b/gi,
-                            /^[\s\-–—,]+/gi,
-                            /^(DE|E|DO|DA)\s+/gi
-
-                        ];
-                        let lastCleaned;
-                        do {
-                            lastCleaned = cleaned;
-                            prefixes.forEach(p => cleaned = cleaned.replace(p, '').trim());
-                        } while (cleaned !== lastCleaned && cleaned.length > 0);
-                        return cleaned || 'A definir';
-                    };
+                    const cleanName = (name) => cleanSchoolName(name);
 
                     const teamA = cleanName(m.team_a_name);
                     const teamB = cleanName(m.team_b_name);
