@@ -480,7 +480,7 @@ function render() {
                         ` : `
                             <div style="display: flex; flex-direction: column; gap: 10px;">
                                 <div style="text-align:center; width:100%; color:#64748b; font-weight:800; padding: 0.75rem; background: rgba(0,0,0,0.1); border-radius: 8px; font-size: 0.8rem;">PARTIDA ENCERRADA</div>
-                                <button class="btn btn-primary" onclick="generateSumula(${m.id})" style="width: 100%; background: #334155; border: 1px solid #475569; padding: 0.75rem;">📜 VER SÚMULA</button>
+                                <a href="sumula.php?match_id=${m.id}" target="_blank" class="btn btn-primary" style="width: 100%; background: #334155; border: 1px solid #475569; padding: 0.75rem; text-decoration: none; display: block; text-align: center; color: white; border-radius: 8px;">📜 VER SÚMULA</a>
                             </div>
                         `}
                     </div>
