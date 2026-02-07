@@ -534,7 +534,7 @@ function render() {
     `;
 
     if (currPhase === 'podium') {
-        renderPodium(container, currCatId, currGender, navHtml);
+        renderPodium(container, currCatId, currGender, navHtml, catMatches);
         renderTabs(modalityTabs, categoryTabs, modIds, mods, catKeys);
         return;
     }
@@ -909,27 +909,8 @@ function saveBestGk(catId, gender) {
 }
 
 
-function saveBestScorer(catId, gender) {
-    const val = document.getElementById('bestScorerInput').value;
-    const btn = document.getElementById('saveScorerBtn');
-    const status = document.getElementById('saveScorerStatus');
-    
-    localStorage.setItem(`jem_best_scorer_${catId}_${gender}`, val);
-    
-    btn.innerHTML = '✅ SALVO';
-    btn.style.background = '#059669';
-    status.innerHTML = 'Artilheiro salvo com sucesso!';
-    status.style.color = '#10b981';
-    
-    setTimeout(() => {
-        btn.innerHTML = 'SALVAR';
-        btn.style.background = '#10b981';
-        status.innerHTML = 'Digite o nome e a escola do artilheiro.';
-        status.style.color = '#64748b';
-    }, 2000);
-}
 
-async function renderPodium(container, catId, gender, navHtml) {
+async function renderPodium(container, catId, gender, navHtml, catMatches) {
     container.innerHTML = `
         ${navHtml}
         <div style="text-align:center; padding: 3rem;">
@@ -942,26 +923,23 @@ async function renderPodium(container, catId, gender, navHtml) {
     `;
 
     try {
-        const catMatches = allMatches.filter(m => 
-            m.modality_id == state.modality && m.category_id == catId && 
-            (m.team_gender || 'M') == gender
-        );
-
         const finalMatch = catMatches.find(m => m.phase === 'final');
         const thirdMatch = catMatches.find(m => m.phase === 'third_place');
 
         const getWinner = (m) => {
             if (!m) return null;
-            if (m.status !== 'finished' && (m.score_team_a === null && m.score_team_b === null)) return null;
-            const isA = (m.score_team_a || 0) > (m.score_team_b || 0);
-            return isA ? { name: m.team_a_name, id: m.team_a_id } : { name: m.team_b_name, id: m.team_b_id };
+            const scoreA = parseInt(m.score_team_a);
+            const scoreB = parseInt(m.score_team_b);
+            if (isNaN(scoreA) || isNaN(scoreB)) return null;
+            return scoreA > scoreB ? { name: m.team_a_name, id: m.team_a_id } : { name: m.team_b_name, id: m.team_b_id };
         };
 
         const getLoser = (m) => {
             if (!m) return null;
-            if (m.status !== 'finished' && (m.score_team_a === null && m.score_team_b === null)) return null;
-            const isA = (m.score_team_a || 0) > (m.score_team_b || 0);
-            return isA ? { name: m.team_b_name, id: m.team_b_id } : { name: m.team_a_name, id: m.team_a_id };
+            const scoreA = parseInt(m.score_team_a);
+            const scoreB = parseInt(m.score_team_b);
+            if (isNaN(scoreA) || isNaN(scoreB)) return null;
+            return scoreA > scoreB ? { name: m.team_b_name, id: m.team_b_id } : { name: m.team_a_name, id: m.team_a_id };
         };
 
         const first = getWinner(finalMatch);
@@ -1007,7 +985,7 @@ async function renderPodium(container, catId, gender, navHtml) {
         const awardsWrapper = document.createElement('div');
         awardsWrapper.style.cssText = 'flex: 1; min-width: 350px; display: flex; flex-direction: column; gap: 1.5rem; text-align: left; background: rgba(0,0,0,0.2); padding: 2rem; border-radius: 20px; border: 1px solid #334155;';
         
-        // 1. Calculate Top Scorer
+        // 1. Calculate Top Scorer (AUTOMATIC)
         const scorers = {};
         catMatches.forEach(m => {
             (m.events || []).forEach(ev => {
@@ -1019,46 +997,23 @@ async function renderPodium(container, catId, gender, navHtml) {
         });
         const topScorer = Object.values(scorers).sort((a,b) => b.goals - a.goals)[0];
 
-        // 2. Calculate Best Goalkeeper (Least goals conceded among podium teams)
-        const podiumTeamIds = [first?.id, second?.id, third?.id].filter(id => id);
-        const defenseStats = {};
-        podiumTeamIds.forEach(id => defenseStats[id] = 0);
-
-        catMatches.forEach(m => {
-            if (podiumTeamIds.includes(m.team_a_id)) defenseStats[m.team_a_id] += (m.score_team_b || 0);
-            if (podiumTeamIds.includes(m.team_b_id)) defenseStats[m.team_b_id] += (m.score_team_a || 0);
-        });
-
-        const bestGkId = podiumTeamIds.sort((a,b) => defenseStats[a] - defenseStats[b])[0];
-        const bestGkTeam = [first, second, third].find(t => t?.id == bestGkId);
-
-        // 3. Best Player Vote
+        // 3. Best Player / Gk (MANUAL)
         const savedPlayer = localStorage.getItem(`jem_best_player_${catId}_${gender}`) || '';
-        const savedScorer = localStorage.getItem(`jem_best_scorer_${catId}_${gender}`) || '';
         const savedGk = localStorage.getItem(`jem_best_gk_${catId}_${gender}`) || '';
 
         awardsWrapper.innerHTML = `
             <h3 style="color: #10b981; margin: 0 0 1rem 0; display: flex; align-items: center; gap: 10px;">✨ DESTAQUES INDIVIDUAIS</h3>
             
-            <div style="background: rgba(255,255,255,0.03); padding: 1.25rem; border-radius: 12px; border: 1px dashed rgba(16, 185, 129, 0.3);">
-                <div style="color: #10b981; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; margin-bottom: 8px;">⚽ ARTILHEIRO DA COMPETIÇÃO</div>
-                <div style="display: flex; gap: 8px;">
-                    <input type="text" id="bestScorerInput" value="${savedScorer}" 
-                           placeholder="Ex: Samuel Silva - Escola Francisco de Assis" 
-                           style="flex: 1; background: #0f172a; border: 1px solid #334155; color: white; padding: 10px; border-radius: 8px; font-weight: 600;">
-                    <button onclick="saveBestScorer(${catId}, '${gender}')" 
-                            style="background: #10b981; color: white; border: none; padding: 0 15px; border-radius: 8px; cursor: pointer; font-weight: 800; font-size: 0.8rem; transition: all 0.2s;"
-                            id="saveScorerBtn">
-                        SALVAR
-                    </button>
-                </div>
-                <div id="saveScorerStatus" style="font-size: 0.7rem; color: #64748b; margin-top: 5px;">Digite o nome e a escola do artilheiro.</div>
+            <div style="background: rgba(255,255,255,0.03); padding: 1rem; border-radius: 12px; margin-bottom: 0.5rem;">
+                <div style="color: #94a3b8; font-size: 0.75rem; font-weight: 800; text-transform: uppercase;">⚽ ARTILHEIRO (AUTOMÁTICO)</div>
+                <div style="color: white; font-size: 1.2rem; font-weight: 700;">${topScorer ? topScorer.name : '---'}</div>
+                <div style="color: #10b981; font-size: 0.9rem; font-weight: 800;">${topScorer ? topScorer.goals + ' GOLS' : ''}</div>
             </div>
 
-            <div style="background: rgba(255,255,255,0.03); padding: 1.25rem; border-radius: 12px; border: 1px dashed rgba(59, 130, 246, 0.3);">
+            <div style="background: rgba(255,255,255,0.03); padding: 1.25rem; border-radius: 12px; border: 1px dashed rgba(59, 130, 246, 0.3); margin-bottom: 0.5rem;">
                 <div style="color: #3b82f6; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; margin-bottom: 8px;">🧤 GOLEIRO MENOS VAZADO</div>
                 <div style="display: flex; gap: 8px;">
-                    <input type="text" id="bestGkInput" value="${localStorage.getItem(`jem_best_gk_${catId}_${gender}`) || ''}" 
+                    <input type="text" id="bestGkInput" value="${savedGk}" 
                            placeholder="Ex: Francisco de Assis - Escola Francisco de Assis" 
                            style="flex: 1; background: #0f172a; border: 1px solid #334155; color: white; padding: 10px; border-radius: 8px; font-weight: 600;">
                     <button onclick="saveBestGk(${catId}, '${gender}')" 
@@ -1070,7 +1025,7 @@ async function renderPodium(container, catId, gender, navHtml) {
                 <div id="saveGkStatus" style="font-size: 0.7rem; color: #64748b; margin-top: 5px;">Digite o nome e a escola do goleiro.</div>
             </div>
 
-            <div style="background: rgba(16, 185, 129, 0.05); padding: 1rem; border-radius: 12px; border: 1px dashed #10b981;">
+            <div style="background: rgba(16, 185, 129, 0.05); padding: 1.25rem; border-radius: 12px; border: 1px dashed #10b981;">
                 <div style="color: #10b981; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; margin-bottom: 8px;">⭐ MELHOR JOGADOR (ELEITO PELOS TÉCNICOS)</div>
                 <div style="display: flex; gap: 8px;">
                     <input type="text" id="bestPlayerInput" value="${savedPlayer}" 
