@@ -517,15 +517,15 @@ function render() {
     const availablePhases = PHASE_ORDER.filter(phase => 
         phase === 'group_stage' || catMatches.some(m => m.phase === phase)
     );
-    const phaseIdx = availablePhases.indexOf(currentPhase);
+    const phaseIdx = availablePhases.indexOf(currPhase);
     const canPrev = phaseIdx > 0;
     const canNext = phaseIdx < availablePhases.length - 1;
 
     let html = `
         <div class="phase-navigation">
-            <button class="phase-nav-btn" onclick="switchPhase('${currentCatKey}', -1)" ${!canPrev ? 'disabled' : ''}>←</button>
-            <h2 class="phase-title">${PHASE_NAMES[currentPhase] || currentPhase.toUpperCase()}</h2>
-            <button class="phase-nav-btn" onclick="switchPhase('${currentCatKey}', 1)" ${!canNext ? 'disabled' : ''}>→</button>
+            <button class="phase-nav-btn" onclick="switchPhase('${currCatKey}', -1)" ${!canPrev ? 'disabled' : ''}>←</button>
+            <h2 class="phase-title">${PHASE_NAMES[currPhase] || currPhase.toUpperCase()}</h2>
+            <button class="phase-nav-btn" onclick="switchPhase('${currCatKey}', 1)" ${!canNext ? 'disabled' : ''}>→</button>
         </div>
         <div class="phase-subtitle">TABELA</div>
         <div class="matches-grid">
