@@ -29,8 +29,11 @@ include '../includes/sidebar.php';
                     <p style="color: var(--text-secondary);">Gerencie as edições dos Jogos Escolares</p>
                 </div>
                 <div style="display: flex; gap: 1rem;">
-                    <button class="btn" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none;" onclick="generateFutsalChampionship()">
+                    <button class="btn" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; margin-right: 0.5rem;" onclick="generateFutsalChampionship()">
                         ⚽ Gerar Campeonato de Futsal
+                    </button>
+                    <button class="btn" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; border: none;" onclick="generateSocietyChampionship()">
+                        ⚽ Gerar Campeonato de Society
                     </button>
                     <button class="btn btn-primary" onclick="openCreateModal()">+ Novo Evento</button>
                 </div>
@@ -290,6 +293,37 @@ async function generateFutsalChampionship() {
     } catch (err) {
         console.error(err);
         Toast.error('Erro ao gerar campeonato de futsal');
+    }
+}
+
+async function generateSocietyChampionship() {
+    if (!confirm('🎯 Isto irá criar automaticamente:\n\n✅ Evento "Jogos Escolares Society 2026"\n✅ Importar todas as equipes aprovadas de Futebol Society\n✅ Gerar jogos da fase de grupos\n\nContinuar?')) {
+        return;
+    }
+    
+    const loadingToast = Toast.info('⚽ Gerando campeonato de society...', { duration: 0 });
+    
+    try {
+        const res = await fetch('../api/competition-events-api.php?action=generate_society_championship', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'generate_society_championship',
+                year: new Date().getFullYear()
+            })
+        });
+        
+        const result = await res.json();
+        
+        if (result.success) {
+            Toast.success(`✅ Campeonato criado com sucesso!\n\n📊 ${result.stats.teams} equipes\n👥 ${result.stats.athletes} atletas\n⚽ ${result.stats.matches} partidas geradas`);
+            loadEvents();
+        } else {
+            Toast.error(result.error || 'Erro ao gerar campeonato');
+        }
+    } catch (err) {
+        console.error(err);
+        Toast.error('Erro ao gerar campeonato de society');
     }
 }
 
