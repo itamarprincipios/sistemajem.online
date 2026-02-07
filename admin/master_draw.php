@@ -28,9 +28,14 @@ include '../includes/sidebar.php';
                 <h2 id="eventNameTitle">Carregando...</h2>
                 <p style="color: var(--text-secondary);">O sorteio realizado aqui define os grupos para TODAS as categorias deste evento.</p>
             </div>
-            <button class="btn" style="background: #ef4444; color: white; border: none;" onclick="clearMasterDraw()">
-                🗑️ Reiniciar Sorteio Geral
-            </button>
+            <div style="display: flex; gap: 1rem;">
+                <button class="btn" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; font-weight: bold; padding: 0.8rem 1.5rem;" onclick="generateAllMasterMatches()">
+                    ⚡ Finalizar e Gerar Partidas
+                </button>
+                <button class="btn" style="background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2);" onclick="clearMasterDraw()">
+                    🗑️ Reiniciar
+                </button>
+            </div>
         </div>
 
         <div style="display: grid; grid-template-columns: 1fr 320px; gap: 2rem; align-items: start;">
@@ -322,6 +327,32 @@ async function clearMasterDraw() {
             Toast.success(result.message);
         }
     } catch (e) { console.error(e); }
+}
+
+async function generateAllMasterMatches() {
+    const eventId = selector.value;
+    if (!eventId) return;
+
+    if (!confirm('Isso irá gerar as tabelas de jogos de TODAS as categorias baseadas no sorteio mestre atual. Partidas existentes serão substituídas. Confirmar?')) return;
+
+    Toast.info('Gerando partidas para todas as categorias...');
+    
+    try {
+        const res = await fetch('../api/matches-api.php?action=generate_all_master_matches', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ event_id: eventId })
+        });
+        const result = await res.json();
+        if (result.success) {
+            Toast.success(result.message);
+        } else {
+            Toast.error(result.error || 'Erro ao gerar partidas');
+        }
+    } catch (e) {
+        console.error(e);
+        Toast.error('Erro na conexão com o servidor');
+    }
 }
 </script>
 

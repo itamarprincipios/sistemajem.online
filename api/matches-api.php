@@ -257,6 +257,73 @@ try {
                 exit;
             }
 
+            if ($action === 'generate_all_master_matches') {
+                $eventId = $data['event_id'];
+                
+                // 1. Get all categories and genders involved in this event
+                $segments = query("
+                    SELECT DISTINCT category_id, gender 
+                    FROM competition_teams 
+                    WHERE competition_event_id = ?
+                ", [$eventId]);
+
+                $categoriesProcessed = 0;
+                $matchesGenerated = 0;
+                $futsalId = queryOne("SELECT id FROM modalities WHERE name LIKE '%Futsal%'")['id'] ?? 1;
+                $groupNames = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+
+                foreach ($segments as $segment) {
+                    $catId = $segment['category_id'];
+                    $gender = $segment['gender'];
+
+                    // Clear previous matches for this segment
+                    execute("
+                        DELETE FROM matches 
+                        WHERE competition_event_id = ? AND category_id = ? 
+                        AND team_a_id IN (SELECT id FROM competition_teams WHERE gender = ?)
+                    ", [$eventId, $catId, $gender]);
+
+                    // Generate matches for each group (A-H)
+                    foreach ($groupNames as $groupName) {
+                        $groupTeams = query("
+                            SELECT id FROM competition_teams 
+                            WHERE competition_event_id = ? 
+                            AND category_id = ? 
+                            AND gender = ? 
+                            AND group_name = ?
+                        ", [$eventId, $catId, $gender, $groupName]);
+
+                        if (count($groupTeams) < 2) continue;
+
+                        // Round robin within group
+                        for ($i = 0; $i < count($groupTeams); $i++) {
+                            for ($j = $i + 1; $j < count($groupTeams); $j++) {
+                                execute("
+                                    INSERT INTO matches 
+                                    (competition_event_id, modality_id, category_id, team_a_id, team_b_id, phase, scheduled_time, status)
+                                    VALUES (?, ?, ?, ?, ?, 'group_stage', ?, 'scheduled')
+                                ", [
+                                    $eventId,
+                                    $futsalId,
+                                    $catId,
+                                    $groupTeams[$i]['id'],
+                                    $groupTeams[$j]['id'],
+                                    date('Y-m-d H:i:s', strtotime('+1 day 08:00:00'))
+                                ]);
+                                $matchesGenerated++;
+                            }
+                        }
+                    }
+                    $categoriesProcessed++;
+                }
+
+                echo json_encode([
+                    'success' => true, 
+                    'message' => "Processo concluído! $categoriesProcessed categorias processadas e $matchesGenerated partidas geradas com base no sorteio mestre."
+                ]);
+                exit;
+            }
+
             if ($action === 'assign_team_group') {
                 $teamId = $data['team_id'];
                 $groupName = $data['group_name'];
