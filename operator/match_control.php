@@ -15,6 +15,7 @@ $match = queryOne("
            t2.school_name_snapshot as team_b_name,
            t1.registration_id as team_a_reg_id,
            t2.registration_id as team_b_reg_id,
+           m.referee_primary, m.referee_assistant, m.referee_fourth,
            TIMESTAMPDIFF(SECOND, m.start_time, NOW()) as elapsed_seconds
     FROM matches m
     JOIN competition_teams t1 ON m.team_a_id = t1.id
@@ -212,6 +213,22 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
             </div>
         </div>
 
+        <div class="app-section-title" style="margin-top: 1.5rem;">ARBITRAGEM</div>
+        <div class="appointments-grid" style="grid-template-columns: 1fr 1fr 1fr; margin-top: 0.5rem;">
+            <div class="team-app-col">
+                <div class="staff-label">Árbitro Principal</div>
+                <input type="text" id="ref-primary" class="staff-input" placeholder="Nome do Árbitro" value="<?php echo htmlspecialchars($match['referee_primary'] ?? ''); ?>">
+            </div>
+            <div class="team-app-col">
+                <div class="staff-label">Árbitro Assistente</div>
+                <input type="text" id="ref-assistant" class="staff-input" placeholder="Nome do Assistente" value="<?php echo htmlspecialchars($match['referee_assistant'] ?? ''); ?>">
+            </div>
+            <div class="team-app-col">
+                <div class="staff-label">Quarto Árbitro</div>
+                <input type="text" id="ref-fourth" class="staff-input" placeholder="Nome do Quarto Árbitro" value="<?php echo htmlspecialchars($match['referee_fourth'] ?? ''); ?>">
+            </div>
+        </div>
+
         <div style="margin-top: 2rem; display: flex; gap: 1rem;">
             <button class="btn btn-secondary" style="flex: 1; background: #334155; border: none; color: white;" onclick="closeModals()">Voltar</button>
             <button class="btn btn-primary" style="flex: 2;" onclick="saveAppointments()">💾 SALVAR APONTAMENTOS</button>
@@ -297,6 +314,11 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
                         team_a_assistant: document.getElementById('assistant-a').value,
                         team_b_coach: document.getElementById('coach-b').value,
                         team_b_assistant: document.getElementById('assistant-b').value
+                    },
+                    referees: {
+                        primary: document.getElementById('ref-primary').value,
+                        assistant: document.getElementById('ref-assistant').value,
+                        fourth: document.getElementById('ref-fourth').value
                     },
                     athletes: [...athletesA, ...athletesB].map(a => ({ id: a.id, jersey_number: a.jersey_number }))
                 };
