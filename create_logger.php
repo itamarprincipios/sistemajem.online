@@ -1,54 +1,44 @@
 <?php
-// This script is intended to run on the server to debug data issues.
 require_once 'config/config.php';
 require_once 'includes/db.php';
 
-$output = "--- SERVER DATA DEBUG ---\n";
+$output = "--- SERVER DATA DEBUG V2 ---\n";
 $output .= "Time: " . date('Y-m-d H:i:s') . "\n\n";
 
 try {
-    // 1. Check Gustavo User
-    $u = queryOne("SELECT id, name, role FROM users WHERE name LIKE '%Gustavo%'");
-    if ($u) {
-        $output .= "User Found: {$u['name']} (ID: {$u['id']}, Role: {$u['role']})\n";
-        
-        // 2. Check Operator Assignment
-        $ops = query("SELECT co.*, m.name as modality_name, ce.name as event_name 
-                      FROM competition_operators co 
-                      LEFT JOIN modalities m ON co.assigned_modality_id = m.id
-                      LEFT JOIN competition_events ce ON co.competition_event_id = ce.id
-                      WHERE co.user_id = ?", [$u['id']]);
-        $output .= "Operator Entries: " . count($ops) . "\n";
-        foreach ($ops as $op) {
-            $output .= " - Event: {$op['event_name']} (ID: {$op['competition_event_id']}), Modality: " . ($op['modality_name'] ?? 'Todas') . " (ID: " . ($op['assigned_modality_id'] ?? 'null') . "), Active: {$op['active']}\n";
-        }
+    // 1. Modality Info
+    $mod = queryOne("SELECT id FROM modalities WHERE name LIKE '%Society%'");
+    if (!$mod) {
+        $output .= "CRITICAL: Society Modality NOT FOUND in DB!\n";
     } else {
-        $output .= "User Gustavo NOT FOUND.\n";
+        $modId = $mod['id'];
+        $output .= "Society Modality ID: $modId\n";
+        
+        // 2. Check Registrations
+        $regTotal = queryOne("SELECT COUNT(*) as c FROM registrations WHERE modality_id = ?", [$modId]);
+        $regApproved = queryOne("SELECT COUNT(*) as c FROM registrations WHERE modality_id = ? AND status = 'approved'", [$modId]);
+        $output .= "Registrations (Total): {$regTotal['c']}\n";
+        $output .= "Registrations (Approved): {$regApproved['c']}\n";
+        
+        // 3. Check Teams in Active Event
+        $event = queryOne("SELECT id, name FROM competition_events WHERE active_flag = TRUE LIMIT 1");
+        if ($event) {
+            $output .= "Active Event: {$event['name']} (ID: {$event['id']})\n";
+            $teams = queryOne("SELECT COUNT(*) as c FROM competition_teams WHERE competition_event_id = ? AND modality_id = ?", [$event['id'], $modId]);
+            $output .= "Teams in this Event: {$teams['c']}\n";
+            
+            $matches = queryOne("SELECT COUNT(*) as c FROM matches WHERE competition_event_id = ? AND modality_id = ?", [$event['id'], $modId]);
+            $output .= "Matches in this Event: {$matches['c']}\n";
+        } else {
+            $output .= "No Event found with active_flag = TRUE\n";
+        }
     }
 
-    // 3. Check Society Matches
-    $socMatches = queryOne("SELECT COUNT(*) as c FROM matches m JOIN modalities mod ON m.modality_id = mod.id WHERE mod.name LIKE '%Society%'");
-    $output .= "\nTotal Society Matches in DB: {$socMatches['c']}\n";
-
-    // 4. Check Categories with Teams
-    $cats = query("SELECT mod.name as mod_name, cat.name as cat_name, ct.gender, COUNT(*) as team_count 
-                   FROM competition_teams ct 
-                   JOIN modalities mod ON ct.modality_id = mod.id 
-                   JOIN categories cat ON ct.category_id = cat.id 
-                   GROUP BY mod.id, ct.category_id, ct.gender");
-    $output .= "\nTeams per Category/Modality:\n";
-    foreach ($cats as $c) {
-        $output .= " - {$c['mod_name']} | {$c['cat_name']} ({$c['gender']}): {$c['team_count']} teams\n";
-    }
-
-    // 5. Recent Matches Sample
-    $recent = query("SELECT m.id, mod.name as mod_name, m.phase, m.status 
-                     FROM matches m 
-                     JOIN modalities mod ON m.modality_id = mod.id 
-                     ORDER BY m.id DESC LIMIT 5");
-    $output .= "\nRecent Matches Sample:\n";
-    foreach ($recent as $r) {
-        $output .= " - ID: {$r['id']} | {$r['mod_name']} | {$r['phase']} | {$r['status']}\n";
+    // List all users named Gustavo
+    $u = query("SELECT id, name, email, role FROM users WHERE name LIKE '%Gustavo%'");
+    $output .= "\nUsers matching 'Gustavo': " . count($u) . "\n";
+    foreach ($u as $user) {
+        $output .= " - {$user['name']} | {$user['email']} | {$user['role']}\n";
     }
 
 } catch (Exception $e) {
