@@ -122,6 +122,120 @@ try {
                     'success' => true, 
                     'message' => "Snapshot gerado com sucesso! $teamsImported equipes e $athletesImported atletas importados."
                 ]);
+            } elseif ($action === 'generate_futsal_championship') {
+                // AUTOMATIC FUTSAL CHAMPIONSHIP GENERATION
+                $year = $data['year'] ?? date('Y');
+                $eventName = "Jogos Escolares de Rorainópolis Futsal $year";
+                
+                // 1. Check if event already exists
+                $existing = queryOne("SELECT id FROM competition_events WHERE name = ?", [$eventName]);
+                if ($existing) {
+                    throw new Exception('Já existe um campeonato de Futsal para este ano!');
+                }
+                
+                // 2. Create Event
+                execute("INSERT INTO competition_events (name, start_date, end_date, location_city, status, active_flag) VALUES (?, ?, ?, ?, 'planning', TRUE)", [
+                    $eventName,
+                    date('Y-m-d'),
+                    date('Y-m-d', strtotime('+30 days')),
+                    'Rorainópolis'
+                ]);
+                $eventId = lastInsertId();
+                
+                // 3. Get Futsal Modality ID
+                $futsalId = queryOne("SELECT id FROM modalities WHERE name = 'Futsal' LIMIT 1")['id'];
+                if (!$futsalId) throw new Exception('Modalidade Futsal não encontrada');
+                
+                // 4. Snapshot Futsal Teams Only
+                $registrations = query("
+                    SELECT r.*, s.name as school_name 
+                    FROM registrations r 
+                    JOIN schools s ON r.school_id = s.id 
+                    WHERE r.status = 'approved' AND r.modality_id = ?
+                ", [$futsalId]);
+                
+                $teamsImported = 0;
+                $athletesImported = 0;
+                
+                foreach ($registrations as $reg) {
+                    // Insert Team
+                    execute("
+                        INSERT INTO competition_teams 
+                        (competition_event_id, registration_id, school_id, modality_id, category_id, gender, school_name_snapshot) 
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                    ", [
+                        $eventId, $reg['id'], $reg['school_id'], $reg['modality_id'], $reg['category_id'], $reg['gender'], $reg['school_name']
+                    ]);
+                    $teamId = lastInsertId();
+                    $teamsImported++;
+                    
+                    // Insert Athletes
+                    $enrollments = query("
+                        SELECT e.student_id, s.name 
+                        FROM enrollments e 
+                        JOIN students s ON e.student_id = s.id 
+                        WHERE e.registration_id = ?
+                    ", [$reg['id']]);
+                    
+                    foreach ($enrollments as $enr) {
+                        execute("
+                            INSERT INTO competition_team_athletes 
+                            (competition_team_id, student_id, name_snapshot) 
+                            VALUES (?, ?, ?)
+                        ", [$teamId, $enr['student_id'], $enr['name']]);
+                        $athletesImported++;
+                    }
+                }
+                
+                // 5. Generate Group Stage Matches for ALL categories
+                $matchesGenerated = 0;
+                $categories = query("SELECT DISTINCT category_id FROM competition_teams WHERE competition_event_id = ?", [$eventId]);
+                
+                foreach ($categories as $cat) {
+                    foreach (['M', 'F'] as $gender) {
+                        // Get teams for this category/gender
+                        $teams = query("
+                            SELECT id FROM competition_teams 
+                            WHERE competition_event_id = ? AND category_id = ? AND gender = ?
+                        ", [$eventId, $cat['category_id'], $gender]);
+                        
+                        if (count($teams) < 2) continue; // Need at least 2 teams
+                        
+                        // Generate round-robin matches (all vs all)
+                        for ($i = 0; $i < count($teams); $i++) {
+                            for ($j = $i + 1; $j < count($teams); $j++) {
+                                execute("
+                                    INSERT INTO matches 
+                                    (competition_event_id, modality_id, category_id, team_a_id, team_b_id, phase, scheduled_time, status)
+                                    VALUES (?, ?, ?, ?, ?, 'group_stage', ?, 'scheduled')
+                                ", [
+                                    $eventId,
+                                    $futsalId,
+                                    $cat['category_id'],
+                                    $teams[$i]['id'],
+                                    $teams[$j]['id'],
+                                    date('Y-m-d H:i:s', strtotime('+1 day 08:00:00'))
+                                ]);
+                                $matchesGenerated++;
+                            }
+                        }
+                    }
+                }
+                
+                // 6. Log action
+                execute("INSERT INTO audit_logs (user_id, action, entity, entity_id, changes) VALUES (?, 'FUTSAL_CHAMPIONSHIP_AUTO_GENERATE', 'event', ?, ?)", 
+                    [getCurrentUserId(), $eventId, json_encode(['teams' => $teamsImported, 'athletes' => $athletesImported, 'matches' => $matchesGenerated])]
+                );
+                
+                echo json_encode([
+                    'success' => true,
+                    'event_id' => $eventId,
+                    'stats' => [
+                        'teams' => $teamsImported,
+                        'athletes' => $athletesImported,
+                        'matches' => $matchesGenerated
+                    ]
+                ]);
             } else {
                 throw new Exception('Ação desconhecida');
             }

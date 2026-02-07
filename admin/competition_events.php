@@ -28,7 +28,12 @@ include '../includes/sidebar.php';
                     <h2>Meus Eventos</h2>
                     <p style="color: var(--text-secondary);">Gerencie as edições dos Jogos Escolares</p>
                 </div>
-                <button class="btn btn-primary" onclick="openCreateModal()">+ Novo Evento</button>
+                <div style="display: flex; gap: 1rem;">
+                    <button class="btn" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none;" onclick="generateFutsalChampionship()">
+                        ⚽ Gerar Campeonato de Futsal
+                    </button>
+                    <button class="btn btn-primary" onclick="openCreateModal()">+ Novo Evento</button>
+                </div>
             </div>
         </div>
 
@@ -248,6 +253,37 @@ async function setActive(id) {
         }
     } catch (err) {
         Toast.error('Erro ao atualizar');
+    }
+}
+
+async function generateFutsalChampionship() {
+    if (!confirm('🎯 Isto irá criar automaticamente:\n\n✅ Evento "Jogos Escolares de Rorainópolis Futsal 2026"\n✅ Importar todas as equipes aprovadas de Futsal\n✅ Gerar jogos da fase de grupos\n\nContinuar?')) {
+        return;
+    }
+    
+    const loadingToast = Toast.info('⚽ Gerando campeonato de futsal...', { duration: 0 });
+    
+    try {
+        const res = await fetch('../api/competition-events-api.php?action=generate_futsal_championship', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'generate_futsal_championship',
+                year: new Date().getFullYear()
+            })
+        });
+        
+        const result = await res.json();
+        
+        if (result.success) {
+            Toast.success(`✅ Campeonato criado com sucesso!\n\n📊 ${result.stats.teams} equipes\n👥 ${result.stats.athletes} atletas\n⚽ ${result.stats.matches} partidas geradas`);
+            loadEvents();
+        } else {
+            Toast.error(result.error || 'Erro ao gerar campeonato');
+        }
+    } catch (err) {
+        console.error(err);
+        Toast.error('Erro ao gerar campeonato de futsal');
     }
 }
 
