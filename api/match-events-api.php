@@ -68,7 +68,7 @@ try {
         } else {
             $sql = "UPDATE matches SET status = ?";
             if ($status === 'live') {
-                $sql .= ", start_time = NOW()";
+                $sql .= ", start_time = COALESCE(start_time, NOW())";
             }
             $sql .= " WHERE id = ?";
             $params = [$status, $matchId];

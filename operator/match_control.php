@@ -12,7 +12,8 @@ $matchId = $_GET['id'] ?? 0;
 $match = queryOne("
     SELECT m.*, 
            t1.school_name_snapshot as team_a_name, 
-           t2.school_name_snapshot as team_b_name
+           t2.school_name_snapshot as team_b_name,
+           TIMESTAMPDIFF(SECOND, m.start_time, NOW()) as elapsed_seconds
     FROM matches m
     JOIN competition_teams t1 ON m.team_a_id = t1.id
     JOIN competition_teams t2 ON m.team_b_id = t2.id
@@ -154,15 +155,8 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
         const matchId = <?php echo $matchId; ?>;
         const matchStatus = '<?php echo $match['status']; ?>';
         
-        // Robust sync: Calculate elapsed seconds ON THE SERVER
-        <?php 
-            $elapsed = 0;
-            if ($match['status'] === 'live' && $match['start_time']) {
-                $elapsed = time() - strtotime($match['start_time']);
-                if ($elapsed < 0) $elapsed = 0; // Resilience against minor clock skew
-            }
-        ?>
-        let seconds = <?php echo $elapsed; ?>;
+        // Synchronize seconds with database
+        let seconds = <?php echo ($match['status'] === 'live' && $match['elapsed_seconds'] > 0) ? (int)$match['elapsed_seconds'] : 0; ?>;
         
         console.log("Match Status:", matchStatus);
         console.log("Elapsed seconds from server:", seconds);
