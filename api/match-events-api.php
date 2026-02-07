@@ -159,7 +159,15 @@ try {
             throw new Exception("ID da partida não fornecido");
         }
 
-        // 1. Match Data
+        // 1. Match Data - Simplified query for debugging
+        // First, try to get just the match without any joins
+        $matchSimple = queryOne("SELECT * FROM matches WHERE id = ?", [$matchId]);
+        
+        if (!$matchSimple) {
+            throw new Exception("Partida não encontrada (ID: $matchId). A partida não existe na tabela matches.");
+        }
+        
+        // Now try with joins
         $match = queryOne("
             SELECT m.*, 
                    COALESCE(t1.school_name_snapshot, 'Equipe A') as team_a_name, 
@@ -175,7 +183,7 @@ try {
         ", [$matchId]);
 
         if (!$match) {
-            throw new Exception("Partida não encontrada (ID: $matchId). Verifique se a partida existe no banco de dados.");
+            throw new Exception("Erro nos JOINs. Match simples encontrado, mas query com JOINs falhou. IDs: team_a={$matchSimple['team_a_id']}, team_b={$matchSimple['team_b_id']}, category={$matchSimple['category_id']}, modality={$matchSimple['modality_id']}");
         }
 
         // 2. Athletes
