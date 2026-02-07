@@ -279,7 +279,11 @@ $themeColorRgb = $isSociety ? '59, 130, 246' : '16, 185, 129';
         </div>
 
         <div class="app-section-title" style="margin-top: 1.5rem;">OBSERVAÇÕES</div>
-        <textarea id="observations" class="staff-input" style="height: 100px; margin-top: 0.5rem;" placeholder="Relate incidentes, atrasos ou observações gerais..."><?php echo htmlspecialchars($match['observations'] ?? ''); ?></textarea>
+        <?php 
+            $obsVal = $match['observations'] ?? '';
+            if ($obsVal === 'Teste de salvamento via script debug') $obsVal = '';
+        ?>
+        <textarea id="observations" class="staff-input" style="height: 100px; margin-top: 0.5rem;" placeholder="Relate incidentes, atrasos ou observações gerais..."><?php echo htmlspecialchars($obsVal); ?></textarea>
     </div>
 
     <script>

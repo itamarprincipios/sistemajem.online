@@ -41,12 +41,16 @@ try {
         // Check group stage
         if (isPhaseComplete($eventId, $modalityId, $categoryId, 'group_stage', $gender)) {
             // Check if R16 exists
-            $r16Count = queryOne("SELECT COUNT(*) as cnt FROM matches 
-                                  WHERE competition_event_id = ? 
-                                  AND modality_id = ? 
-                                  AND category_id = ? 
-                                  AND phase = 'round_of_16'", 
-                                 [$eventId, $modalityId, $categoryId])['cnt'];
+            $sqlR16 = "SELECT COUNT(*) as cnt FROM matches m ";
+            if ($gender) $sqlR16 .= "JOIN competition_teams t ON m.team_a_id = t.id ";
+            $sqlR16 .= "WHERE m.competition_event_id = ? 
+                      AND m.modality_id = ? 
+                      AND m.category_id = ? 
+                      AND m.phase = 'round_of_16'";
+            
+            $paramsR16 = [$eventId, $modalityId, $categoryId];
+            if ($gender) { $sqlR16 .= " AND t.gender = ?"; $paramsR16[] = $gender; }
+            $r16Count = queryOne($sqlR16, $paramsR16)['cnt'];
             
             if ($r16Count == 0) {
                 $status['can_generate'] = true;
@@ -54,12 +58,16 @@ try {
                 $status['message'] = 'Fase de Grupos concluída! Pronto para gerar Oitavas de Final.';
             } elseif (isPhaseComplete($eventId, $modalityId, $categoryId, 'round_of_16', $gender)) {
                 // Check QF
-                $qfCount = queryOne("SELECT COUNT(*) as cnt FROM matches 
-                                     WHERE competition_event_id = ? 
-                                     AND modality_id = ? 
-                                     AND category_id = ? 
-                                     AND phase = 'quarter_final'", 
-                                    [$eventId, $modalityId, $categoryId])['cnt'];
+                $sqlQF = "SELECT COUNT(*) as cnt FROM matches m ";
+                if ($gender) $sqlQF .= "JOIN competition_teams t ON m.team_a_id = t.id ";
+                $sqlQF .= "WHERE m.competition_event_id = ? 
+                         AND m.modality_id = ? 
+                         AND m.category_id = ? 
+                         AND m.phase = 'quarter_final'";
+                
+                $paramsQF = [$eventId, $modalityId, $categoryId];
+                if ($gender) { $sqlQF .= " AND t.gender = ?"; $paramsQF[] = $gender; }
+                $qfCount = queryOne($sqlQF, $paramsQF)['cnt'];
                 
                 if ($qfCount == 0) {
                     $status['can_generate'] = true;
@@ -67,12 +75,16 @@ try {
                     $status['message'] = 'Oitavas concluídas! Pronto para gerar Quartas de Final.';
                 } elseif (isPhaseComplete($eventId, $modalityId, $categoryId, 'quarter_final', $gender)) {
                     // Check SF
-                    $sfCount = queryOne("SELECT COUNT(*) as cnt FROM matches 
-                                         WHERE competition_event_id = ? 
-                                         AND modality_id = ? 
-                                         AND category_id = ? 
-                                         AND phase = 'semi_final'", 
-                                        [$eventId, $modalityId, $categoryId])['cnt'];
+                    $sqlSF = "SELECT COUNT(*) as cnt FROM matches m ";
+                    if ($gender) $sqlSF .= "JOIN competition_teams t ON m.team_a_id = t.id ";
+                    $sqlSF .= "WHERE m.competition_event_id = ? 
+                             AND m.modality_id = ? 
+                             AND m.category_id = ? 
+                             AND m.phase = 'semi_final'";
+                    
+                    $paramsSF = [$eventId, $modalityId, $categoryId];
+                    if ($gender) { $sqlSF .= " AND t.gender = ?"; $paramsSF[] = $gender; }
+                    $sfCount = queryOne($sqlSF, $paramsSF)['cnt'];
                     
                     if ($sfCount == 0) {
                         $status['can_generate'] = true;
@@ -80,12 +92,16 @@ try {
                         $status['message'] = 'Quartas concluídas! Pronto para gerar Semifinais.';
                     } elseif (isPhaseComplete($eventId, $modalityId, $categoryId, 'semi_final', $gender)) {
                         // Check Final
-                        $finalCount = queryOne("SELECT COUNT(*) as cnt FROM matches 
-                                                WHERE competition_event_id = ? 
-                                                AND modality_id = ? 
-                                                AND category_id = ? 
-                                                AND phase = 'final'", 
-                                               [$eventId, $modalityId, $categoryId])['cnt'];
+                        $sqlFinal = "SELECT COUNT(*) as cnt FROM matches m ";
+                        if ($gender) $sqlFinal .= "JOIN competition_teams t ON m.team_a_id = t.id ";
+                        $sqlFinal .= "WHERE m.competition_event_id = ? 
+                                    AND m.modality_id = ? 
+                                    AND m.category_id = ? 
+                                    AND m.phase = 'final'";
+                        
+                        $paramsFinal = [$eventId, $modalityId, $categoryId];
+                        if ($gender) { $sqlFinal .= " AND t.gender = ?"; $paramsFinal[] = $gender; }
+                        $finalCount = queryOne($sqlFinal, $paramsFinal)['cnt'];
                         
                         if ($finalCount == 0) {
                             $status['can_generate'] = true;
@@ -108,18 +124,21 @@ try {
         }
         
         // Get existing knockout matches
-        $matches = query("SELECT m.*, 
-                          t1.school_name_snapshot as team_a_name,
-                          t2.school_name_snapshot as team_b_name
-                          FROM matches m
-                          JOIN competition_teams t1 ON m.team_a_id = t1.id
-                          JOIN competition_teams t2 ON m.team_b_id = t2.id
-                          WHERE m.competition_event_id = ? 
-                          AND m.modality_id = ? 
-                          AND m.category_id = ? 
-                          AND m.phase != 'group_stage'
-                          ORDER BY m.phase, m.scheduled_time", 
-                        [$eventId, $modalityId, $categoryId]);
+        $sqlList = "SELECT m.*, 
+                   t1.school_name_snapshot as team_a_name,
+                   t2.school_name_snapshot as team_b_name
+                   FROM matches m
+                   JOIN competition_teams t1 ON m.team_a_id = t1.id
+                   JOIN competition_teams t2 ON m.team_b_id = t2.id
+                   WHERE m.competition_event_id = ? 
+                   AND m.modality_id = ? 
+                   AND m.category_id = ? 
+                   AND m.phase != 'group_stage'";
+        $paramsList = [$eventId, $modalityId, $categoryId];
+        if ($gender) { $sqlList .= " AND t1.gender = ?"; $paramsList[] = $gender; }
+        $sqlList .= " ORDER BY FIELD(m.phase, 'round_of_16', 'quarter_final', 'semi_final', 'third_place', 'final'), m.scheduled_time";
+        
+        $matches = query($sqlList, $paramsList);
         
         echo json_encode([
             'success' => true,
