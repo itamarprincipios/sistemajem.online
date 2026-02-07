@@ -51,27 +51,4 @@ include '../includes/sidebar.php';
 
 <?php include '../includes/footer.php'; ?>
 
-<!-- Edit Modal -->
-<div class="modal-overlay" id="editModal">
-    <div class="modal">
-        <div class="modal-header">
-            <h3 class="modal-title" id="editModalTitle">Editar Partida</h3>
-            <button class="modal-close" onclick="closeEditModal()">×</button>
-        </div>
-        <div class="modal-body">
-            <form onsubmit="handleEditSave(event)">
-                <div class="form-group">
-                    <label class="form-label">Data e Horário</label>
-                    <input type="datetime-local" id="editTime" class="form-input" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Local (Quadra/Campo)</label>
-                    <input type="text" id="editVenue" class="form-input" placeholder="Ex: Quadra 1">
-                </div>
-                <button type="submit" class="btn btn-primary" style="width: 100%;">Salvar Alterações</button>
-            </form>
-        </div>
-    </div>
-</div>
 
-<?php include '../includes/footer.php'; ?>
