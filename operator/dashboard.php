@@ -877,7 +877,7 @@ function saveBestPlayer(catId, gender) {
     
     btn.innerHTML = '✅ SALVO';
     btn.style.background = '#059669';
-    status.innerHTML = 'Voto salvo com sucesso!';
+    status.innerHTML = 'Eleito salvo com sucesso!';
     status.style.color = '#10b981';
     
     setTimeout(() => {
@@ -1008,10 +1008,10 @@ async function renderPodium(container, catId, gender, navHtml) {
             </div>
 
             <div style="background: rgba(16, 185, 129, 0.05); padding: 1rem; border-radius: 12px; border: 1px dashed #10b981;">
-                <div style="color: #10b981; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; margin-bottom: 8px;">⭐ MELHOR JOGADOR (VOTAÇÃO TÉCNICOS)</div>
+                <div style="color: #10b981; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; margin-bottom: 8px;">⭐ MELHOR JOGADOR (ELEITO PELOS TÉCNICOS)</div>
                 <div style="display: flex; gap: 8px;">
                     <input type="text" id="bestPlayerInput" value="${savedPlayer}" 
-                           placeholder="Nome do Atleta e Escola" 
+                           placeholder="Ex: Samuel Silva - Escola Francisco de Assis" 
                            style="flex: 1; background: #0f172a; border: 1px solid #334155; color: white; padding: 10px; border-radius: 8px; font-weight: 600;">
                     <button onclick="saveBestPlayer(${catId}, '${gender}')" 
                             style="background: #10b981; color: white; border: none; padding: 0 15px; border-radius: 8px; cursor: pointer; font-weight: 800; font-size: 0.8rem; transition: all 0.2s;"
