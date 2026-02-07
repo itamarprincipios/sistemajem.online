@@ -103,10 +103,9 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
         .quadra-grid { display: grid; grid-template-columns: 1fr; gap: 2px; }
         .banco-grid { display: grid; grid-template-columns: 1fr; gap: 2px; border-top: 1px dashed #334155; margin-top: 4px; padding-top: 4px; }
         
-        .status-bar { padding: 0.5rem 1rem; background: #222; display: flex; gap: 0.5rem; align-items: center; position: fixed; bottom: 0; width: 100%; box-sizing: border-box; }
-        .btn-sm { padding: 0.6rem; font-size: 0.85rem; font-weight: bold; border-radius: 6px; border: none; }
+        .status-bar { padding: 0.75rem 1rem; background: #222; display: flex; gap: 0.5rem; align-items: center; justify-content: space-between; position: fixed; bottom: 0; width: 100%; box-sizing: border-box; z-index: 100; }
+        .btn-sm { padding: 0.6rem 1rem; font-size: 0.85rem; font-weight: bold; border-radius: 6px; border: none; cursor: pointer; }
         
-        .status-bar { padding: 1rem; background: #222; display: flex; justify-content: space-between; align-items: center; position: fixed; bottom: 0; width: 100%; box-sizing: border-box; }
         
         .modal-sheet { display: none; position: fixed; bottom: 0; left: 0; width: 100%; background: #1e293b; border-radius: 20px 20px 0 0; z-index: 1000; padding: 1rem; max-height: 80vh; overflow-y: auto; }
         .modal-sheet.active { display: block; animation: slideUp 0.3s; }
