@@ -181,7 +181,7 @@ const cleanName = (name) => {
     // Iteratively remove known prefixes until no more can be removed
     const prefixes = [
         /^(ESCOLA MUNICIPAL|MUNICIPAL|ESCOLA|EMEIF|EMEF)\b/gi,
-        /^(EDUCAÇÃO INFANTIL|ENSINO FUNDAMENTAL|ENSINO MÉDIO)\b/gi,
+        /^(EDUCAÇÃO INFANTIL|ENSINO FUNDAMENTAL|ENSINO MÉDIO|ENSINO INFANTIL|EDUCAÇÃO INFANTIL E ENSINO FUNDAMENTAL)\b/gi,
         /^(PROFESSOR[A]?)\b/gi,
         /^[\s\-–—,]+/gi, // Symbols and spaces
         /^(DE|E|DO|DA)\s+/gi // Prepositions

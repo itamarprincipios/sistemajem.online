@@ -68,7 +68,8 @@ if (!$event) {
         .event-item { display: flex; align-items: center; gap: 4px; }
         .team-a-events { align-items: flex-start; }
         .team-b-events { align-items: flex-end; }
-        .event-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
+        .event-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
+        .event-time { font-family: monospace; opacity: 0.7; font-weight: bold; }
         
         .empty { text-align: center; padding: 3rem; color: #64748b; }
         
@@ -445,7 +446,7 @@ if (!$event) {
                         let cleaned = name;
                         const prefixes = [
                             /^(ESCOLA MUNICIPAL|MUNICIPAL|ESCOLA|EMEIF|EMEF)\b/gi,
-                            /^(EDUCAÇÃO INFANTIL|ENSINO FUNDAMENTAL|ENSINO MÉDIO)\b/gi,
+                            /^(EDUCAÇÃO INFANTIL|ENSINO FUNDAMENTAL|ENSINO MÉDIO|ENSINO INFANTIL|EDUCAÇÃO INFANTIL E ENSINO FUNDAMENTAL)\b/gi,
                             /^(PROFESSOR[A]?)\b/gi,
                             /^[\s\-–—,]+/gi,
                             /^(DE|E|DO|DA)\s+/gi
@@ -471,7 +472,8 @@ if (!$event) {
                                 ${teamEvents.map(e => `
                                     <div class="event-item">
                                         <span>${iconMap[e.event_type] || '🏳️'}</span>
-                                        <span class="event-name">${e.athlete_name || 'Atleta'} ${e.event_time ? '('+e.event_time+')' : ''}</span>
+                                        <span class="event-name">${e.athlete_name || 'Atleta'}</span>
+                                        ${e.event_time ? `<span class="event-time">(${e.event_time})</span>` : ''}
                                     </div>
                                 `).join('')}
                             </div>
