@@ -61,6 +61,9 @@ $phaseNames = [
 ];
 
 $phaseName = $phaseNames[$match['phase']] ?? strtoupper($match['phase']);
+
+$isSociety = strpos(strtolower($match['modality_name'] ?? ''), 'society') !== false;
+$themeColor = $isSociety ? '#3b82f6' : '#333';
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -112,7 +115,7 @@ $phaseName = $phaseNames[$match['phase']] ?? strtoupper($match['phase']);
         }
         
         .section-title {
-            background: #333;
+            background: <?= $themeColor ?>;
             color: white;
             padding: 5px 10px;
             font-size: 11px;
@@ -200,10 +203,16 @@ $phaseName = $phaseNames[$match['phase']] ?? strtoupper($match['phase']);
         
         .observations {
             background: #fffbea;
+            background-image: linear-gradient(#e6d89f 1px, transparent 1px);
+            background-size: 100% 28px;
             border: 1px solid #e6d89f;
-            padding: 15px;
+            padding: 0 15px;
+            line-height: 28px;
             margin-top: 20px;
             white-space: pre-wrap;
+            min-height: 280px; /* Force at least 10 lines */
+            font-size: 14px;
+            color: #333;
         }
         
         .footer {
@@ -404,12 +413,10 @@ $phaseName = $phaseNames[$match['phase']] ?? strtoupper($match['phase']);
             </div>
         </div>
         
-        <?php if (!empty($match['observations'])): ?>
         <div class="section">
             <div class="section-title">📝 Observações do Árbitro</div>
-            <div class="observations"><?= htmlspecialchars($match['observations']) ?></div>
+            <div class="observations"><?= htmlspecialchars($match['observations'] ?: '') ?></div>
         </div>
-        <?php endif; ?>
         
         <div class="footer">
             <p>Documento gerado automaticamente pelo Sistema JEM</p>
