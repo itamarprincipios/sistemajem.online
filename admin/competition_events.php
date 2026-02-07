@@ -127,6 +127,9 @@ function renderEvents(events) {
                 <span class="badge" style="background: ${statusColors[event.status]}20; color: ${statusColors[event.status]}; border: 1px solid ${statusColors[event.status]}">
                     ${statusLabels[event.status]}
                 </span>
+                <button class="btn-icon" onclick="deleteEvent(${event.id})" title="Excluir Evento" style="margin-left: 0.5rem; background: rgba(239, 68, 68, 0.1); color: #ef4444; border: none; padding: 4px; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                </button>
             </div>
             
             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-bottom: 1.5rem; background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 8px; text-align: center;">
@@ -324,6 +327,29 @@ async function generateSocietyChampionship() {
     } catch (err) {
         console.error(err);
         Toast.error('Erro ao gerar campeonato de society');
+    }
+}
+
+async function deleteEvent(id) {
+    if (!confirm('⚠️ ATENÇÃO: Isto irá excluir permanentemente este evento, incluindo TODAS as equipes, atletas e partidas geradas para ele. Esta ação não pode ser desfeita. Deseja continuar?')) {
+        return;
+    }
+    
+    try {
+        const res = await fetch(`../api/competition-events-api.php?id=${id}`, {
+            method: 'DELETE'
+        });
+        const result = await res.json();
+        
+        if (result.success) {
+            Toast.success('Evento excluído com sucesso');
+            loadEvents();
+        } else {
+            Toast.error(result.error || 'Erro ao excluir evento');
+        }
+    } catch (err) {
+        console.error(err);
+        Toast.error('Erro na requisição');
     }
 }
 

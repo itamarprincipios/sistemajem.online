@@ -270,8 +270,30 @@ try {
             echo json_encode(['success' => true]);
             break;
 
-        default:
-            throw new Exception('Método não permitido');
+        case 'DELETE':
+            $id = $_GET['id'] ?? null;
+            if (!$id) throw new Exception('ID do evento não fornecido');
+
+            beginTransaction();
+            try {
+                // Delete in order of dependency
+                execute("DELETE FROM matches WHERE competition_event_id = ?", [$id]);
+                execute("DELETE FROM competition_team_athletes WHERE competition_team_id IN (SELECT id FROM competition_teams WHERE competition_event_id = ?)", [$id]);
+                execute("DELETE FROM competition_teams WHERE competition_event_id = ?", [$id]);
+                execute("DELETE FROM competition_events WHERE id = ?", [$id]);
+                
+                // Log action
+                execute("INSERT INTO audit_logs (user_id, action, entity, entity_id, changes) VALUES (?, 'EVENT_DELETE', 'event', ?, ?)", 
+                    [getCurrentUserId(), $id, json_encode(['deleted' => true])]
+                );
+                
+                commit();
+                echo json_encode(['success' => true]);
+            } catch (Exception $e) {
+                rollback();
+                throw $e;
+            }
+            break;
     }
 } catch (Exception $e) {
     http_response_code(400);
