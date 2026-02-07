@@ -1,23 +1,51 @@
 <?php
 require_once 'includes/db.php';
+require_once 'includes/knockout_generator.php';
 
 $eventId = 3;
 $modId = 12;
 $catId = 5;
 $gender = 'F';
 
-// Parameters to call the API
-$url = "https://sistemajem.online/api/knockout-api.php?action=knockout_status&event_id=$eventId&modality_id=$modId&category_id=$catId&gender=$gender";
+echo "SIMULATING API LOGIC (NO AUTH)\n";
+echo "=============================\n";
 
-header('Content-Type: application/json');
+$status = [
+    'can_generate' => false,
+    'next_phase' => null,
+    'message' => ''
+];
 
-// We simulate the API call logic here to be sure, or we could use curl
-// But since I'm on the server, I can just call the logic in knockout-api.php or check it via curl
+if (isPhaseComplete($eventId, $modId, $catId, 'group_stage', $gender)) {
+    echo "Phase Complete: YES\n";
+    
+    $sqlR16 = "SELECT COUNT(*) as cnt FROM matches m ";
+    if ($gender) $sqlR16 .= "JOIN competition_teams t ON m.team_a_id = t.id ";
+    $sqlR16 .= "WHERE m.competition_event_id = ? 
+              AND m.modality_id = ? 
+              AND m.category_id = ? 
+              AND m.phase = 'round_of_16'";
+    
+    $paramsR16 = [$eventId, $modId, $catId];
+    if ($gender) { $sqlR16 .= " AND t.gender = ?"; $paramsR16[] = $gender; }
+    
+    $resR16 = queryOne($sqlR16, $paramsR16);
+    $r16Count = (int)$resR16['cnt'];
+    echo "R16 Match Count: $r16Count\n";
+    
+    if ($r16Count == 0) {
+        $status['can_generate'] = true;
+        $status['next_phase'] = 'round_of_16';
+        $status['message'] = 'Fase de Grupos concluída! Pronto para gerar Oitavas de Final.';
+    }
+} else {
+    echo "Phase Complete: NO\n";
+}
 
-$ch = curl_init();
-curl_setopt($ch, CURLOPT_URL, $url);
-curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-// We might need to bypass auth if it's strict, but for diag it should work if we are logged in or if we mock auth
-// Actually, I'll just check the logic directly in a script that mimics knockout-api.php
+print_r($status);
 
-echo file_get_contents($url);
+if ($status['can_generate'] && $status['next_phase'] === 'round_of_16') {
+    echo "\nSUCCESS: API logic now allows generating Oitavas for Fraldinha Fem!\n";
+} else {
+    echo "\nFAILURE: API logic still blocking generation.\n";
+}
