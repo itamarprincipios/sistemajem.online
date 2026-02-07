@@ -78,101 +78,101 @@ $phaseName = $phaseNames[$match['phase']] ?? strtoupper($match['phase']);
         body {
             font-family: 'Arial', sans-serif;
             background: #f5f5f5;
-            padding: 20px;
+            padding: 15px;
         }
         
         .container {
             max-width: 210mm;
             margin: 0 auto;
             background: white;
-            padding: 40px;
+            padding: 20px;
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
         }
         
         .header {
             text-align: center;
-            border-bottom: 3px solid #333;
-            padding-bottom: 20px;
-            margin-bottom: 30px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
         }
         
         .header h1 {
-            font-size: 24px;
-            margin-bottom: 10px;
+            font-size: 18px;
+            margin-bottom: 5px;
             text-transform: uppercase;
         }
         
         .header p {
             color: #666;
-            font-size: 14px;
+            font-size: 11px;
         }
         
         .section {
-            margin-bottom: 25px;
+            margin-bottom: 12px;
         }
         
         .section-title {
             background: #333;
             color: white;
-            padding: 8px 15px;
-            font-size: 14px;
+            padding: 5px 10px;
+            font-size: 11px;
             font-weight: bold;
             text-transform: uppercase;
-            margin-bottom: 10px;
+            margin-bottom: 6px;
         }
         
         .info-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-bottom: 15px;
+            gap: 6px;
+            margin-bottom: 8px;
         }
         
         .info-item {
-            padding: 8px;
+            padding: 5px;
             background: #f9f9f9;
-            border-left: 3px solid #333;
+            border-left: 2px solid #333;
         }
         
         .info-label {
             font-weight: bold;
-            font-size: 12px;
+            font-size: 9px;
             color: #666;
             text-transform: uppercase;
         }
         
         .info-value {
-            font-size: 14px;
-            margin-top: 3px;
+            font-size: 11px;
+            margin-top: 2px;
         }
         
         .team-section {
-            border: 2px solid #333;
-            padding: 15px;
-            margin-bottom: 20px;
+            border: 1px solid #333;
+            padding: 8px;
+            margin-bottom: 10px;
         }
         
         .team-name {
-            font-size: 18px;
+            font-size: 13px;
             font-weight: bold;
-            margin-bottom: 10px;
+            margin-bottom: 6px;
             text-transform: uppercase;
         }
         
         .athletes-list {
             columns: 2;
-            column-gap: 20px;
+            column-gap: 15px;
         }
         
         .athlete-item {
-            font-size: 13px;
-            padding: 3px 0;
+            font-size: 11px;
+            padding: 2px 0;
             break-inside: avoid;
         }
         
         .athlete-number {
             display: inline-block;
-            width: 30px;
+            width: 25px;
             font-weight: bold;
         }
         
