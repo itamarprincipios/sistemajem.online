@@ -190,9 +190,11 @@ try {
                     }
                 }
                 
-                // 5. Generate Group Stage Matches for ALL categories
+                // 5. Generate Group Stage with proper group division
                 $matchesGenerated = 0;
                 $categories = query("SELECT DISTINCT category_id FROM competition_teams WHERE competition_event_id = ?", [$eventId]);
+                
+                $groupNames = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
                 
                 foreach ($categories as $cat) {
                     foreach (['M', 'F'] as $gender) {
@@ -200,26 +202,59 @@ try {
                         $teams = query("
                             SELECT id FROM competition_teams 
                             WHERE competition_event_id = ? AND category_id = ? AND gender = ?
+                            ORDER BY id
                         ", [$eventId, $cat['category_id'], $gender]);
                         
-                        if (count($teams) < 2) continue; // Need at least 2 teams
+                        $teamCount = count($teams);
+                        if ($teamCount < 4) continue; // Need at least 4 teams
                         
-                        // Generate round-robin matches (all vs all)
-                        for ($i = 0; $i < count($teams); $i++) {
-                            for ($j = $i + 1; $j < count($teams); $j++) {
-                                execute("
-                                    INSERT INTO matches 
-                                    (competition_event_id, modality_id, category_id, team_a_id, team_b_id, phase, scheduled_time, status)
-                                    VALUES (?, ?, ?, ?, ?, 'group_stage', ?, 'scheduled')
-                                ", [
-                                    $eventId,
-                                    $futsalId,
-                                    $cat['category_id'],
-                                    $teams[$i]['id'],
-                                    $teams[$j]['id'],
-                                    date('Y-m-d H:i:s', strtotime('+1 day 08:00:00'))
-                                ]);
-                                $matchesGenerated++;
+                        // Divide teams into groups of 4
+                        $teamsPerGroup = 4;
+                        $numGroups = min(8, ceil($teamCount / $teamsPerGroup)); // Max 8 groups
+                        
+                        // Assign teams to groups
+                        for ($i = 0; $i < $teamCount; $i++) {
+                            $groupIndex = floor($i / $teamsPerGroup);
+                            if ($groupIndex >= $numGroups) break; // Safety check
+                            
+                            $groupName = $groupNames[$groupIndex];
+                            
+                            // Update team with group assignment
+                            execute("UPDATE competition_teams SET group_name = ? WHERE id = ?", 
+                                [$groupName, $teams[$i]['id']]
+                            );
+                        }
+                        
+                        // Generate round-robin matches within each group
+                        for ($groupIndex = 0; $groupIndex < $numGroups; $groupIndex++) {
+                            $groupName = $groupNames[$groupIndex];
+                            
+                            // Get teams in this specific group
+                            $groupTeams = query("
+                                SELECT id FROM competition_teams 
+                                WHERE competition_event_id = ? 
+                                AND category_id = ? 
+                                AND gender = ? 
+                                AND group_name = ?
+                            ", [$eventId, $cat['category_id'], $gender, $groupName]);
+                            
+                            // Generate all vs all matches within group
+                            for ($i = 0; $i < count($groupTeams); $i++) {
+                                for ($j = $i + 1; $j < count($groupTeams); $j++) {
+                                    execute("
+                                        INSERT INTO matches 
+                                        (competition_event_id, modality_id, category_id, team_a_id, team_b_id, phase, scheduled_time, status)
+                                        VALUES (?, ?, ?, ?, ?, 'group_stage', ?, 'scheduled')
+                                    ", [
+                                        $eventId,
+                                        $futsalId,
+                                        $cat['category_id'],
+                                        $groupTeams[$i]['id'],
+                                        $groupTeams[$j]['id'],
+                                        date('Y-m-d H:i:s', strtotime('+1 day 08:00:00'))
+                                    ]);
+                                    $matchesGenerated++;
+                                }
                             }
                         }
                     }
