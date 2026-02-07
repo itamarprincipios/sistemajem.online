@@ -8,12 +8,18 @@ require_once '../config/config.php';
 require_once '../includes/auth.php';
 require_once '../includes/db.php';
 
-requireLogin(); // accessible by admin and operator (read-only for operator in some cases)
-
 header('Content-Type: application/json');
 
 $method = $_SERVER['REQUEST_METHOD'];
 $action = $_GET['action'] ?? '';
+
+// Public access for results
+if ($method === 'GET' && $action === 'list') {
+    // No login required for listing matches (e.g., results page)
+} else {
+    requireLogin();
+}
+
 
 try {
     switch ($method) {

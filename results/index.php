@@ -222,7 +222,14 @@ if (!$event) {
     <script>
         console.log('Script loaded!');
         
-        const EVENT_ID = <?php echo $event['id']; ?>;
+        const EVENT_ID = <?php echo ($event['id'] ?? 'null'); ?>;
+        if (!EVENT_ID) {
+            console.error('No active event found');
+            document.getElementById('content').innerHTML = '<div class="empty">Nenhum evento ativo no momento</div>';
+            // Stop further execution if no event
+            throw new Error('No active event');
+        }
+
         let matches = [];
         let state = { modality: null, category: {}, phase: {} };
         
@@ -358,7 +365,9 @@ if (!$event) {
                         return name
                             .replace(/^ESCOLA MUNICIPAL\s+/i, '')
                             .replace(/^ESCOLA\s+/i, '')
-                            .replace(/^MUNICIPAL\s+/i, '');
+                            .replace(/^MUNICIPAL\s+/i, '')
+                            .replace(/^FUNDAMENTAL\s+/i, '');
+
                     };
                     
                     // Calculate stats for each team
@@ -446,10 +455,11 @@ if (!$event) {
                         let cleaned = name;
                         const prefixes = [
                             /^(ESCOLA MUNICIPAL|MUNICIPAL|ESCOLA|EMEIF|EMEF)\b/gi,
-                            /^(EDUCAÇÃO INFANTIL|ENSINO FUNDAMENTAL|ENSINO MÉDIO|ENSINO INFANTIL|EDUCAÇÃO INFANTIL E ENSINO FUNDAMENTAL)\b/gi,
+                            /^(EDUCAÇÃO INFANTIL|ENSINO FUNDAMENTAL|ENSINO MÉDIO|ENSINO INFANTIL|EDUCAÇÃO INFANTIL E ENSINO FUNDAMENTAL|FUNDAMENTAL)\b/gi,
                             /^(PROFESSOR[A]?)\b/gi,
                             /^[\s\-–—,]+/gi,
                             /^(DE|E|DO|DA)\s+/gi
+
                         ];
                         let lastCleaned;
                         do {
