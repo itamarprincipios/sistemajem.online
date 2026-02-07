@@ -167,9 +167,13 @@ try {
             throw new Exception("Partida não encontrada (ID: $matchId). A partida não existe na tabela matches.");
         }
         
-        // Now try with joins
+        // Now try with joins - SELECT only known columns to avoid errors
         $match = queryOne("
-            SELECT m.*, 
+            SELECT m.id, m.team_a_id, m.team_b_id, m.category_id, m.modality_id,
+                   m.phase, m.scheduled_time, m.venue, m.status,
+                   m.score_team_a, m.score_team_b,
+                   m.referee_primary, m.referee_assistant, m.referee_fourth,
+                   m.team_a_lineup, m.team_b_lineup,
                    COALESCE(t1.school_name_snapshot, 'Equipe A') as team_a_name, 
                    COALESCE(t2.school_name_snapshot, 'Equipe B') as team_b_name,
                    COALESCE(c.name, 'Categoria') as category_name,
@@ -185,6 +189,15 @@ try {
         if (!$match) {
             throw new Exception("Erro nos JOINs. Match simples encontrado, mas query com JOINs falhou. IDs: team_a={$matchSimple['team_a_id']}, team_b={$matchSimple['team_b_id']}, category={$matchSimple['category_id']}, modality={$matchSimple['modality_id']}");
         }
+        
+        // Add default values for new columns if they don't exist
+        $match['team_a_captain_id'] = $matchSimple['team_a_captain_id'] ?? null;
+        $match['team_b_captain_id'] = $matchSimple['team_b_captain_id'] ?? null;
+        $match['observations'] = $matchSimple['observations'] ?? null;
+        $match['team_a_coach'] = $matchSimple['team_a_coach'] ?? null;
+        $match['team_a_assistant'] = $matchSimple['team_a_assistant'] ?? null;
+        $match['team_b_coach'] = $matchSimple['team_b_coach'] ?? null;
+        $match['team_b_assistant'] = $matchSimple['team_b_assistant'] ?? null;
 
         // 2. Athletes
         $athletesA = query("SELECT id, name_snapshot, jersey_number FROM competition_team_athletes WHERE competition_team_id = ?", [$match['team_a_id']]);
