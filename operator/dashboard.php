@@ -401,7 +401,7 @@ function switchPhase(key, direction) {
     const categoryMatches = allMatches.filter(m => m.modality_id == state.modality && m.category_id == catId && (m.team_gender || 'M') == gender);
     
     const availablePhases = PHASE_ORDER.filter(phase => 
-        phase === 'group_stage' || categoryMatches.some(m => m.phase === phase)
+        phase === 'group_stage' || phase === currentPhase || categoryMatches.some(m => m.phase === phase)
     );
     
     const currentIndex = availablePhases.indexOf(currentPhase);
@@ -498,12 +498,33 @@ function render() {
     const [currCatId, currGender] = currCatKey.split('_');
     const currPhase = state.phase[currCatKey] || 'group_stage';
     const catMatches = activeMod.cats[currCatKey].matches;
+
+    // Phase Logic
+    if (!state.phase[currCatKey]) state.phase[currCatKey] = 'group_stage';
+    
+    const availablePhases = PHASE_ORDER.filter(phase => 
+        phase === 'group_stage' || phase === currPhase || catMatches.some(m => m.phase === phase)
+    );
+    const currPhaseIdx = availablePhases.indexOf(currPhase);
+    const isCurrentComplete = catMatches.length > 0 && 
+                               catMatches.filter(m => m.phase === currPhase).every(m => m.status === 'finished' || (m.score_team_a !== null && m.score_team_b !== null));
+
+    const canPrev = currPhaseIdx > 0;
+    const canNext = (currPhaseIdx < availablePhases.length - 1) || 
+                    (isCurrentComplete && PHASE_ORDER.indexOf(currPhase) < PHASE_ORDER.length - 1);
+
+    const navHtml = `
+        <div class="phase-navigation">
+            <button class="phase-nav-btn" onclick="switchPhase('${currCatKey}', -1)" ${!canPrev ? 'disabled' : ''}>←</button>
+            <h2 class="phase-title">${PHASE_NAMES[currPhase] || currPhase.toUpperCase()}</h2>
+            <button class="phase-nav-btn" onclick="switchPhase('${currCatKey}', 1)" ${!canNext ? 'disabled' : ''}>→</button>
+        </div>
+    `;
+
     const phaseMatches = catMatches.filter(m => m.phase === currPhase);
 
     if (phaseMatches.length === 0 && currPhase !== 'group_stage') {
-        renderBracketPreview(container, currCatId, currGender, currPhase);
-        
-        // Still render tabs so user can switch back
+        renderBracketPreview(container, currCatId, currGender, currPhase, navHtml);
         renderTabs(modalityTabs, categoryTabs, modIds, mods, catKeys);
         return;
     }
@@ -511,26 +532,8 @@ function render() {
     // Render Tabs
     renderTabs(modalityTabs, categoryTabs, modIds, mods, catKeys);
 
-    // Render Matches Header
-    if (!state.phase[currCatKey]) state.phase[currCatKey] = 'group_stage';
-    
-    const availablePhases = PHASE_ORDER.filter(phase => 
-        phase === 'group_stage' || catMatches.some(m => m.phase === phase)
-    );
-    const phaseIdx = availablePhases.indexOf(currPhase);
-    const isCurrentComplete = catMatches.length > 0 && 
-                               catMatches.filter(m => m.phase === currPhase).every(m => m.status === 'finished' || (m.score_team_a !== null && m.score_team_b !== null));
-
-    const canPrev = phaseIdx > 0;
-    const canNext = (phaseIdx < availablePhases.length - 1) || 
-                    (isCurrentComplete && PHASE_ORDER.indexOf(currPhase) < PHASE_ORDER.length - 1);
-
     let html = `
-        <div class="phase-navigation">
-            <button class="phase-nav-btn" onclick="switchPhase('${currCatKey}', -1)" ${!canPrev ? 'disabled' : ''}>←</button>
-            <h2 class="phase-title">${PHASE_NAMES[currPhase] || currPhase.toUpperCase()}</h2>
-            <button class="phase-nav-btn" onclick="switchPhase('${currCatKey}', 1)" ${!canNext ? 'disabled' : ''}>→</button>
-        </div>
+        ${navHtml}
         <div class="phase-subtitle">TABELA</div>
         <div class="matches-grid">
     `;
