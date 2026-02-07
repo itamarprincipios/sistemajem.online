@@ -16,6 +16,7 @@ $match = queryOne("
            t1.registration_id as team_a_reg_id,
            t2.registration_id as team_b_reg_id,
            m.referee_primary, m.referee_assistant, m.referee_fourth,
+           m.team_a_lineup, m.team_b_lineup,
            TIMESTAMPDIFF(SECOND, m.start_time, NOW()) as elapsed_seconds
     FROM matches m
     JOIN competition_teams t1 ON m.team_a_id = t1.id
@@ -72,19 +73,37 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
         };
     </script>
     <style>
-        body { background: #000; color: white; overflow-x: hidden; }
-        .score-board { display: grid; grid-template-columns: 1fr auto 1fr; gap: 1rem; align-items: center; padding: 1rem; background: #111; border-bottom: 2px solid #333; }
+        body { background: #000; color: white; overflow-x: hidden; font-family: 'Inter', sans-serif; }
+        .score-board { display: grid; grid-template-columns: 1fr auto 1fr; gap: 0.5rem; align-items: center; padding: 0.5rem; background: #111; border-bottom: 2px solid #333; }
         .team-box { text-align: center; }
-        .team-name { font-size: 1.2rem; font-weight: bold; margin-bottom: 0.5rem; color: #ccc; }
-        .team-score { font-size: 4rem; font-weight: 800; color: #fff; line-height: 1; }
-        .timer-box { text-align: center; }
-        .timer { font-size: 2.5rem; font-family: monospace; font-weight: bold; color: #fbbf24; }
+        .team-name { font-size: 0.9rem; font-weight: bold; margin-bottom: 0.2rem; color: #ccc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px; margin: 0 auto; }
+        .team-score { font-size: 2.5rem; font-weight: 800; color: #fff; line-height: 1; }
+        .timer-box { text-align: center; min-width: 80px; }
+        .timer { font-size: 1.8rem; font-family: monospace; font-weight: bold; color: #fbbf24; }
+        .timer-label { font-size: 0.6rem; color: #666; text-transform: uppercase; letter-spacing: 1px; }
         
-        .controls { padding: 1rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; height: auto; align-content: start; }
-        .team-controls { display: flex; flex-direction: column; gap: 1rem; }
+        .controls { padding: 0.5rem; display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; height: auto; align-content: start; }
+        .team-controls { display: flex; flex-direction: column; gap: 0.4rem; }
         
-        .btn-goal { background: #10b981; color: white; border: none; padding: 1.5rem; font-size: 1.5rem; font-weight: bold; border-radius: 12px; cursor: pointer; box-shadow: 0 4px #059669; }
-        .btn-goal:active { transform: translateY(4px); box-shadow: none; }
+        .btn-goal { background: #10b981; color: white; border: none; padding: 0.8rem; font-size: 1rem; font-weight: bold; border-radius: 8px; cursor: pointer; box-shadow: 0 3px #059669; }
+        .btn-goal:active { transform: translateY(2px); box-shadow: none; }
+        .btn-card { font-size: 0.8rem; padding: 0.5rem; border-radius: 6px; font-weight: bold; border: none; cursor: pointer; }
+
+        /* Substitutions Visual Grid */
+        .bench-container { margin-top: 0.5rem; display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; padding: 0 0.5rem; }
+        .bench-team { display: flex; flex-direction: column; gap: 0.25rem; }
+        .bench-title { font-size: 0.65rem; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 2px; }
+        .player-chip { display: flex; align-items: center; gap: 4px; padding: 4px 6px; background: #1e293b; border-radius: 4px; font-size: 0.8rem; cursor: pointer; border: 1px solid transparent; transition: 0.2s; }
+        .player-chip.field { background: rgba(16,185,129,0.1); border-color: rgba(16,185,129,0.3); }
+        .player-chip.selected { border-color: #fbbf24; background: rgba(251,191,36,0.2); }
+        .player-chip .p-num { font-weight: bold; color: #fbbf24; min-width: 18px; }
+        .player-chip .p-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
+        
+        .quadra-grid { display: grid; grid-template-columns: 1fr; gap: 2px; }
+        .banco-grid { display: grid; grid-template-columns: 1fr; gap: 2px; border-top: 1px dashed #334155; margin-top: 4px; padding-top: 4px; }
+        
+        .status-bar { padding: 0.5rem 1rem; background: #222; display: flex; gap: 0.5rem; align-items: center; position: fixed; bottom: 0; width: 100%; box-sizing: border-box; }
+        .btn-sm { padding: 0.6rem; font-size: 0.85rem; font-weight: bold; border-radius: 6px; border: none; }
         
         .status-bar { padding: 1rem; background: #222; display: flex; justify-content: space-between; align-items: center; position: fixed; bottom: 0; width: 100%; box-sizing: border-box; }
         
@@ -131,7 +150,7 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
         </div>
         <div class="timer-box">
             <div class="timer" id="gameTimer">00:00</div>
-            <div style="font-size: 0.8rem; color: #666;">TEMPO DE JOGO</div>
+            <div class="timer-label">TEMPO DE JOGO</div>
         </div>
         <div class="team-box">
             <div class="team-name" id="name-B"><?php echo $match['team_b_name']; ?></div>
@@ -139,20 +158,37 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
         </div>
     </div>
 
-    <div class="controls" style="height: auto;">
+    <div class="controls">
         <div class="team-controls">
             <button class="btn-goal" onclick="openEventModal('A', 'GOAL')">⚽ GOL TIME A</button>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
-                <button class="btn btn-secondary" style="background: #fbbf24; color: black; border: none;" onclick="openEventModal('A', 'YELLOW_CARD')">🟨 Cartão</button>
-                <button class="btn btn-secondary" style="background: #ef4444; color: white; border: none;" onclick="openEventModal('A', 'RED_CARD')">🟥 Cartão</button>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem;">
+                <button class="btn-card" style="background: #fbbf24; color: black;" onclick="openEventModal('A', 'YELLOW_CARD')">🟨 Cartão</button>
+                <button class="btn-card" style="background: #ef4444; color: white;" onclick="openEventModal('A', 'RED_CARD')">🟥 Cartão</button>
             </div>
         </div>
         <div class="team-controls">
             <button class="btn-goal" onclick="openEventModal('B', 'GOAL')">⚽ GOL TIME B</button>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
-                <button class="btn btn-secondary" style="background: #fbbf24; color: black; border: none;" onclick="openEventModal('B', 'YELLOW_CARD')">🟨 Cartão</button>
-                <button class="btn btn-secondary" style="background: #ef4444; color: white; border: none;" onclick="openEventModal('B', 'RED_CARD')">🟥 Cartão</button>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem;">
+                <button class="btn-card" style="background: #fbbf24; color: black;" onclick="openEventModal('B', 'YELLOW_CARD')">🟨 Cartão</button>
+                <button class="btn-card" style="background: #ef4444; color: white;" onclick="openEventModal('B', 'RED_CARD')">🟥 Cartão</button>
             </div>
+        </div>
+    </div>
+
+    <div class="bench-container">
+        <!-- Team A Bench -->
+        <div class="bench-team">
+            <div class="bench-title">QUADRA (A)</div>
+            <div id="field-A" class="quadra-grid"></div>
+            <div class="bench-title">BANCO</div>
+            <div id="bench-A" class="banco-grid"></div>
+        </div>
+        <!-- Team B Bench -->
+        <div class="bench-team">
+            <div class="bench-title">QUADRA (B)</div>
+            <div id="field-B" class="quadra-grid"></div>
+            <div class="bench-title">BANCO</div>
+            <div id="bench-B" class="banco-grid"></div>
         </div>
     </div>
 
@@ -160,14 +196,14 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
         <!-- Events list populated by JS -->
     </div>
 
-    <div class="status-bar" style="display: flex; gap: 0.5rem;">
-        <button class="btn btn-secondary" style="flex: 1; background: #334155; color: white; border: none;" onclick="openAppointmentsModal()">📋 APONTAMENTOS</button>
+    <div class="status-bar">
+        <button class="btn-sm" style="flex: 1; background: #334155; color: white;" onclick="openAppointmentsModal()">📋 APONTAMENTOS</button>
         <?php if ($match['status'] === 'scheduled'): ?>
-            <button class="btn btn-primary" style="flex: 2" onclick="updateStatus('live')">▶️ INICIAR PARTIDA</button>
+            <button class="btn btn-primary btn-sm" style="flex: 2" onclick="updateStatus('live')">▶️ INICIAR PARTIDA</button>
         <?php elseif ($match['status'] === 'live'): ?>
-            <button class="btn btn-danger" style="flex: 2" onclick="updateStatus('finished')">🏁 ENCERRAR PARTIDA</button>
+            <button class="btn btn-danger btn-sm" style="flex: 2" onclick="updateStatus('finished')">🏁 ENCERRAR PARTIDA</button>
         <?php else: ?>
-            <div style="flex: 2; text-align: center;">PARTIDA FINALIZADA</div>
+            <div style="flex: 2; text-align: center; font-size: 0.8rem;">FINALIZADA</div>
         <?php endif; ?>
     </div>
 
@@ -249,6 +285,104 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
         const athletesB = <?php echo json_encode($athletesB); ?>;
         const teamA_id = <?php echo $match['team_a_id']; ?>;
         const teamB_id = <?php echo $match['team_b_id']; ?>;
+        
+        let onFieldA = <?php echo $match['team_a_lineup'] ?: '[]'; ?>;
+        let onFieldB = <?php echo $match['team_b_lineup'] ?: '[]'; ?>;
+        let selectedOut = null; // {teamSide, athleteId}
+
+        function initLineups() {
+            // Auto-pick first 5 if none stored
+            if (onFieldA.length === 0) onFieldA = athletesA.slice(0, 5).map(a => a.id);
+            if (onFieldB.length === 0) onFieldB = athletesB.slice(0, 5).map(a => a.id);
+            renderBenches();
+        }
+
+        function renderBenches() {
+            const renderTeam = (side, all, fieldIds) => {
+                const fieldList = document.getElementById(`field-${side}`);
+                const benchList = document.getElementById(`bench-${side}`);
+                
+                const onField = all.filter(a => fieldIds.includes(a.id));
+                const onBench = all.filter(a => !fieldIds.includes(a.id));
+
+                fieldList.innerHTML = onField.map(at => `
+                    <div class="player-chip field ${selectedOut?.athleteId == at.id ? 'selected' : ''}" onclick="selectOut('${side}', ${at.id})">
+                        <span class="p-num">${at.jersey_number || '??'}</span>
+                        <span class="p-name">${at.name_snapshot}</span>
+                    </div>
+                `).join('');
+
+                benchList.innerHTML = onBench.map(at => `
+                    <div class="player-chip" onclick="executeSub('${side}', ${at.id})">
+                        <span class="p-num">${at.jersey_number || '??'}</span>
+                        <span class="p-name">${at.name_snapshot}</span>
+                    </div>
+                `).join('');
+            };
+
+            renderTeam('A', athletesA, onFieldA);
+            renderTeam('B', athletesB, onFieldB);
+        }
+
+        function selectOut(side, id) {
+            if (selectedOut?.athleteId === id) {
+                selectedOut = null;
+            } else {
+                selectedOut = { teamSide: side, athleteId: id };
+            }
+            renderBenches();
+        }
+
+        async function executeSub(side, idIn) {
+            if (!selectedOut || selectedOut.teamSide !== side) {
+                alert("Primeiro toque no jogador que vai sair (da área QUADRA).");
+                return;
+            }
+
+            const idOut = selectedOut.athleteId;
+            const teamId = side === 'A' ? teamA_id : teamB_id;
+            const lineup = side === 'A' ? onFieldA : onFieldB;
+
+            // Log event
+            try {
+                const res = await fetch('../api/match-events-api.php', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        action: 'event',
+                        match_id: matchId,
+                        team_id: teamId,
+                        athlete_id: idOut,
+                        athlete_id_in: idIn,
+                        event_type: 'SUBSTITUTION',
+                        event_time: document.getElementById('gameTimer').textContent
+                    })
+                });
+
+                // Update local lineup
+                const idx = lineup.indexOf(idOut);
+                lineup[idx] = idIn;
+
+                // Persist lineup
+                await fetch('../api/match-events-api.php', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        action: 'update_lineup',
+                        match_id: matchId,
+                        team_side: side,
+                        lineup: lineup
+                    })
+                });
+
+                selectedOut = null;
+                renderBenches();
+                loadTimeline();
+            } catch (e) {
+                console.error(e);
+                alert("Erro ao processar substituição");
+            }
+        }
 
         function openEventModal(teamSide, eventType) {
             closeModals();
@@ -444,17 +578,24 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
 
         function renderTimeline(events) {
             const container = document.getElementById('timeline');
-            const iconMap = { 'GOAL': '⚽', 'YELLOW_CARD': '🟨', 'RED_CARD': '🟥', 'OWN_GOAL': '🔄' };
+            const iconMap = { 'GOAL': '⚽', 'YELLOW_CARD': '🟨', 'RED_CARD': '🟥', 'OWN_GOAL': '🔄', 'SUBSTITUTION': '🔄' };
             
             container.innerHTML = events.map(ev => {
                 const side = ev.team_id == teamA_id ? 'A' : 'B';
+                let content = '';
+                
+                if (ev.event_type === 'SUBSTITUTION') {
+                    content = `<span style="color: #94a3b8">Sai:</span> ${ev.jersey_number ? '#' + ev.jersey_number : ''} ${ev.athlete_name} <br> 
+                               <span style="color: #10b981">Entra:</span> ${ev.jersey_in ? '#' + ev.jersey_in : ''} ${ev.athlete_in_name}`;
+                } else {
+                    content = ev.athlete_name ? (ev.jersey_number ? '#' + ev.jersey_number + ' ' : '') + ev.athlete_name : 'Atleta não listado';
+                }
+
                 return `
                     <div class="timeline-item side-${side}">
                         <div class="time-badge">${ev.event_time || '--:--'}</div>
                         <div class="event-icon">${iconMap[ev.event_type] || '🏳️'}</div>
-                        <div class="player-info">
-                            ${ev.athlete_name ? (ev.jersey_number ? '#' + ev.jersey_number + ' ' : '') + ev.athlete_name : 'Atleta não listado'}
-                        </div>
+                        <div class="player-info">${content}</div>
                     </div>
                 `;
             }).join('');
@@ -466,6 +607,7 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
         // Initial load
         window.addEventListener('DOMContentLoaded', () => {
             loadTimeline();
+            initLineups();
             
             // Names cleaning
             const nameA = document.getElementById('name-A');

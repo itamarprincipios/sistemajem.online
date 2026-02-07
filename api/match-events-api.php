@@ -21,8 +21,9 @@ try {
         $athleteId = $input['athlete_id'];
         $type = $input['event_type'];
         $time = $input['event_time'] ?? null;
+        $athleteIdIn = $input['athlete_id_in'] ?? null;
         
-        execute("INSERT INTO match_events (match_id, team_id, athlete_id, event_type, event_time, created_at) VALUES (?, ?, ?, ?, ?, NOW())", [$matchId, $teamId, $athleteId, $type, $time]);
+        execute("INSERT INTO match_events (match_id, team_id, athlete_id, athlete_id_in, event_type, event_time, created_at) VALUES (?, ?, ?, ?, ?, ?, NOW())", [$matchId, $teamId, $athleteId, $athleteIdIn, $type, $time]);
         
         if ($type === 'GOAL') {
              $match = queryOne("SELECT team_a_id, team_b_id FROM matches WHERE id = ?", [$matchId]);
@@ -38,9 +39,12 @@ try {
         $matchId = $input['match_id'] ?? $_GET['match_id'];
         
         $events = query("
-            SELECT e.*, a.name_snapshot as athlete_name, a.jersey_number
+            SELECT e.*, 
+                   a.name_snapshot as athlete_name, a.jersey_number,
+                   a2.name_snapshot as athlete_in_name, a2.jersey_number as jersey_in
             FROM match_events e
             LEFT JOIN competition_team_athletes a ON e.athlete_id = a.id
+            LEFT JOIN competition_team_athletes a2 ON e.athlete_id_in = a2.id
             WHERE e.match_id = ?
             ORDER BY e.created_at ASC
         ", [$matchId]);
@@ -128,6 +132,14 @@ try {
             rollback();
             throw $e;
         }
+    } elseif ($action === 'update_lineup') {
+        $matchId = $input['match_id'];
+        $teamSide = $input['team_side']; // 'A' or 'B'
+        $lineup = $input['lineup']; // Array of IDs
+
+        $column = $teamSide === 'A' ? 'team_a_lineup' : 'team_b_lineup';
+        execute("UPDATE matches SET $column = ? WHERE id = ?", [json_encode($lineup), $matchId]);
+        echo json_encode(['success' => true]);
     } else {
         throw new Exception('Invalid action: ' . $action);
     }
