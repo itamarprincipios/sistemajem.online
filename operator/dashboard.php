@@ -116,6 +116,16 @@ $activeEventId = $activeEvent['id'] ?? 'null';
         .inline-input:hover { border-color: #475569; background: rgba(0,0,0,0.3); }
         .inline-input:focus { border-color: #10b981; outline: none; background: #0f172a; box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1); }
         
+        /* Hide number input spinners */
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+        
         .inline-save-btn { 
             background: #10b981; 
             color: white; 
