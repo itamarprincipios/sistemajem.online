@@ -20,8 +20,9 @@ try {
         $teamId = $input['team_id'];
         $athleteId = $input['athlete_id'];
         $type = $input['event_type'];
+        $time = $input['event_time'] ?? null;
         
-        execute("INSERT INTO match_events (match_id, team_id, athlete_id, event_type, created_at) VALUES (?, ?, ?, ?, NOW())", [$matchId, $teamId, $athleteId, $type]);
+        execute("INSERT INTO match_events (match_id, team_id, athlete_id, event_type, event_time, created_at) VALUES (?, ?, ?, ?, ?, NOW())", [$matchId, $teamId, $athleteId, $type, $time]);
         
         if ($type === 'GOAL') {
              $match = queryOne("SELECT team_a_id, team_b_id FROM matches WHERE id = ?", [$matchId]);
@@ -32,6 +33,19 @@ try {
              }
         }
         echo json_encode(['success' => true]);
+        
+    } elseif ($action === 'list_events') {
+        $matchId = $input['match_id'] ?? $_GET['match_id'];
+        
+        $events = query("
+            SELECT e.*, a.name_snapshot as athlete_name, a.jersey_number
+            FROM match_events e
+            LEFT JOIN competition_team_athletes a ON e.athlete_id = a.id
+            WHERE e.match_id = ?
+            ORDER BY e.created_at ASC
+        ", [$matchId]);
+        
+        echo json_encode(['success' => true, 'data' => $events]);
         
     } elseif ($action === 'status') {
         $matchId = $input['match_id'];

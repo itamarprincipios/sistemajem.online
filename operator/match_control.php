@@ -33,6 +33,25 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Controle de Partida #<?php echo $matchId; ?></title>
     <link rel="stylesheet" href="../assets/css/styles.css">
+    <script>
+        const cleanName = (name) => {
+            if (!name) return 'A definir';
+            let cleaned = name;
+            const prefixes = [
+                /^(ESCOLA MUNICIPAL|MUNICIPAL|ESCOLA|EMEIF|EMEF)\b/gi,
+                /^(EDUCAÇÃO INFANTIL|ENSINO FUNDAMENTAL|ENSINO MÉDIO)\b/gi,
+                /^(PROFESSOR[A]?)\b/gi,
+                /^[\s\-–—,]+/gi, 
+                /^(DE|E|DO|DA)\s+/gi 
+            ];
+            let lastCleaned;
+            do {
+                lastCleaned = cleaned;
+                prefixes.forEach(p => cleaned = cleaned.replace(p, '').trim());
+            } while (cleaned !== lastCleaned && cleaned.length > 0);
+            return cleaned || 'A definir';
+        };
+    </script>
     <style>
         body { background: #000; color: white; overflow-x: hidden; }
         .score-board { display: grid; grid-template-columns: 1fr auto 1fr; gap: 1rem; align-items: center; padding: 1rem; background: #111; border-bottom: 2px solid #333; }
@@ -56,8 +75,16 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
         
         .athlete-list { display: grid; gap: 0.5rem; margin-top: 1rem; }
         .athlete-btn { background: #334155; border: 1px solid #475569; color: white; padding: 1rem; text-align: left; border-radius: 8px; font-size: 1.1rem; }
-        
-        .athlete-btn { background: #334155; border: 1px solid #475569; color: white; padding: 1rem; text-align: left; border-radius: 8px; font-size: 1.1rem; }
+
+        /* Timeline Styles */
+        .timeline-container { padding: 1rem; flex: 1; overflow-y: auto; margin-bottom: 80px; min-height: 200px; }
+        .timeline-item { display: flex; align-items: center; gap: 1rem; margin-bottom: 0.75rem; padding: 0.5rem 1rem; border-radius: 8px; background: rgba(255,255,255,0.05); font-size: 0.95rem; }
+        .timeline-item.side-A { flex-direction: row; border-left: 4px solid #10b981; }
+        .timeline-item.side-B { flex-direction: row-reverse; border-right: 4px solid #10b981; }
+        .time-badge { background: #334155; color: #fbbf24; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-weight: bold; min-width: 45px; text-align: center; }
+        .event-icon { font-size: 1.2rem; }
+        .player-info { font-weight: 600; flex: 1; }
+        .side-B .player-info { text-align: right; }
     </style>
 </head>
 <body>
@@ -189,12 +216,15 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
                         match_id: matchId,
                         team_id: teamId,
                         athlete_id: athleteId,
-                        event_type: eventType
+                        event_type: eventType,
+                        event_time: document.getElementById('gameTimer').textContent
                     })
                 });
                 
                 const data = await res.json();
-                if(!data.success) {
+                if(data.success) {
+                    loadTimeline(); // Refresh list
+                } else {
                     alert('Erro ao salvar evento: ' + data.error);
                     window.location.reload();
                 }
@@ -246,7 +276,47 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
             }
         }
         
-        // Make function globally accessible
+        async function loadTimeline() {
+            try {
+                const res = await fetch('../api/match-events-api.php', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ action: 'list_events', match_id: matchId })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    renderTimeline(data.data);
+                }
+            } catch (e) {
+                console.error("Timeline load failed", e);
+            }
+        }
+
+        function renderTimeline(events) {
+            const container = document.getElementById('timeline');
+            const iconMap = { 'GOAL': '⚽', 'YELLOW_CARD': '🟨', 'RED_CARD': '🟥', 'OWN_GOAL': '🔄' };
+            
+            container.innerHTML = events.map(ev => {
+                const side = ev.team_id == teamA_id ? 'A' : 'B';
+                return `
+                    <div class="timeline-item side-${side}">
+                        <div class="time-badge">${ev.event_time || '--:--'}</div>
+                        <div class="event-icon">${iconMap[ev.event_type] || '🏳️'}</div>
+                        <div class="player-info">
+                            ${ev.athlete_name ? (ev.jersey_number ? '#' + ev.jersey_number + ' ' : '') + ev.athlete_name : 'Atleta não listado'}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            // Auto-scroll to bottom
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // Initial load
+        loadTimeline();
+
+        // Make functions globally accessible
         window.updateStatus = updateStatus;
         console.log("🌐 updateStatus function registered globally");
         
