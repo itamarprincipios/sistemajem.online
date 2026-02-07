@@ -12,17 +12,78 @@ include '../includes/sidebar.php';
 
 <div class="main-content">
     <div class="top-bar">
-        <h1 class="top-bar-title">Gerador de Jogos</h1>
+        <h1 class="top-bar-title">Gerenciar Partidas</h1>
+        <a href="matches_generator_futsal.php" class="btn btn-primary" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none; text-decoration: none; padding: 0.5rem 1rem; border-radius: 8px; display: inline-flex; align-items: center; gap: 0.5rem;">
+            ⚽ Gerador de jogos futsal
+        </a>
     </div>
     
     <div class="content-wrapper">
         <div class="glass-card" style="margin-bottom: 2rem;">
-            <h2>Eventos Cadastrados</h2>
-            <p style="color: var(--text-secondary);">Selecione uma categoria para sortear os grupos</p>
+            <h2>Gerador Automático</h2>
+            <p class="text-secondary" style="margin-bottom: 1.5rem;">Selecione os parâmetros para criar a tabela de jogos.</p>
+            
+            <form id="generatorForm" onsubmit="handleGenerate(event)" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; align-items: end;">
+                <div class="form-group">
+                    <label class="form-label">Evento</label>
+                    <select id="eventSelect" name="event_id" class="form-select" onchange="loadOptions()" required>
+                        <option value="">Carregando...</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Modalidade</label>
+                    <select id="modalitySelect" name="modality_id" class="form-select" required>
+                        <option value="">Selecione o Evento</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Categoria</label>
+                    <select id="categorySelect" name="category_id" class="form-select" required>
+                        <!-- Loaded via JS -->
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Formato</label>
+                        <select name="type" class="form-select" required>
+                            <option value="round_robin">Todos contra Todos (Fase de Grupos única)</option>
+                            <option value="groups_knockout">Grupos de 4 + Eliminatórias</option>
+                            <option value="elimination">Eliminação Simples (Mata-mata Direto)</option>
+                        </select>
+                </div>
+                
+                <button type="submit" class="btn btn-primary" style="height: 42px;">⚡ Gerar Jogos</button>
+            </form>
         </div>
 
-        <div id="eventsContainer">
-            <!-- Events will be loaded here -->
+        <div class="glass-card">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
+                <h3>Partidas Agendadas</h3>
+                <button class="btn btn-sm btn-danger" onclick="clearAllMatches()">Limpar Lista</button>
+            </div>
+            
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Data/Hora</th>
+                            <th>Categoria</th>
+                            <th>Grupo</th>
+                            <th>Home</th>
+                            <th>Away</th>
+                            <th>Local</th>
+                            <th>Status</th>
+                            <th>Ação</th>
+                        </tr>
+                    </thead>
+                    <tbody id="matchesTable">
+                        <!-- Loaded via JS -->
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
@@ -34,128 +95,269 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function loadEvents() {
     try {
-        const res = await fetch('../api/competition-events-api.php?action=list');
+        const res = await fetch('../api/competition-operators-api.php?action=events');
+        const data = await res.json();
+        const select = document.getElementById('eventSelect');
+        select.innerHTML = '<option value="">Selecione o Evento</option>';
+        data.data.forEach(ev => select.innerHTML += `<option value="${ev.id}">${ev.name}</option>`);
+    } catch(e) { console.error(e); }
+}
+
+async function loadOptions() {
+    const eventId = document.getElementById('eventSelect').value;
+    const modSelect = document.getElementById('modalitySelect');
+    const catSelect = document.getElementById('categorySelect');
+    
+    // Reset
+    modSelect.innerHTML = '<option value="">Carregando...</option>';
+    catSelect.innerHTML = '<option value="">Carregando...</option>';
+    
+    if (!eventId) {
+        modSelect.innerHTML = '<option value="">Selecione o Evento primeiro</option>';
+        catSelect.innerHTML = '<option value="">Selecione o Evento primeiro</option>';
+        return;
+    }
+    
+    try {
+        const res = await fetch(`../api/matches-api.php?action=options&event_id=${eventId}`);
         const data = await res.json();
         
-        if (data.success && data.data.length > 0) {
-            renderEvents(data.data);
+        // Populate Modalities
+        modSelect.innerHTML = '<option value="">Selecione a Modalidade</option>';
+        if (data.data.modalities.length > 0) {
+            data.data.modalities.forEach(m => {
+                modSelect.innerHTML += `<option value="${m.id}">${m.name}</option>`;
+            });
         } else {
-            document.getElementById('eventsContainer').innerHTML = `
-                <div class="glass-card" style="text-align: center; padding: 3rem;">
-                    <p style="color: var(--text-secondary);">Nenhum evento cadastrado</p>
-                </div>
-            `;
+             modSelect.innerHTML = '<option value="">Sem equipes cadastradas</option>';
+        }
+
+        // Populate Categories
+        catSelect.innerHTML = '<option value="">Selecione a Categoria</option>';
+        if (data.data.categories.length > 0) {
+            data.data.categories.forEach(c => {
+                catSelect.innerHTML += `<option value="${c.id}">${c.name}</option>`;
+            });
+        } else {
+             catSelect.innerHTML = '<option value="">Sem equipes cadastradas</option>';
+        }
+        
+        loadMatches(); // Also refresh the list below
+        
+    } catch(e) {
+        console.error(e);
+        modSelect.innerHTML = '<option value="">Erro ao carregar</option>';
+    }
+}
+
+// Main generation handler
+async function handleGenerate(e) {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData);
+    
+    if (!data.event_id || !data.modality_id || !data.category_id) {
+        Toast.error('Selecione todos os campos!');
+        return;
+    }
+    
+    if (!confirm('Gerar partidas? Isso criará novos jogos.')) return;
+    
+    try {
+        const res = await fetch('../api/matches-api.php?action=generate', {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
+        const result = await res.json();
+        
+        if (result.success) {
+            Toast.success(result.message);
+            loadMatches();
+        } else {
+            Toast.error(result.error);
         }
     } catch (e) {
+        Toast.error('Erro na geração');
+    }
+}
+
+// Clear list for current filters
+async function clearAllMatches() {
+   const eventId = document.getElementById('eventSelect').value;
+   const modalityId = document.getElementById('modalitySelect').value;
+   const categoryId = document.getElementById('categorySelect').value;
+
+   if (!eventId || !modalityId || !categoryId) {
+       Toast.error('Selecione Evento, Modalidade e Categoria para limpar!');
+       return;
+   }
+
+   if (!confirm('ATENÇÃO: Isso excluirá TODAS as partidas desta Categoria/Modalidade no evento atual. Continuar?')) return;
+
+   try {
+       const res = await fetch(`../api/matches-api.php?action=clear&event_id=${eventId}&modality_id=${modalityId}&category_id=${categoryId}`, {
+           method: 'DELETE'
+       });
+       const result = await res.json();
+       
+       if (result.success) {
+           Toast.success('Lista limpa com sucesso!');
+           loadMatches();
+       } else {
+           Toast.error(result.error || 'Erro ao limpar lista');
+       }
+   } catch(e) {
+       Toast.error('Erro de conexão');
+   }
+}
+
+// Store matches globally to access them for edit
+let currentMatches = [];
+
+async function loadMatches() {
+    const eventId = document.getElementById('eventSelect').value;
+    const tbody = document.getElementById('matchesTable');
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center">Carregando...</td></tr>';
+
+    if (!eventId) {
+         tbody.innerHTML = '';
+         return;
+    }
+
+    try {
+        const res = await fetch(`../api/matches-api.php?action=list&event_id=${eventId}`);
+        const text = await res.text();
+        let data;
+        
+        try {
+            data = JSON.parse(text);
+        } catch(e) {
+            console.error("JSON Error", text);
+            tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:red">Erro na resposta do servidor: ${text.substring(0, 100)}...</td></tr>`;
+            return;
+        }
+        
+        if (!data.success) {
+             tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:red">${data.error || 'Erro desconhecido'}</td></tr>`;
+             return;
+        }
+        
+        currentMatches = data.data; // Store
+        tbody.innerHTML = '';
+        
+        if (data.data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center">Nenhuma partida gerada para este evento.</td></tr>';
+            return;
+        }
+        
+        data.data.forEach(m => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>#${m.id}</td>
+                <td>${new Date(m.scheduled_time).toLocaleString('pt-BR')}</td>
+                <td>${m.category_name} (${m.modality_name})</td>
+                <td><span class="badge" style="background:#475569">${m.group_name || '-'}</span></td>
+                <td style="font-weight:bold">${m.team_a_name}</td>
+                <td style="font-weight:bold">${m.team_b_name}</td>
+                <td>${m.venue || '-'}</td>
+                <td><span class="badge">${m.status}</span></td>
+                <td>
+                    <button class="btn btn-sm btn-secondary" onclick="openEditModal(${m.id})">✏️</button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteMatch(${m.id})">🗑️</button>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+    } catch (e) {
         console.error(e);
-        Toast.error('Erro ao carregar eventos');
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:red">Erro de conexão: ${e.message}</td></tr>`;
     }
 }
 
-async function renderEvents(events) {
-    const container = document.getElementById('eventsContainer');
-    container.innerHTML = '';
+async function deleteMatch(id) {
+    if (!confirm('Excluir partida?')) return;
+    await fetch(`../api/matches-api.php?id=${id}`, { method: 'DELETE' });
+    loadMatches();
+}
+
+// Edit Modal Logic
+let currentMatchId = null;
+
+function openEditModal(id) {
+    const match = currentMatches.find(m => m.id == id);
+    if (!match) return;
     
-    for (const event of events) {
-        // Get categories for this event
-        const categoriesRes = await fetch(`../api/matches-api.php?action=options&event_id=${event.id}`);
-        const categoriesData = await categoriesRes.json();
+    currentMatchId = match.id;
+    
+    // Format datetime for input (YYYY-MM-DDTHH:MM)
+    const date = new Date(match.scheduled_time);
+    date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+    const dateStr = date.toISOString().slice(0, 16);
+    
+    document.getElementById('editTime').value = dateStr;
+    document.getElementById('editVenue').value = match.venue || '';
+    document.getElementById('editModalTitle').textContent = `Editar Jogo #${match.id}: ${match.team_a_name} x ${match.team_b_name}`;
+    
+    document.getElementById('editModal').classList.add('active');
+}
+
+function closeEditModal() {
+    document.getElementById('editModal').classList.remove('active');
+}
+
+async function handleEditSave(e) {
+    e.preventDefault();
+    
+    const time = document.getElementById('editTime').value;
+    const venue = document.getElementById('editVenue').value;
+    
+    try {
+        const res = await fetch('../api/matches-api.php', {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                id: currentMatchId,
+                scheduled_time: time,
+                venue: venue
+            })
+        });
         
-        if (!categoriesData.success || categoriesData.data.categories.length === 0) {
-            continue;
+        const result = await res.json();
+        
+        if (result.success) {
+            Toast.success('Partida atualizada!');
+            closeEditModal();
+            loadMatches();
+        } else {
+            Toast.error('Erro ao atualizar');
         }
-        
-        // Create event section
-        const eventSection = document.createElement('div');
-        eventSection.className = 'glass-card';
-        eventSection.style.marginBottom = '2rem';
-        
-        eventSection.innerHTML = `
-            <h3 style="margin-bottom: 1.5rem;">${event.name}</h3>
-            <div id="categories-${event.id}" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem;">
-                <!-- Categories will be loaded here -->
-            </div>
-        `;
-        
-        container.appendChild(eventSection);
-        
-        // Render category cards
-        renderCategoryCards(event.id, categoriesData.data.categories);
+    } catch(err) {
+        Toast.error('Erro de conexão');
     }
-}
-
-async function renderCategoryCards(eventId, categories) {
-    const container = document.getElementById(`categories-${eventId}`);
-    
-    for (const category of categories) {
-        // Get team counts for this category
-        const teamsRes = await fetch(`../api/matches-api.php?action=team_counts&event_id=${eventId}&category_id=${category.id}`);
-        const teamsData = await teamsRes.json();
-        
-        const maleCount = teamsData.data?.male || 0;
-        const femaleCount = teamsData.data?.female || 0;
-        
-        // Masculine card (Blue)
-        if (maleCount > 0) {
-            const maleCard = createCategoryCard(eventId, category, 'M', maleCount, '#3b82f6');
-            container.appendChild(maleCard);
-        }
-        
-        // Feminine card (Pink)
-        if (femaleCount > 0) {
-            const femaleCard = createCategoryCard(eventId, category, 'F', femaleCount, '#ec4899');
-            container.appendChild(femaleCard);
-        }
-    }
-}
-
-function createCategoryCard(eventId, category, gender, teamCount, color) {
-    const card = document.createElement('div');
-    card.className = 'glass-card';
-    card.style.cursor = 'pointer';
-    card.style.transition = 'transform 0.2s, box-shadow 0.2s';
-    card.style.border = `2px solid ${color}40`;
-    
-    card.onmouseenter = () => {
-        card.style.transform = 'translateY(-4px)';
-        card.style.boxShadow = `0 8px 24px ${color}40`;
-    };
-    
-    card.onmouseleave = () => {
-        card.style.transform = 'translateY(0)';
-        card.style.boxShadow = '';
-    };
-    
-    const genderIcon = gender === 'M' ? '♂️' : '♀️';
-    const genderLabel = gender === 'M' ? 'Masculino' : 'Feminino';
-    
-    card.innerHTML = `
-        <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
-            <div style="font-size: 2rem; background: ${color}20; width: 50px; height: 50px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
-                ${genderIcon}
-            </div>
-            <div style="flex: 1;">
-                <h4 style="margin: 0; color: ${color};">${category.name} ${genderLabel}</h4>
-                <p style="margin: 0.25rem 0 0 0; color: var(--text-secondary); font-size: 0.875rem;">
-                    ${teamCount} equipes cadastradas
-                </p>
-            </div>
-        </div>
-        <div style="padding: 0.75rem; background: rgba(0,0,0,0.2); border-radius: 8px; margin-bottom: 1rem;">
-            <div style="font-size: 0.875rem; color: var(--text-secondary);">Status do Sorteio</div>
-            <div style="font-weight: bold; color: ${color};">Aguardando sorteio</div>
-        </div>
-        <button class="btn btn-primary" style="width: 100%; background: ${color}; border: none;" onclick="openGroupDraw(${eventId}, ${category.id}, '${gender}')">
-            🎲 Sortear Grupos
-        </button>
-    `;
-    
-    return card;
-}
-
-function openGroupDraw(eventId, categoryId, gender) {
-    window.location.href = `group_draw.php?event_id=${eventId}&category_id=${categoryId}&gender=${gender}`;
 }
 </script>
+
+<!-- Edit Modal -->
+<div class="modal-overlay" id="editModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 class="modal-title" id="editModalTitle">Editar Partida</h3>
+            <button class="modal-close" onclick="closeEditModal()">×</button>
+        </div>
+        <div class="modal-body">
+            <form onsubmit="handleEditSave(event)">
+                <div class="form-group">
+                    <label class="form-label">Data e Horário</label>
+                    <input type="datetime-local" id="editTime" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Local (Quadra/Campo)</label>
+                    <input type="text" id="editVenue" class="form-input" placeholder="Ex: Quadra 1">
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Salvar Alterações</button>
+            </form>
+        </div>
+    </div>
+</div>
 
 <?php include '../includes/footer.php'; ?>
