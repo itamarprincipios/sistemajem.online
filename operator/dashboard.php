@@ -89,60 +89,62 @@ $pageTitle = 'Painel do Operador';
         
         /* Phase Navigation (aligned with results) */
         .phase-navigation { display: flex; align-items: center; justify-content: center; gap: 2rem; margin: 2rem 0; padding: 1.5rem; background: rgba(0,0,0,0.3); border-radius: 12px; }
-        .phase-navigation button { background: #1e293b; border: 1px solid #334155; color: #94a3b8; padding: 0.75rem 1.5rem; border-radius: 8px; cursor: pointer; font-size: 1.2rem; font-weight: 800; transition: all 0.2s; }
-        .phase-navigation button:hover:not(:disabled) { background: #10b981; color: white; border-color: #10b981; }
-        .phase-navigation button:disabled { opacity: 0.3; cursor: not-allowed; }
+        .phase-nav-btn { background: #1e293b; border: 1px solid #334155; color: #94a3b8; padding: 0.75rem 1.5rem; border-radius: 8px; cursor: pointer; font-size: 1.2rem; font-weight: 800; transition: all 0.2s; }
+        .phase-nav-btn:hover:not(:disabled) { background: #10b981; color: white; border-color: #10b981; }
+        .phase-nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
         .phase-title { font-size: 1.8rem; font-weight: 800; color: #10b981; min-width: 300px; text-align: center; }
         .phase-subtitle { font-size: 1.2rem; font-weight: 700; color: #64748b; text-align: center; margin-bottom: 1.5rem; }
-            font-weight: 800;
-            transition: all 0.2s;
-        }
-        .phase-nav-btn:hover:not(:disabled) {
-            background: #10b981;
-            color: white;
-            border-color: #10b981;
-        }
-        .phase-nav-btn:disabled {
-            opacity: 0.3;
-            cursor: not-allowed;
-        }
-        .phase-title {
-            font-size: 1.8rem;
-            font-weight: 800;
-            color: #10b981;
-            text-align: center;
-            min-width: 300px;
-        }
-        .phase-subtitle {
-            font-size: 1.2rem;
-            font-weight: 700;
-            color: #64748b;
-            text-align: center;
-            margin-bottom: 1.5rem;
-        }
 
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
         
-        /* Modal Styles */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 1000; }
-        .modal-overlay.active { display: flex; }
-        .modal { background: #1e293b; border-radius: 16px; padding: 2rem; width: 100%; max-width: 400px; border: 1px solid #334155; }
-        .modal-title { margin: 0 0 1.5rem 0; font-size: 1.25rem; }
-        .form-group { margin-bottom: 1rem; }
-        .form-label { display: block; margin-bottom: 0.5rem; font-size: 0.9rem; color: #94a3b8; }
-        .form-input { width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; font-size: 1rem; }
+        /* Inline Edit Styles (Premium Redesign) */
+        .inline-input { 
+            background: rgba(0,0,0,0.2); 
+            border: 1px solid rgba(51, 65, 85, 0.5); 
+            color: #f8fafc; 
+            border-radius: 8px; 
+            padding: 6px 10px; 
+            font-size: 0.85rem; 
+            width: 100%; 
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            font-family: inherit;
+        }
+        .inline-input:hover { border-color: #475569; background: rgba(0,0,0,0.3); }
+        .inline-input:focus { border-color: #10b981; outline: none; background: #0f172a; box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1); }
         
-        /* Inline Edit Styles */
-        .inline-input { background: rgba(15, 23, 42, 0.5); border: 1px solid #334155; color: white; border-radius: 6px; padding: 4px 8px; font-size: 0.85rem; width: 100%; transition: all 0.2s; }
-        .inline-input:focus { border-color: #10b981; outline: none; background: #0f172a; }
-        .inline-save-btn { background: #10b981; color: white; border: none; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-size: 0.75rem; font-weight: 700; opacity: 0; pointer-events: none; transition: all 0.2s; }
-        .inline-save-btn.active { opacity: 1; pointer-events: auto; }
-        .save-status { font-size: 0.7rem; margin-left: auto; transition: all 0.3s; }
+        .inline-save-btn { 
+            background: #10b981; 
+            color: white; 
+            border: none; 
+            border-radius: 6px; 
+            padding: 6px 12px; 
+            cursor: pointer; 
+            font-size: 0.75rem; 
+            font-weight: 800; 
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            opacity: 0; 
+            transform: translateY(10px);
+            pointer-events: none; 
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .inline-save-btn.active { opacity: 1; transform: translateY(0); pointer-events: auto; }
+        .save-status { font-size: 0.75rem; padding: 4px 8px; border-radius: 4px; font-weight: 600; }
+
+        .label-pill {
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #64748b;
+            font-weight: 800;
+            margin-bottom: 4px;
+            display: block;
+        }
     </style>
 </head>
 <body>
     <div class="op-header">
-        <div style="font-size: 1.2rem; font-weight: 800; letter-spacing: -0.5px; color: #10b981;">JEM OPERADOR</div>
+        <div style="font-size: 1.2rem; font-weight: 800; letter-spacing: -0.5px; color: #10b981;">JEM OPERADOR <span style="font-size: 0.6rem; color: #64748b; vertical-align: middle; margin-left: 5px;">V2.1</span></div>
         <div style="display: flex; align-items: center; gap: 1.5rem;">
             <a href="knockout_manual.php" style="background: linear-gradient(135deg, #8b5cf6, #d946ef); color: white; padding: 0.5rem 1rem; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 0.9rem; display: flex; align-items: center; gap: 0.5rem; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
                 ✏️ Mata-Mata Manual
@@ -171,6 +173,18 @@ $pageTitle = 'Painel do Operador';
     <!-- Schedule Modal Removed -->
 
 <script>
+// Global Utilities
+const cleanName = (name) => {
+    if (!name) return 'A definir';
+    // Remove complex prefixes in sequence
+    return name
+        .replace(/^(ESCOLA MUNICIPAL|MUNICIPAL|ESCOLA|EDUCAÇÃO INFANTIL|ENSINO FUNDAMENTAL|PROFESSORA|PROFESSOR|EMEIF|EMEF|E\s+ENSINO\s+FUNDAMENTAL)/gi, '')
+        .replace(/^[\s\-DEe,]+/gi, '') // Remove leading garbage like " DE ", " E ", "-", etc.
+        .replace(/^(ESCOLA MUNICIPAL|MUNICIPAL|ESCOLA|EDUCAÇÃO INFANTIL|ENSINO FUNDAMENTAL|PROFESSORA|PROFESSOR|EMEIF|EMEF)/gi, '') // Second pass for nested prefixes
+        .replace(/^[\s\-DEe,]+/gi, '')
+        .trim();
+};
+
 let allMatches = []; 
 let state = {
     modality: null,
@@ -329,13 +343,6 @@ function render() {
             const isFem = m.team_gender === 'F';
             const genderLabel = isFem ? '♀️ Fem' : '♂️ Masc';
             const genderColor = isFem ? '#ec4899' : '#10b981';
-            const cleanName = (name) => {
-                if (!name) return 'A definir';
-                return name
-                    .replace(/^(ESCOLA MUNICIPAL |MUNICIPAL |ESCOLA )*(DE )*(ENSINO INFANTIL E FUNDAMENTAL |ENSINO FUNDAMENTAL |ENSINO INFANTIL |ENSINO INFANTIL - FUNDAMENTAL )*/i, '')
-                    .trim();
-            };
-
             const teamA = cleanName(m.team_a_name);
             const teamB = cleanName(m.team_b_name);
 
@@ -349,46 +356,54 @@ function render() {
             };
 
             html += `
-                <div class="match-card ${isFem ? 'fem' : ''}" id="card-${m.id}">
-                    <div class="match-header" style="flex-wrap: wrap; gap: 0.5rem;">
-                        <div style="display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 140px;">
-                            <label style="font-size: 0.65rem; color: #64748b; font-weight: 700;">DATA E HORA</label>
-                            <input type="datetime-local" class="inline-input" value="${formatForInput(time)}" onchange="markDirty(${m.id})" id="time-${m.id}">
+                <div class="match-card ${isFem ? 'fem' : ''}" id="card-${m.id}" style="padding: 1.25rem;">
+                    <div class="match-header" style="margin-bottom: 1.25rem; align-items: flex-start;">
+                        <div style="flex: 1;">
+                            <span class="label-pill">MODALIDADE</span>
+                            <div class="modality-label" style="font-size: 0.85rem; color: #10b981; font-weight: 800; margin-bottom: 0;">
+                                ${m.modality_name}${m.group_name ? ' • Grupo ' + m.group_name : ''}
+                            </div>
                         </div>
-                        <div style="display: flex; align-items: flex-end; gap: 0.5rem;">
-                            <span class="status-badge" style="background:${genderColor}20; color:${genderColor}; border:1px solid ${genderColor}40; padding:2px 8px; border-radius:4px; font-weight:600; font-size:0.75rem;">${genderLabel}</span>
+                        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+                            <span class="status-badge" style="background:${genderColor}20; color:${genderColor}; border:1px solid ${genderColor}40;">${genderLabel}</span>
                             <span class="status-badge ${isLive ? 'status-live' : (isFinished ? 'status-finished' : 'status-scheduled')}">
                                 ${isLive ? 'Ao Vivo' : (isFinished ? 'Encerrado' : 'Agendado')}
                             </span>
                         </div>
                     </div>
-                    <div class="modality-label" style="margin-bottom: 0.5rem; font-size: 0.75rem; color: #10b981; font-weight: 800;">
-                        ${m.modality_name}${m.group_name ? ' • Grupo ' + m.group_name : ''}
+
+                    <div style="background: rgba(0,0,0,0.15); border-radius: 12px; padding: 1rem; margin-bottom: 1.25rem;">
+                        <span class="label-pill" style="text-align: center;">DATA E HORÁRIO</span>
+                        <input type="datetime-local" class="inline-input" value="${formatForInput(time)}" onchange="markDirty(${m.id})" id="time-${m.id}" style="text-align: center; font-weight: 700; margin-bottom: 0;">
                     </div>
-                    <div class="match-teams">
+
+                    <div class="match-teams" style="gap: 1.25rem; margin-bottom: 1.25rem;">
                         <div class="team-row">
-                            <span>${teamA}</span>
-                            ${isFinished || isLive ? `<span style="color:white">${m.score_team_a}</span>` : ''}
+                            <span style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${teamA}</span>
+                            ${isFinished || isLive ? `<span style="background:#0f172a; padding: 4px 12px; border-radius: 8px; min-width: 40px; text-align: center;">${m.score_team_a}</span>` : ''}
                         </div>
-                        <div class="vs-divider">VS</div>
+                        <div class="vs-divider" style="margin: 0; color: #334155;">VS</div>
                         <div class="team-row">
-                            <span>${teamB}</span>
-                            ${isFinished || isLive ? `<span style="color:white">${m.score_team_b}</span>` : ''}
+                            <span style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${teamB}</span>
+                            ${isFinished || isLive ? `<span style="background:#0f172a; padding: 4px 12px; border-radius: 8px; min-width: 40px; text-align: center;">${m.score_team_b}</span>` : ''}
                         </div>
                     </div>
-                    </div>
-                    <div style="margin-bottom: 1rem; display: flex; flex-direction: column; gap: 4px;">
-                        <label style="font-size: 0.65rem; color: #64748b; font-weight: 700;">LOCAL (QUADRA/CAMPO)</label>
+
+                    <div style="margin-bottom: 1.25rem;">
+                        <span class="label-pill">LOCAL</span>
                         <input type="text" class="inline-input" value="${m.venue || ''}" placeholder="Ex: Quadra 1" oninput="markDirty(${m.id})" id="venue-${m.id}">
                     </div>
-                    <div class="match-footer">
+
+                    <div class="match-footer" style="flex-direction: column; gap: 10px;">
                         ${!isFinished ? `
-                            <button class="inline-save-btn" id="save-${m.id}" onclick="saveMatch(${m.id})">SALVAR ALTERAÇÕES</button>
-                            <span id="status-${m.id}" class="save-status"></span>
-                            <a href="match_control.php?id=${m.id}" class="btn-control ${isLive ? 'btn-live' : ''}">
-                                ${isLive ? 'CONTROLE' : 'INICIAR'}
+                            <div style="display: flex; align-items: center; gap: 1rem; width: 100%;">
+                                <button class="inline-save-btn" id="save-${m.id}" onclick="saveMatch(${m.id})" style="flex: 1;">SALVAR AGENDAMENTO</button>
+                                <span id="status-${m.id}" class="save-status"></span>
+                            </div>
+                            <a href="match_control.php?id=${m.id}" class="btn-control ${isLive ? 'btn-live' : ''}" style="width: 100%; padding: 0.75rem;">
+                                ${isLive ? 'ABRIR PLACAR' : 'INICIAR PARTIDA'}
                             </a>
-                        ` : `<div style="text-align:center; width:100%; color:#64748b; font-weight:700">PARTIDA ENCERRADA</div>`}
+                        ` : `<div style="text-align:center; width:100%; color:#64748b; font-weight:800; padding: 1rem; background: rgba(0,0,0,0.1); border-radius: 8px;">PARTIDA ENCERRADA</div>`}
                     </div>
                 </div>
             `;

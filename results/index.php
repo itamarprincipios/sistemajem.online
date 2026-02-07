@@ -437,7 +437,7 @@ if (!$event) {
                     const cleanName = (name) => {
                         if (!name) return 'A definir';
                         return name
-                            .replace(/^(ESCOLA MUNICIPAL |MUNICIPAL |ESCOLA )*(DE )*(ENSINO INFANTIL E FUNDAMENTAL |ENSINO FUNDAMENTAL |ENSINO INFANTIL |ENSINO INFANTIL - FUNDAMENTAL )*/i, '')
+                            .replace(/^(ESCOLA MUNICIPAL |MUNICIPAL |ESCOLA |EDUCAÇÃO INFANTIL E ENSINO FUNDAMENTAL |ENSINO FUNDAMENTAL |ENSINO INFANTIL |PROFESSORA |PROFESSOR |EMEIF |EMEF |DE |E )+/gi, '')
                             .trim();
                     };
 
