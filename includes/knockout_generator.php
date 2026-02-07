@@ -252,32 +252,33 @@ function generateRoundOf16($eventId, $modalityId, $categoryId, $gender, $baseDat
  * Generate Quarterfinals from Round of 16 winners
  */
 function generateQuarterfinals($eventId, $modalityId, $categoryId, $gender, $baseDateTime, $venue) {
-    // Get R16 matches in order
-    $r16Matches = query("SELECT id, winner_team_id 
-                         FROM matches 
-                         WHERE competition_event_id = ? 
-                         AND modality_id = ? 
-                         AND category_id = ? 
-                         AND phase = 'round_of_16' 
-                         AND status = 'finished'
-                         ORDER BY scheduled_time ASC", 
-                        [$eventId, $modalityId, $categoryId]);
+    // Get R16 matches for this gender
+    $r16Matches = query("SELECT m.id, m.winner_team_id 
+                         FROM matches m
+                         JOIN competition_teams t ON m.team_a_id = t.id
+                         WHERE m.competition_event_id = ? 
+                         AND m.modality_id = ? 
+                         AND m.category_id = ? 
+                         AND m.phase = 'round_of_16' 
+                         AND m.status = 'finished'
+                         AND t.gender = ?
+                         ORDER BY m.scheduled_time ASC", 
+                        [$eventId, $modalityId, $categoryId, $gender]);
     
-    if (count($r16Matches) < 8) {
-        throw new Exception("Round of 16 não está completo");
+    $numR16 = count($r16Matches);
+    if ($numR16 < 4) { // Minimum to form at least 2 QF
+        throw new Exception("Partidas das Oitavas de Final insuficientes ou não concluídas para este gênero.");
     }
     
-    // Create 4 QF matches from 8 winners
+    // Create QF matches from winners (dynamic: pairing adjacent winners)
     $datetime = new DateTime($baseDateTime);
     $matchesCreated = 0;
     
-    for ($i = 0; $i < 8; $i += 2) {
+    for ($i = 0; $i < ($numR16 - 1); $i += 2) {
         $teamA = $r16Matches[$i]['winner_team_id'];
         $teamB = $r16Matches[$i + 1]['winner_team_id'];
         
-        if (!$teamA || !$teamB) {
-            throw new Exception("Vencedores das Oitavas ainda não definidos");
-        }
+        if (!$teamA || !$teamB) continue;
         
         $scheduledTime = clone $datetime;
         $scheduledTime->modify('+' . ($matchesCreated * 60) . ' minutes');
@@ -301,30 +302,31 @@ function generateQuarterfinals($eventId, $modalityId, $categoryId, $gender, $bas
  * Generate Semifinals from Quarterfinal winners
  */
 function generateSemifinals($eventId, $modalityId, $categoryId, $gender, $baseDateTime, $venue) {
-    $qfMatches = query("SELECT id, winner_team_id 
-                        FROM matches 
-                        WHERE competition_event_id = ? 
-                        AND modality_id = ? 
-                        AND category_id = ? 
-                        AND phase = 'quarter_final' 
-                        AND status = 'finished'
-                        ORDER BY scheduled_time ASC", 
-                       [$eventId, $modalityId, $categoryId]);
+    $qfMatches = query("SELECT m.id, m.winner_team_id 
+                        FROM matches m
+                        JOIN competition_teams t ON m.team_a_id = t.id
+                        WHERE m.competition_event_id = ? 
+                        AND m.modality_id = ? 
+                        AND m.category_id = ? 
+                        AND m.phase = 'quarter_final' 
+                        AND m.status = 'finished'
+                        AND t.gender = ?
+                        ORDER BY m.scheduled_time ASC", 
+                       [$eventId, $modalityId, $categoryId, $gender]);
     
-    if (count($qfMatches) < 4) {
-        throw new Exception("Quartas de Final não estão completas");
+    $numQF = count($qfMatches);
+    if ($numQF < 2) {
+        throw new Exception("Quartas de Final insuficientes ou não concluídas para este gênero.");
     }
     
     $datetime = new DateTime($baseDateTime);
     $matchesCreated = 0;
     
-    for ($i = 0; $i < 4; $i += 2) {
+    for ($i = 0; $i < ($numQF - 1); $i += 2) {
         $teamA = $qfMatches[$i]['winner_team_id'];
         $teamB = $qfMatches[$i + 1]['winner_team_id'];
         
-        if (!$teamA || !$teamB) {
-            throw new Exception("Vencedores das Quartas ainda não definidos");
-        }
+        if (!$teamA || !$teamB) continue;
         
         $scheduledTime = clone $datetime;
         $scheduledTime->modify('+' . ($matchesCreated * 60) . ' minutes');
@@ -348,18 +350,20 @@ function generateSemifinals($eventId, $modalityId, $categoryId, $gender, $baseDa
  * Generate Final from Semifinal winners
  */
 function generateFinal($eventId, $modalityId, $categoryId, $gender, $baseDateTime, $venue) {
-    $sfMatches = query("SELECT id, winner_team_id 
-                        FROM matches 
-                        WHERE competition_event_id = ? 
-                        AND modality_id = ? 
-                        AND category_id = ? 
-                        AND phase = 'semi_final' 
-                        AND status = 'finished'
-                        ORDER BY scheduled_time ASC", 
-                       [$eventId, $modalityId, $categoryId]);
+    $sfMatches = query("SELECT m.id, m.winner_team_id 
+                        FROM matches m
+                        JOIN competition_teams t ON m.team_a_id = t.id
+                        WHERE m.competition_event_id = ? 
+                        AND m.modality_id = ? 
+                        AND m.category_id = ? 
+                        AND m.phase = 'semi_final' 
+                        AND m.status = 'finished'
+                        AND t.gender = ?
+                        ORDER BY m.scheduled_time ASC", 
+                       [$eventId, $modalityId, $categoryId, $gender]);
     
     if (count($sfMatches) < 2) {
-        throw new Exception("Semifinais não estão completas");
+        throw new Exception("Semifinais não concluídas para este gênero.");
     }
     
     $teamA = $sfMatches[0]['winner_team_id'];
