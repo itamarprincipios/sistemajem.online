@@ -339,7 +339,6 @@ function render() {
             const teamA = cleanName(m.team_a_name);
             const teamB = cleanName(m.team_b_name);
 
-            html += `
             const formatForInput = (date) => {
                 const y = date.getFullYear();
                 const mo = String(date.getMonth() + 1).padStart(2, '0');
