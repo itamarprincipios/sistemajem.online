@@ -153,7 +153,11 @@ try {
         execute("UPDATE matches SET $column = ? WHERE id = ?", [json_encode($lineup), $matchId]);
         echo json_encode(['success' => true]);
     } elseif ($action === 'get_match_sumula') {
-        $matchId = $input['match_id'] ?? $_GET['match_id'];
+        $matchId = $input['match_id'] ?? $_GET['match_id'] ?? null;
+        
+        if (!$matchId) {
+            throw new Exception("ID da partida não fornecido");
+        }
 
         // 1. Match Data
         $match = queryOne("
@@ -170,7 +174,9 @@ try {
             WHERE m.id = ?
         ", [$matchId]);
 
-        if (!$match) throw new Exception("Partida não encontrada");
+        if (!$match) {
+            throw new Exception("Partida não encontrada (ID: $matchId). Verifique se a partida existe no banco de dados.");
+        }
 
         // 2. Athletes
         $athletesA = query("SELECT id, name_snapshot, jersey_number FROM competition_team_athletes WHERE competition_team_id = ?", [$match['team_a_id']]);
