@@ -868,6 +868,26 @@ function copySumula() {
     });
 }
 
+function saveBestPlayer(catId, gender) {
+    const val = document.getElementById('bestPlayerInput').value;
+    const btn = document.getElementById('saveBestBtn');
+    const status = document.getElementById('saveBestStatus');
+    
+    localStorage.setItem(`jem_best_player_${catId}_${gender}`, val);
+    
+    btn.innerHTML = '✅ SALVO';
+    btn.style.background = '#059669';
+    status.innerHTML = 'Voto salvo com sucesso!';
+    status.style.color = '#10b981';
+    
+    setTimeout(() => {
+        btn.innerHTML = 'SALVAR';
+        btn.style.background = '#10b981';
+        status.innerHTML = 'Digite o nome e a escola do eleito.';
+        status.style.color = '#64748b';
+    }, 2000);
+}
+
 async function renderPodium(container, catId, gender, navHtml) {
     container.innerHTML = `
         ${navHtml}
@@ -989,11 +1009,17 @@ async function renderPodium(container, catId, gender, navHtml) {
 
             <div style="background: rgba(16, 185, 129, 0.05); padding: 1rem; border-radius: 12px; border: 1px dashed #10b981;">
                 <div style="color: #10b981; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; margin-bottom: 8px;">⭐ MELHOR JOGADOR (VOTAÇÃO TÉCNICOS)</div>
-                <input type="text" id="bestPlayerInput" value="${savedPlayer}" 
-                       placeholder="Nome do Atleta e Escola" 
-                       style="width: 100%; background: #0f172a; border: 1px solid #334155; color: white; padding: 10px; border-radius: 8px; font-weight: 600;"
-                       onchange="localStorage.setItem('jem_best_player_${catId}_${gender}', this.value)">
-                <div style="font-size: 0.7rem; color: #64748b; margin-top: 5px;">Digite o nome e a escola do eleito.</div>
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" id="bestPlayerInput" value="${savedPlayer}" 
+                           placeholder="Nome do Atleta e Escola" 
+                           style="flex: 1; background: #0f172a; border: 1px solid #334155; color: white; padding: 10px; border-radius: 8px; font-weight: 600;">
+                    <button onclick="saveBestPlayer(${catId}, '${gender}')" 
+                            style="background: #10b981; color: white; border: none; padding: 0 15px; border-radius: 8px; cursor: pointer; font-weight: 800; font-size: 0.8rem; transition: all 0.2s;"
+                            id="saveBestBtn">
+                        SALVAR
+                    </button>
+                </div>
+                <div id="saveBestStatus" style="font-size: 0.7rem; color: #64748b; margin-top: 5px;">Digite o nome e a escola do eleito.</div>
             </div>
         `;
 
