@@ -220,9 +220,17 @@ function renderSidebar() {
 }
 
 function renderGroups() {
-    // Clear assigned areas
+    // Clear assigned areas and check counts
     document.querySelectorAll('.group-slots').forEach(div => {
-        const dropZone = `<div class="drop-zone" ondragover="event.preventDefault(); this.classList.add('active')" ondragleave="this.classList.remove('active')" ondrop="this.classList.remove('active'); handleDrop(event, '${div.parentElement.dataset.group}')" style="padding: 1.5rem; text-align: center; border: 2px dashed rgba(255,215,0,0.1); margin: 0.8rem; border-radius: 12px; color: rgba(255,255,255,0.2); font-size: 0.85rem;">Arraste uma escola para cá</div>`;
+        const groupName = div.parentElement.dataset.group;
+        const currentCount = schools.filter(s => s.assigned_group === groupName).length;
+        
+        let dropZone = '';
+        if (currentCount < 4) {
+            dropZone = `<div class="drop-zone" ondragover="event.preventDefault(); this.classList.add('active')" ondragleave="this.classList.remove('active')" ondrop="this.classList.remove('active'); handleDrop(event, '${groupName}')" style="padding: 1.5rem; text-align: center; border: 2px dashed rgba(255,215,0,0.1); margin: 0.8rem; border-radius: 12px; color: rgba(255,255,255,0.2); font-size: 0.85rem;">Arraste uma escola para cá</div>`;
+        } else {
+            dropZone = `<div style="padding: 1rem; text-align: center; color: #10b981; font-size: 0.8rem; font-weight: bold; background: rgba(16,185,129,0.05); border-radius: 8px; margin: 0.8rem;">✅ Grupo Completo</div>`;
+        }
         div.innerHTML = dropZone;
     });
 
@@ -250,6 +258,13 @@ function handleDragStart(e, id, name) {
 async function handleDrop(e, group) {
     const schoolId = e.dataTransfer.getData('schoolId');
     const eventId = selector.value;
+    
+    // Check limit (4 schools per group)
+    const schoolCount = schools.filter(s => s.assigned_group === group).length;
+    if (schoolCount >= 4) {
+        Toast.warn('Este grupo já está completo (limite de 4 escolas).');
+        return;
+    }
     
     // Save to backend
     await assignSchoolToGroup(eventId, schoolId, group);
