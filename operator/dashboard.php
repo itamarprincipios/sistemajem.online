@@ -272,7 +272,7 @@ function switchTab(key) {
 function switchPhase(key, direction) {
     const currentPhase = currentPhases[key] || 'group_stage';
     const [catId, gender] = key.split('_');
-    const categoryMatches = allMatches.filter(m => m.category_id == catId && (m.gender || 'M') == gender);
+    const categoryMatches = allMatches.filter(m => m.category_id == catId && (m.team_gender || 'M') == gender);
     
     // Always include group_stage, plus any phase that has matches
     const availablePhases = PHASE_ORDER.filter(phase => 
@@ -292,7 +292,7 @@ function switchPhase(key, direction) {
 function renderPhaseContent(key) {
     const currentPhase = currentPhases[key] || 'group_stage';
     const [catId, gender] = key.split('_');
-    const categoryMatches = allMatches.filter(m => m.category_id == catId && (m.gender || 'M') == gender);
+    const categoryMatches = allMatches.filter(m => m.category_id == catId && (m.team_gender || 'M') == gender);
     const phaseMatches = categoryMatches.filter(m => m.phase === currentPhase);
     
     const contentDiv = document.getElementById(`content-${key}`);
@@ -327,12 +327,15 @@ function renderPhaseContent(key) {
         const isLive = m.status === 'live';
         const isFinished = m.status === 'finished';
         const time = new Date(m.scheduled_time);
-        
+        const genderLabel = m.team_gender === 'F' ? '♀️ Fem' : '♂️ Masc';
+        const genderColor = m.team_gender === 'F' ? '#ec4899' : '#10b981';
+
         const card = document.createElement('div');
         card.className = 'match-card';
         card.innerHTML = `
             <div class="match-header">
                 <span>📅 ${time.toLocaleDateString('pt-BR')} às ${time.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})}</span>
+                <span class="status-badge" style="background:${genderColor}20; color:${genderColor}; border:1px solid ${genderColor}40; padding:2px 8px; border-radius:4px; font-weight:600; font-size:0.75rem;">${genderLabel}</span>
                 <span class="status-badge ${isLive ? 'status-live' : (isFinished ? 'status-finished' : 'status-scheduled')}">
                     ${isLive ? 'Ao Vivo' : (isFinished ? 'Encerrado' : 'Agendado')}
                 </span>
@@ -385,7 +388,7 @@ function renderGroups() {
     // Grouping by Category and Gender
     const groups = allMatches.reduce((acc, m) => {
         const catName = m.category_name || 'Sem Categoria';
-        const gender = m.gender || 'M';
+        const gender = m.team_gender || 'M';
         const catKey = m.category_id + '_' + gender;
         
         if (!acc[catKey]) {

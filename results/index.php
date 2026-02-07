@@ -249,7 +249,7 @@ if (!$event) {
             const mods = {};
             matches.forEach(m => {
                 const mid = m.modality_id;
-                const gender = m.gender || 'M';
+                const gender = m.team_gender || 'M';
                 if (!mods[mid]) mods[mid] = { name: m.modality_name, cats: {} };
                 
                 // key is category_id + gender
@@ -264,7 +264,6 @@ if (!$event) {
                 }
                 mods[mid].cats[catKey].matches.push(m);
             });
-            
             const modIds = Object.keys(mods);
             if (!state.modality) state.modality = modIds[0];
             
@@ -454,9 +453,13 @@ if (!$event) {
                         }
                     }
                     
+                    const genderLabel = m.team_gender === 'F' ? '♀️ Fem' : '♂️ Masc';
+                    const genderColor = m.team_gender === 'F' ? '#ec4899' : '#10b981';
+
                     html += '<div class="card">';
                     html += `<div class="card-header">`;
                     html += `<span>📅 ${time.toLocaleDateString('pt-BR')} ${time.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'})}</span>`;
+                    html += `<span class="badge" style="background:${genderColor}20; color:${genderColor}; border:1px solid ${genderColor}40">${genderLabel}</span>`;
                     html += `<span class="badge badge-${status}">${statusText}</span>`;
                     html += `</div>`;
                     html += `<div style="font-size:0.75rem;color:#10b981;font-weight:800;margin-bottom:0.5rem">${m.modality_name}${m.group_name ? ' • Grupo ' + m.group_name : ''}</div>`;
@@ -490,7 +493,7 @@ if (!$event) {
             // Extract category_id and gender from key
             const [catId, gender] = key.split('_');
             
-            const catMatches = mod.filter(m => m.category_id == catId && (m.gender || 'M') == gender);
+            const catMatches = mod.filter(m => m.category_id == catId && (m.team_gender || 'M') == gender);
             
             // Build available phases (same logic as render)
             const phases = PHASE_ORDER.filter(p => {
