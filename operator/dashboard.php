@@ -907,14 +907,15 @@ async function renderPodium(container, catId, gender, navHtml) {
 
         const podiumDiv = document.getElementById('podiumContent');
         podiumDiv.innerHTML = '';
+        podiumDiv.style.cssText = 'display: flex; flex-wrap: wrap; gap: 3rem; justify-content: center; align-items: stretch;';
 
+        // --- LEFT: PODIUM ---
+        const podiumWrapper = document.createElement('div');
+        podiumWrapper.style.cssText = 'display: flex; align-items: flex-end; gap: 1.5rem; padding-bottom: 2rem;';
+        
         const createPodiumCard = (team, pos, color, height, label, icon) => {
             const card = document.createElement('div');
-            card.style.cssText = `
-                display: flex; flex-direction: column; align-items: center; 
-                gap: 1rem; width: 220px;
-            `;
-            
+            card.style.cssText = `display: flex; flex-direction: column; align-items: center; gap: 1rem; width: 200px;`;
             card.innerHTML = `
                 <div style="font-size: 3rem; filter: drop-shadow(0 0 10px ${color}60);">${icon}</div>
                 <div style="
@@ -924,8 +925,8 @@ async function renderPodium(container, catId, gender, navHtml) {
                     box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
                     position: relative; padding: 1rem; text-align: center;
                 ">
-                    <div style="color: ${color}; font-weight: 900; font-size: 1.5rem; margin-bottom: 0.5rem;">${label}</div>
-                    <div style="color: white; font-weight: 700; font-size: 1.1rem; line-height: 1.2;">
+                    <div style="color: ${color}; font-weight: 900; font-size: 1.2rem; margin-bottom: 0.5rem;">${label}</div>
+                    <div style="color: white; font-weight: 700; font-size: 1rem; line-height: 1.2;">
                         ${team ? cleanName(team.name).toUpperCase() : '---'}
                     </div>
                 </div>
@@ -933,12 +934,70 @@ async function renderPodium(container, catId, gender, navHtml) {
             return card;
         };
 
-        // 2nd Place (Silver)
-        podiumDiv.appendChild(createPodiumCard(second, 2, '#94a3b8', 180, '2º LUGAR', '🥈'));
-        // 1st Place (Gold)
-        podiumDiv.appendChild(createPodiumCard(first, 1, '#f59e0b', 240, 'CAMPEÃO', '🥇'));
-        // 3rd Place (Bronze)
-        podiumDiv.appendChild(createPodiumCard(third, 3, '#b45309', 140, '3º LUGAR', '🥉'));
+        podiumWrapper.appendChild(createPodiumCard(second, 2, '#94a3b8', 160, '2º LUGAR', '🥈'));
+        podiumWrapper.appendChild(createPodiumCard(first, 1, '#f59e0b', 220, 'CAMPEÃO', '🥇'));
+        podiumWrapper.appendChild(createPodiumCard(third, 3, '#b45309', 120, '3º LUGAR', '🥉'));
+        
+        podiumDiv.appendChild(podiumWrapper);
+
+        // --- RIGHT: INDIVIDUAL AWARDS ---
+        const awardsWrapper = document.createElement('div');
+        awardsWrapper.style.cssText = 'flex: 1; min-width: 350px; display: flex; flex-direction: column; gap: 1.5rem; text-align: left; background: rgba(0,0,0,0.2); padding: 2rem; border-radius: 20px; border: 1px solid #334155;';
+        
+        // 1. Calculate Top Scorer
+        const scorers = {};
+        catMatches.forEach(m => {
+            (m.events || []).forEach(ev => {
+                if (ev.event_type === 'GOAL') {
+                    if (!scorers[ev.athlete_id]) scorers[ev.athlete_id] = { name: ev.athlete_name, goals: 0 };
+                    scorers[ev.athlete_id].goals++;
+                }
+            });
+        });
+        const topScorer = Object.values(scorers).sort((a,b) => b.goals - a.goals)[0];
+
+        // 2. Calculate Best Goalkeeper (Least goals conceded among podium teams)
+        const podiumTeamIds = [first?.id, second?.id, third?.id].filter(id => id);
+        const defenseStats = {};
+        podiumTeamIds.forEach(id => defenseStats[id] = 0);
+
+        catMatches.forEach(m => {
+            if (podiumTeamIds.includes(m.team_a_id)) defenseStats[m.team_a_id] += (m.score_team_b || 0);
+            if (podiumTeamIds.includes(m.team_b_id)) defenseStats[m.team_b_id] += (m.score_team_a || 0);
+        });
+
+        const bestGkId = podiumTeamIds.sort((a,b) => defenseStats[a] - defenseStats[b])[0];
+        const bestGkTeam = [first, second, third].find(t => t?.id == bestGkId);
+
+        // 3. Best Player Vote
+        const savedPlayer = localStorage.getItem(`jem_best_player_${catId}_${gender}`) || '';
+
+        awardsWrapper.innerHTML = `
+            <h3 style="color: #10b981; margin: 0 0 1rem 0; display: flex; align-items: center; gap: 10px;">✨ DESTAQUES INDIVIDUAIS</h3>
+            
+            <div style="background: rgba(255,255,255,0.03); padding: 1rem; border-radius: 12px;">
+                <div style="color: #94a3b8; font-size: 0.75rem; font-weight: 800; text-transform: uppercase;">⚽ ARTILHEIRO</div>
+                <div style="color: white; font-size: 1.1rem; font-weight: 700;">${topScorer ? topScorer.name : '---'}</div>
+                <div style="color: #10b981; font-size: 0.85rem; font-weight: 800;">${topScorer ? topScorer.goals + ' GOLS' : ''}</div>
+            </div>
+
+            <div style="background: rgba(255,255,255,0.03); padding: 1rem; border-radius: 12px;">
+                <div style="color: #94a3b8; font-size: 0.75rem; font-weight: 800; text-transform: uppercase;">🧤 GOLEIRO MENOS VAZADO</div>
+                <div style="color: white; font-size: 1.1rem; font-weight: 700;">${bestGkTeam ? cleanName(bestGkTeam.name) : '---'}</div>
+                <div style="color: #3b82f6; font-size: 0.85rem; font-weight: 800;">${bestGkTeam ? defenseStats[bestGkId] + ' GOLS SOFRIDOS' : ''}</div>
+            </div>
+
+            <div style="background: rgba(16, 185, 129, 0.05); padding: 1rem; border-radius: 12px; border: 1px dashed #10b981;">
+                <div style="color: #10b981; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; margin-bottom: 8px;">⭐ MELHOR JOGADOR (VOTAÇÃO TÉCNICOS)</div>
+                <input type="text" id="bestPlayerInput" value="${savedPlayer}" 
+                       placeholder="Nome do Atleta e Escola" 
+                       style="width: 100%; background: #0f172a; border: 1px solid #334155; color: white; padding: 10px; border-radius: 8px; font-weight: 600;"
+                       onchange="localStorage.setItem('jem_best_player_${catId}_${gender}', this.value)">
+                <div style="font-size: 0.7rem; color: #64748b; margin-top: 5px;">Digite o nome e a escola do eleito.</div>
+            </div>
+        `;
+
+        podiumDiv.appendChild(awardsWrapper);
 
     } catch(e) {
         console.error(e);
