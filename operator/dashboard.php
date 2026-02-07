@@ -888,6 +888,26 @@ function saveBestPlayer(catId, gender) {
     }, 2000);
 }
 
+function saveBestGk(catId, gender) {
+    const val = document.getElementById('bestGkInput').value;
+    const btn = document.getElementById('saveGkBtn');
+    const status = document.getElementById('saveGkStatus');
+    
+    localStorage.setItem(`jem_best_gk_${catId}_${gender}`, val);
+    
+    btn.innerHTML = '✅ SALVO';
+    btn.style.background = '#059669';
+    status.innerHTML = 'Goleiro salvo com sucesso!';
+    status.style.color = '#10b981';
+    
+    setTimeout(() => {
+        btn.innerHTML = 'SALVAR';
+        btn.style.background = '#10b981';
+        status.innerHTML = 'Digite o nome e a escola do goleiro.';
+        status.style.color = '#64748b';
+    }, 2000);
+}
+
 async function renderPodium(container, catId, gender, navHtml) {
     container.innerHTML = `
         ${navHtml}
@@ -1001,10 +1021,19 @@ async function renderPodium(container, catId, gender, navHtml) {
                 <div style="color: #10b981; font-size: 0.85rem; font-weight: 800;">${topScorer ? topScorer.goals + ' GOLS' : ''}</div>
             </div>
 
-            <div style="background: rgba(255,255,255,0.03); padding: 1rem; border-radius: 12px;">
-                <div style="color: #94a3b8; font-size: 0.75rem; font-weight: 800; text-transform: uppercase;">🧤 GOLEIRO MENOS VAZADO</div>
-                <div style="color: white; font-size: 1.1rem; font-weight: 700;">${bestGkTeam ? cleanName(bestGkTeam.name) : '---'}</div>
-                <div style="color: #3b82f6; font-size: 0.85rem; font-weight: 800;">${bestGkTeam ? defenseStats[bestGkId] + ' GOLS SOFRIDOS' : ''}</div>
+            <div style="background: rgba(255,255,255,0.03); padding: 1.25rem; border-radius: 12px; border: 1px dashed rgba(59, 130, 246, 0.3);">
+                <div style="color: #3b82f6; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; margin-bottom: 8px;">🧤 GOLEIRO MENOS VAZADO</div>
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" id="bestGkInput" value="${localStorage.getItem(`jem_best_gk_${catId}_${gender}`) || ''}" 
+                           placeholder="Ex: Francisco de Assis - Escola Francisco de Assis" 
+                           style="flex: 1; background: #0f172a; border: 1px solid #334155; color: white; padding: 10px; border-radius: 8px; font-weight: 600;">
+                    <button onclick="saveBestGk(${catId}, '${gender}')" 
+                            style="background: #3b82f6; color: white; border: none; padding: 0 15px; border-radius: 8px; cursor: pointer; font-weight: 800; font-size: 0.8rem; transition: all 0.2s;"
+                            id="saveGkBtn">
+                        SALVAR
+                    </button>
+                </div>
+                <div id="saveGkStatus" style="font-size: 0.7rem; color: #64748b; margin-top: 5px;">Digite o nome e a escola do goleiro.</div>
             </div>
 
             <div style="background: rgba(16, 185, 129, 0.05); padding: 1rem; border-radius: 12px; border: 1px dashed #10b981;">
