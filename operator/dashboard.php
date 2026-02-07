@@ -250,7 +250,20 @@ $activeEventId = $activeEvent['id'] ?? 'null';
     <!-- Schedule Modal Removed -->
 
 <script>
-const EVENT_ID = <?php echo $activeEventId; ?>;
+const INITIAL_EVENT_ID = <?php echo $activeEventId; ?>;
+const getEventId = () => {
+    if (allMatches.length > 0) {
+        // Find a match in the currently active category/modality to get the real event_id
+        const currCatKey = state.category[state.modality];
+        if (currCatKey) {
+            const [catId, gender] = currCatKey.split('_');
+            const m = allMatches.find(x => x.modality_id == state.modality && x.category_id == catId && (x.team_gender || 'M') === gender);
+            if (m) return m.competition_event_id;
+        }
+        return allMatches[0].competition_event_id;
+    }
+    return INITIAL_EVENT_ID;
+};
 
 // Global Utilities
 const cleanName = (name) => {
@@ -844,18 +857,19 @@ async function saveBestPlayer(catId, gender) {
     const schoolName = parts[1] || '';
 
     try {
-        const res = await fetch('../api/awards-api.php', {
-            method: 'POST',
-            body: JSON.stringify({
-                event_id: EVENT_ID,
-                modality_id: state.modality,
-                category_id: catId,
-                gender: gender,
-                award_type: 'BEST_PLAYER',
-                winner_name: winnerName,
-                school_name: schoolName
-            })
-        });
+            const eventId = getEventId();
+            const res = await fetch('../api/awards-api.php', {
+                method: 'POST',
+                body: JSON.stringify({
+                    event_id: eventId,
+                    modality_id: state.modality,
+                    category_id: catId,
+                    gender: gender,
+                    award_type: 'BEST_PLAYER',
+                    winner_name: winnerName,
+                    school_name: schoolName
+                })
+            });
         
         btn.innerHTML = '✅ SALVO';
         btn.style.background = '#059669';
@@ -884,18 +898,19 @@ async function saveBestGk(catId, gender) {
     const schoolName = parts[1] || '';
 
     try {
-        const res = await fetch('../api/awards-api.php', {
-            method: 'POST',
-            body: JSON.stringify({
-                event_id: EVENT_ID,
-                modality_id: state.modality,
-                category_id: catId,
-                gender: gender,
-                award_type: 'BEST_GK',
-                winner_name: winnerName,
-                school_name: schoolName
-            })
-        });
+            const eventId = getEventId();
+            const res = await fetch('../api/awards-api.php', {
+                method: 'POST',
+                body: JSON.stringify({
+                    event_id: eventId,
+                    modality_id: state.modality,
+                    category_id: catId,
+                    gender: gender,
+                    award_type: 'BEST_GK',
+                    winner_name: winnerName,
+                    school_name: schoolName
+                })
+            });
         
         btn.innerHTML = '✅ SALVO';
         btn.style.background = '#059669';
@@ -955,7 +970,8 @@ async function renderPodium(container, catId, gender, navHtml, catMatches) {
         // Fetch saved awards from DB
         let dbAwards = [];
         try {
-            const res = await fetch(`../api/awards-api.php?event_id=${EVENT_ID}&modality_id=${state.modality}&category_id=${catId}&gender=${gender}&_t=${Date.now()}`);
+            const eventId = getEventId();
+            const res = await fetch(`../api/awards-api.php?event_id=${eventId}&modality_id=${state.modality}&category_id=${catId}&gender=${gender}&_t=${Date.now()}`);
             const result = await res.json();
             dbAwards = result.data || [];
         } catch(e) { console.error('Error fetching awards', e); }
@@ -1091,7 +1107,8 @@ async function renderBracketPreview(container, catId, gender, phase, navHtml = '
 
         if (phase === 'round_of_16') {
             // Group Stage -> Round of 16 (Existing logic)
-            const res = await fetch(`../api/standings-api.php?action=group_standings&event_id=${EVENT_ID}&modality_id=${state.modality}&category_id=${catId}&gender=${gender}`);
+            const eventId = getEventId();
+            const res = await fetch(`../api/standings-api.php?action=group_standings&event_id=${eventId}&modality_id=${state.modality}&category_id=${catId}&gender=${gender}`);
             const result = await res.json();
             const standings = result.data;
             const groups = Object.keys(standings).sort();
@@ -1197,10 +1214,11 @@ async function generateKnockout(phase) {
     const [catId, gender] = (state.category[state.modality] || '0_M').split('_');
 
     try {
+        const eventId = getEventId();
         const res = await fetch('../api/generate-knockout-api.php', {
             method: 'POST',
             body: JSON.stringify({
-                event_id: EVENT_ID,
+                event_id: eventId,
                 modality_id: state.modality,
                 category_id: catId,
                 gender: gender,
