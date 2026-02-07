@@ -45,8 +45,15 @@ try {
                 ";
 
                 if (isset($_GET['event_id']) && $_GET['event_id']) {
-                    $filters[] = "m.competition_event_id = ?";
-                    $params[] = $_GET['event_id'];
+                    $ids = explode(',', $_GET['event_id']);
+                    if (count($ids) > 1) {
+                        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+                        $filters[] = "m.competition_event_id IN ($placeholders)";
+                        foreach($ids as $id) $params[] = trim($id);
+                    } else {
+                        $filters[] = "m.competition_event_id = ?";
+                        $params[] = $_GET['event_id'];
+                    }
                 }
                 
                 if (isset($_GET['modality_id']) && $_GET['modality_id']) {

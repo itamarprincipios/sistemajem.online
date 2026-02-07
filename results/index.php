@@ -2,9 +2,18 @@
 require_once '../config/config.php';
 require_once '../includes/db.php';
 
-$event = queryOne("SELECT * FROM competition_events WHERE active_flag = 1 LIMIT 1");
-if (!$event) {
-    $event = queryOne("SELECT * FROM competition_events ORDER BY created_at DESC LIMIT 1");
+$activeEvents = query("SELECT * FROM competition_events WHERE active_flag = 1");
+if (empty($activeEvents)) {
+    $activeEvents = query("SELECT * FROM competition_events ORDER BY created_at DESC LIMIT 1");
+}
+
+$eventIds = array_map(function($e) { return $e['id']; }, $activeEvents);
+$eventIdsStr = implode(',', $eventIds);
+
+// Determine Main Title
+$mainTitle = "Jogos Escolares 2026";
+if (count($activeEvents) === 1) {
+    $mainTitle = $activeEvents[0]['name'];
 }
 ?>
 <!DOCTYPE html>
@@ -15,7 +24,7 @@ if (!$event) {
     <title>JEM - Resultados</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
-        :root { --primary: #10b981; --dark: #0f172a; --card: #1e293b; }
+        :root { --primary: #10b981; --primary-rgb: 16, 185, 129; --dark: #0f172a; --card: #1e293b; }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Inter', sans-serif; background: var(--dark); color: white; }
         
@@ -26,28 +35,29 @@ if (!$event) {
         
         .tabs { display: flex; gap: 0.5rem; margin-bottom: 2rem; border-bottom: 1px solid #334155; padding-bottom: 0.5rem; overflow-x: auto; }
         .tab-btn { background: #1e293b; color: #94a3b8; border: 1px solid #334155; padding: 0.75rem 1.5rem; border-radius: 12px 12px 0 0; cursor: pointer; font-weight: 600; border-bottom: none; }
-        .tab-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+        .tab-btn.active { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.3); }
+        .tab-btn.society.active { background: #3b82f6; border-color: #3b82f6; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
         
         .category-tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; padding: 0.5rem; background: rgba(0,0,0,0.2); border-radius: 12px; overflow-x: auto; }
         .cat-btn { background: transparent; color: #94a3b8; border: 1px solid transparent; padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.85rem; }
-        .cat-btn.active { background: rgba(16, 185, 129, 0.2); color: #10b981; border-color: #10b981; }
+        .cat-btn.active { background: rgba(var(--primary-rgb), 0.2); color: var(--primary); border-color: var(--primary); }
         .cat-btn.active.fem { background: rgba(236, 72, 153, 0.2); color: #ec4899; border-color: #ec4899; }
         .cat-btn.fem { color: #f472b6; }
         .cat-btn.fem:hover { color: #ec4899; }
         
         .phase-nav { display: flex; align-items: center; justify-content: center; gap: 2rem; margin: 2rem 0; padding: 1.5rem; background: rgba(0,0,0,0.3); border-radius: 12px; }
         .phase-nav button { background: #1e293b; border: 1px solid #334155; color: #94a3b8; padding: 0.75rem 1.5rem; border-radius: 8px; cursor: pointer; font-size: 1.2rem; font-weight: 800; }
-        .phase-nav button:hover:not(:disabled) { background: #10b981; color: white; border-color: #10b981; }
+        .phase-nav button:hover:not(:disabled) { background: var(--primary); color: white; border-color: var(--primary); }
         .phase-nav button:disabled { opacity: 0.3; cursor: not-allowed; }
-        .phase-title { font-size: 1.8rem; font-weight: 800; color: #10b981; min-width: 300px; text-align: center; }
+        .phase-title { font-size: 1.8rem; font-weight: 800; color: var(--primary); min-width: 300px; text-align: center; }
         
         .subtitle { font-size: 1.2rem; font-weight: 700; color: #64748b; text-align: center; margin-bottom: 1.5rem; }
         
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 1.5rem; }
         .card { background: #1e293b; padding: 1.5rem; border-radius: 16px; border: 1px solid #334155; }
-        .card:hover { transform: translateY(-4px); border-color: #10b981; transition: all 0.2s; }
+        .card:hover { transform: translateY(-4px); border-color: var(--primary); transition: all 0.2s; }
         
         /* Female Card Styles */
         .card.fem { border-color: rgba(236, 72, 153, 0.3); }
@@ -210,7 +220,7 @@ if (!$event) {
 </head>
 <body>
     <div class="header">
-        <h1>🏆 <?php echo htmlspecialchars($event['name'] ?? 'Jogos Escolares 2026'); ?></h1>
+        <h1>🏆 <?php echo htmlspecialchars($mainTitle); ?></h1>
         <p>Acompanhamento em Tempo Real</p>
     </div>
     
@@ -222,12 +232,12 @@ if (!$event) {
     <script>
         console.log('Script loaded!');
         
-        const EVENT_ID = <?php echo ($event['id'] ?? 'null'); ?>;
-        if (!EVENT_ID) {
-            console.error('No active event found');
+        const EVENT_IDS = "<?php echo $eventIdsStr; ?>";
+        if (!EVENT_IDS) {
+            console.error('No active events found');
             document.getElementById('content').innerHTML = '<div class="empty">Nenhum evento ativo no momento</div>';
             // Stop further execution if no event
-            throw new Error('No active event');
+            throw new Error('No active events');
         }
 
         let matches = [];
@@ -247,10 +257,10 @@ if (!$event) {
         
         async function load() {
             try {
-                console.log('Loading matches and awards...');
+                console.log('Loading matches for events:', EVENT_IDS);
                 const [matchRes, awardRes] = await Promise.all([
-                    fetch(`../api/matches-api.php?action=list&event_id=${EVENT_ID}&_t=${Date.now()}`),
-                    fetch(`../api/awards-api.php?event_id=${EVENT_ID}&modality_id=${state.modality || 0}&category_id=0&_t=${Date.now()}`) // Basic fetch to warm up
+                    fetch(`../api/matches-api.php?action=list&event_id=${EVENT_IDS}&_t=${Date.now()}`),
+                    fetch(`../api/awards-api.php?event_id=${EVENT_IDS.split(',')[0]}&modality_id=${state.modality || 0}&category_id=0&_t=${Date.now()}`) // Basic fetch to warm up
                 ]);
                 const matchData = await matchRes.json();
                 matches = matchData.data || [];
@@ -292,15 +302,22 @@ if (!$event) {
             if (!state.modality) state.modality = modIds[0];
             
             // Render modality tabs
-            document.getElementById('tabs').innerHTML = modIds.map(mid => 
-                `<button class="tab-btn ${state.modality == mid ? 'active' : ''}" onclick="switchMod('${mid}')">${mods[mid].name}</button>`
-            ).join('');
+            document.getElementById('tabs').innerHTML = modIds.sort().map(mid => {
+                const isSociety = mods[mid].name.toLowerCase().includes('society');
+                return `<button class="tab-btn ${state.modality == mid ? 'active' : ''} ${isSociety ? 'society' : ''}" onclick="switchMod('${mid}')">${mods[mid].name}</button>`;
+            }).join('');
             
             // Render active modality content
             const mod = mods[state.modality];
             const catKeys = Object.keys(mod.cats);
             if (!state.category[state.modality]) state.category[state.modality] = catKeys[0];
             
+            const isSocietyMod = mod.name.toLowerCase().includes('society');
+            const themeColor = isSocietyMod ? '#3b82f6' : '#10b981';
+            const themeColorRgb = isSocietyMod ? '59, 130, 246' : '16, 185, 129';
+            document.documentElement.style.setProperty('--primary', themeColor);
+            document.documentElement.style.setProperty('--primary-rgb', themeColorRgb);
+
             let html = '<div class="category-tabs">';
             html += catKeys.map(key => {
                 const cat = mod.cats[key];
@@ -367,7 +384,9 @@ if (!$event) {
             const loadAwards = async () => {
                 const [catId, gender] = catKey.split('_');
                 try {
-                    const res = await fetch(`../api/awards-api.php?event_id=${EVENT_ID}&modality_id=${state.modality}&category_id=${catId}&gender=${gender}&_t=${Date.now()}`);
+                    // Extract event_id from the first match of this category if possible, or use fallback
+                    const catEventId = cat.matches[0]?.competition_event_id || EVENT_IDS.split(',')[0];
+                    const res = await fetch(`../api/awards-api.php?event_id=${catEventId}&modality_id=${state.modality}&category_id=${catId}&gender=${gender}&_t=${Date.now()}`);
                     const data = await res.json();
                     awards = data.data || [];
                     
