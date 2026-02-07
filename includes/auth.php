@@ -91,6 +91,18 @@ function requireProfessor() {
 }
 
 /**
+ * Require operator role
+ */
+function requireOperator() {
+    requireLogin();
+    $role = getCurrentUserRole();
+    if ($role !== 'operator' && $role !== 'admin') {
+        header('Location: ' . SITE_URL . '/index.php');
+        exit;
+    }
+}
+
+/**
  * Get current user ID
  */
 function getCurrentUserId() {

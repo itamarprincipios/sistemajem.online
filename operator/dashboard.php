@@ -206,8 +206,13 @@ $activeEventId = $activeEvent['id'] ?? 'null';
         <div style="display: flex; align-items: center; gap: 1.5rem;">
             <span id="matchCount" style="font-size: 0.85rem; color: #64748b; font-weight: 600;"></span>
             <span style="font-size: 0.9rem; color: #94a3b8;"><?php echo htmlspecialchars($_SESSION['user_name']); ?></span>
-            <a href="../logout.php" style="color: #ef4444; text-decoration: none; font-size: 0.9rem; font-weight: 600;">Sair</a>
+            <a href="../logout.php" class="btn btn-sm btn-danger">Sair</a>
+            <button onclick="toggleDebug()" style="background:none; border:none; color:#334155; cursor:pointer; font-size:0.5rem;" title="Debug">.</button>
         </div>
+    </div>
+
+    <div id="debugInfo" style="display:none; background:#000; color:#0f0; padding:1rem; font-family:monospace; font-size:0.75rem; border:1px solid #0f0; margin:1rem;">
+        <pre id="debugOutput"></pre>
     </div>
 
     <div class="dashboard-container">
@@ -311,11 +316,20 @@ const PHASE_ORDER = ['group_stage', 'round_of_16', 'quarter_final', 'semi_final'
 async function loadMatches() {
     try {
         const res = await fetch(`../api/matches-api.php?action=list&_t=${Date.now()}`); 
-        const data = await res.json();
-        allMatches = data.data;
-        render();
+        const result = await res.json();
+        
+        const debugOut = document.getElementById('debugOutput');
+        if (debugOut) debugOut.textContent = JSON.stringify(result, null, 2);
+
+        if (result.success) {
+            allMatches = result.data || [];
+            render();
+        } else {
+            document.getElementById('matchesContainer').innerHTML = `<p style="text-align:center; color:#ef4444; padding-top:5rem;">Erro da API: ${result.error || 'Erro desconhecido'}</p>`;
+        }
     } catch(e) {
         console.error(e);
+        document.getElementById('matchesContainer').innerHTML = `<p style="text-align:center; color:#ef4444; padding-top:5rem;">Erro de conexão ou no sistema.</p>`;
     }
 }
 
@@ -426,16 +440,27 @@ function render() {
     }
 
     const activeMod = mods[state.modality];
+    if (!activeMod) {
+        container.innerHTML = `<p style="text-align:center; color: #64748b; padding-top: 5rem;">Modalidade (${state.modality}) não encontrada. Clique em uma aba acima.</p>`;
+        return;
+    }
     
     // Set dynamic theme color
-    const isSocietyMod = activeMod.name.toLowerCase().includes('society');
+    const modName = activeMod.name || '';
+    const isSocietyMod = modName.toLowerCase().includes('society');
     const themeColor = isSocietyMod ? '#3b82f6' : '#10b981';
     const themeColorRgb = isSocietyMod ? '59, 130, 246' : '16, 185, 129';
     document.documentElement.style.setProperty('--theme-color', themeColor);
     document.documentElement.style.setProperty('--theme-color-rgb', themeColorRgb);
 
     const catKeys = Object.keys(activeMod.cats).sort((a,b) => {
-        return activeMod.cats[a].name.localeCompare(activeMod.cats[b].name) || activeMod.cats[a].gender.localeCompare(activeMod.cats[b].gender);
+        try {
+            const nameA = activeMod.cats[a].name || '';
+            const nameB = activeMod.cats[b].name || '';
+            const genderA = activeMod.cats[a].gender || '';
+            const genderB = activeMod.cats[b].gender || '';
+            return nameA.localeCompare(nameB) || genderA.localeCompare(genderB);
+        } catch(e) { return 0; }
     });
 
     if (!state.category[state.modality] || !catKeys.includes(state.category[state.modality])) {
@@ -1198,6 +1223,11 @@ async function generateKnockout(phase) {
         console.error(e);
         alert('Erro ao processar solicitação.');
     }
+}
+
+function toggleDebug() {
+    const d = document.getElementById('debugInfo');
+    d.style.display = d.style.display === 'none' ? 'block' : 'none';
 }
 
 loadMatches();
