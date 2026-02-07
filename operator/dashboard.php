@@ -131,6 +131,13 @@ $pageTitle = 'Painel do Operador';
         .form-group { margin-bottom: 1rem; }
         .form-label { display: block; margin-bottom: 0.5rem; font-size: 0.9rem; color: #94a3b8; }
         .form-input { width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; font-size: 1rem; }
+        
+        /* Inline Edit Styles */
+        .inline-input { background: rgba(15, 23, 42, 0.5); border: 1px solid #334155; color: white; border-radius: 6px; padding: 4px 8px; font-size: 0.85rem; width: 100%; transition: all 0.2s; }
+        .inline-input:focus { border-color: #10b981; outline: none; background: #0f172a; }
+        .inline-save-btn { background: #10b981; color: white; border: none; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-size: 0.75rem; font-weight: 700; opacity: 0; pointer-events: none; transition: all 0.2s; }
+        .inline-save-btn.active { opacity: 1; pointer-events: auto; }
+        .save-status { font-size: 0.7rem; margin-left: auto; transition: all 0.3s; }
     </style>
 </head>
 <body>
@@ -161,27 +168,7 @@ $pageTitle = 'Painel do Operador';
         </div>
     </div>
 
-    <!-- Schedule Modal -->
-    <div class="modal-overlay" id="scheduleModal">
-        <div class="modal">
-            <h3 class="modal-title">Agendar Partida</h3>
-            <form id="scheduleForm">
-                <input type="hidden" id="matchId">
-                <div class="form-group">
-                    <label class="form-label">Data e Hora</label>
-                    <input type="datetime-local" id="matchTime" class="form-input" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Local (Quadra/Campo)</label>
-                    <input type="text" id="matchVenue" class="form-input" placeholder="Ex: Quadra 1">
-                </div>
-                <div style="display: flex; gap: 0.5rem; margin-top: 1.5rem;">
-                    <button type="button" class="schedule-btn" onclick="closeModal()">Cancelar</button>
-                    <button type="submit" class="btn-control" style="background: #10b981;">Salvar</button>
-                </div>
-            </form>
-        </div>
-    </div>
+    <!-- Schedule Modal Removed -->
 
 <script>
 let allMatches = []; 
@@ -353,13 +340,28 @@ function render() {
             const teamB = cleanName(m.team_b_name);
 
             html += `
-                <div class="match-card ${isFem ? 'fem' : ''}">
-                    <div class="match-header">
-                        <span>📅 ${time.toLocaleDateString('pt-BR')} às ${time.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})}</span>
-                        <span class="status-badge" style="background:${genderColor}20; color:${genderColor}; border:1px solid ${genderColor}40; padding:2px 8px; border-radius:4px; font-weight:600; font-size:0.75rem;">${genderLabel}</span>
-                        <span class="status-badge ${isLive ? 'status-live' : (isFinished ? 'status-finished' : 'status-scheduled')}">
-                            ${isLive ? 'Ao Vivo' : (isFinished ? 'Encerrado' : 'Agendado')}
-                        </span>
+            const formatForInput = (date) => {
+                const y = date.getFullYear();
+                const mo = String(date.getMonth() + 1).padStart(2, '0');
+                const d = String(date.getDate()).padStart(2, '0');
+                const h = String(date.getHours()).padStart(2, '0');
+                const mi = String(date.getMinutes()).padStart(2, '0');
+                return `${y}-${mo}-${d}T${h}:${mi}`;
+            };
+
+            html += `
+                <div class="match-card ${isFem ? 'fem' : ''}" id="card-${m.id}">
+                    <div class="match-header" style="flex-wrap: wrap; gap: 0.5rem;">
+                        <div style="display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 140px;">
+                            <label style="font-size: 0.65rem; color: #64748b; font-weight: 700;">DATA E HORA</label>
+                            <input type="datetime-local" class="inline-input" value="${formatForInput(time)}" onchange="markDirty(${m.id})" id="time-${m.id}">
+                        </div>
+                        <div style="display: flex; align-items: flex-end; gap: 0.5rem;">
+                            <span class="status-badge" style="background:${genderColor}20; color:${genderColor}; border:1px solid ${genderColor}40; padding:2px 8px; border-radius:4px; font-weight:600; font-size:0.75rem;">${genderLabel}</span>
+                            <span class="status-badge ${isLive ? 'status-live' : (isFinished ? 'status-finished' : 'status-scheduled')}">
+                                ${isLive ? 'Ao Vivo' : (isFinished ? 'Encerrado' : 'Agendado')}
+                            </span>
+                        </div>
                     </div>
                     <div class="modality-label" style="margin-bottom: 0.5rem; font-size: 0.75rem; color: #10b981; font-weight: 800;">
                         ${m.modality_name}${m.group_name ? ' • Grupo ' + m.group_name : ''}
@@ -375,14 +377,17 @@ function render() {
                             ${isFinished || isLive ? `<span style="color:white">${m.score_team_b}</span>` : ''}
                         </div>
                     </div>
-                    <div style="margin-bottom: 1rem; font-size: 0.8rem; color: #64748b;">
-                        📍 ${m.venue || 'Local não definido'}
+                    </div>
+                    <div style="margin-bottom: 1rem; display: flex; flex-direction: column; gap: 4px;">
+                        <label style="font-size: 0.65rem; color: #64748b; font-weight: 700;">LOCAL (QUADRA/CAMPO)</label>
+                        <input type="text" class="inline-input" value="${m.venue || ''}" placeholder="Ex: Quadra 1" oninput="markDirty(${m.id})" id="venue-${m.id}">
                     </div>
                     <div class="match-footer">
                         ${!isFinished ? `
-                            <button class="schedule-btn" onclick="openModal(${m.id})">🕒 Agendar</button>
+                            <button class="inline-save-btn" id="save-${m.id}" onclick="saveMatch(${m.id})">SALVAR ALTERAÇÕES</button>
+                            <span id="status-${m.id}" class="save-status"></span>
                             <a href="match_control.php?id=${m.id}" class="btn-control ${isLive ? 'btn-live' : ''}">
-                                ${isLive ? 'RETOMAR' : 'INICIAR'}
+                                ${isLive ? 'CONTROLE' : 'INICIAR'}
                             </a>
                         ` : `<div style="text-align:center; width:100%; color:#64748b; font-weight:700">PARTIDA ENCERRADA</div>`}
                     </div>
@@ -395,37 +400,23 @@ function render() {
     container.innerHTML = html;
 }
 
-// Modal Logic
-function openModal(id) {
-    const match = allMatches.find(m => m.id == id);
-    if (!match) return;
-    
-    document.getElementById('matchId').value = id;
-    
-    // Format for datetime-local (YYYY-MM-DDTHH:MM)
-    const date = new Date(match.scheduled_time);
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    
-    document.getElementById('matchTime').value = `${year}-${month}-${day}T${hours}:${minutes}`;
-    document.getElementById('matchVenue').value = match.venue || '';
-    
-    document.getElementById('scheduleModal').classList.add('active');
+// Inline Editing Logic
+function markDirty(id) {
+    const btn = document.getElementById(`save-${id}`);
+    if (btn) btn.classList.add('active');
 }
 
-function closeModal() {
-    document.getElementById('scheduleModal').classList.remove('active');
-}
+async function saveMatch(id) {
+    const time = document.getElementById(`time-${id}`).value;
+    const venue = document.getElementById(`venue-${id}`).value;
+    const statusSpan = document.getElementById(`status-${id}`);
+    const btn = document.getElementById(`save-${id}`);
 
-document.getElementById('scheduleForm').onsubmit = async (e) => {
-    e.preventDefault();
-    const id = document.getElementById('matchId').value;
-    const time = document.getElementById('matchTime').value;
-    const venue = document.getElementById('matchVenue').value;
-    
+    if (statusSpan) {
+        statusSpan.textContent = '⏳ Salvando...';
+        statusSpan.style.color = '#94a3b8';
+    }
+
     try {
         const res = await fetch('../api/matches-api.php', {
             method: 'PUT',
@@ -438,15 +429,30 @@ document.getElementById('scheduleForm').onsubmit = async (e) => {
         });
         const result = await res.json();
         if (result.success) {
-            closeModal();
-            loadMatches();
+            if (statusSpan) {
+                statusSpan.textContent = '✅ Salvo!';
+                statusSpan.style.color = '#10b981';
+                setTimeout(() => { statusSpan.textContent = ''; }, 2000);
+            }
+            if (btn) btn.classList.remove('active');
+            
+            // Update local data without full reload to prevent UI jump
+            const m = allMatches.find(match => match.id == id);
+            if (m) {
+                m.scheduled_time = time;
+                m.venue = venue;
+            }
         } else {
             alert('Erro ao salvar: ' + result.error);
         }
     } catch(err) {
         console.error(err);
+        if (statusSpan) {
+            statusSpan.textContent = '❌ Erro';
+            statusSpan.style.color = '#ef4444';
+        }
     }
-};
+}
 
 loadMatches();
 </script>
