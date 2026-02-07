@@ -75,21 +75,58 @@ try {
         }
         
         if (execute($sql, $params)) {
-            // Automatic phase generation when match is finished
-            if ($status === 'finished') {
-                try {
-                    $generated = checkAndGenerateNextPhase($matchId);
-                    if ($generated > 0) {
-                        error_log("Auto-generated $generated matches for next phase");
-                    }
-                } catch (Exception $e) {
-                    error_log("Auto-generation failed: " . $e->getMessage());
-                }
+             // Automatic phase generation when match is finished
+             if ($status === 'finished') {
+                 try {
+                     $generated = checkAndGenerateNextPhase($matchId);
+                     if ($generated > 0) {
+                         error_log("Auto-generated $generated matches for next phase");
+                     }
+                 } catch (Exception $e) {
+                     error_log("Auto-generation failed: " . $e->getMessage());
+                 }
+             }
+             
+             echo json_encode(['success' => true]);
+         } else {
+             echo json_encode(['success' => false, 'error' => 'Erro ao atualizar banco']);
+         }
+     } elseif ($action === 'save_appointments') {
+        $matchId = $input['match_id'];
+        $staff = $input['staff']; // [team_a_coach, team_a_assistant, team_b_coach, team_b_assistant]
+        $athletes = $input['athletes']; // [[id, jersey_number], ...]
+
+        beginTransaction();
+        try {
+            // Update Staff in matches table
+            execute("
+                UPDATE matches 
+                SET team_a_coach = ?, 
+                    team_a_assistant = ?, 
+                    team_b_coach = ?, 
+                    team_b_assistant = ? 
+                WHERE id = ?
+            ", [
+                $staff['team_a_coach'] ?? null,
+                $staff['team_a_assistant'] ?? null,
+                $staff['team_b_coach'] ?? null,
+                $staff['team_b_assistant'] ?? null,
+                $matchId
+            ]);
+
+            // Update jersey numbers
+            foreach ($athletes as $at) {
+                execute("UPDATE competition_team_athletes SET jersey_number = ? WHERE id = ?", [
+                    $at['jersey_number'] ?? null,
+                    $at['id']
+                ]);
             }
-            
+
+            commit();
             echo json_encode(['success' => true]);
-        } else {
-            echo json_encode(['success' => false, 'error' => 'Erro ao atualizar banco']);
+        } catch (Exception $e) {
+            rollback();
+            throw $e;
         }
     } else {
         throw new Exception('Invalid action: ' . $action);
