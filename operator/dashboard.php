@@ -850,8 +850,9 @@ function copySumula() {
     });
 }
 
-async function renderBracketPreview(container, catId, gender, phase) {
+async function renderBracketPreview(container, catId, gender, phase, navHtml = '') {
     container.innerHTML = `
+        ${navHtml}
         <div style="text-align:center; padding: 3rem;">
             <div class="preview-badge">✨ PRÉ-VISUALIZAÇÃO</div>
             <h2 style="color: #10b981; margin-bottom: 0.5rem;">${PHASE_NAMES[phase]}</h2>
