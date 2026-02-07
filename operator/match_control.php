@@ -60,7 +60,7 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
             let cleaned = name;
             const prefixes = [
                 /^(ESCOLA MUNICIPAL|MUNICIPAL|ESCOLA|EMEIF|EMEF)\b/gi,
-                /^(EDUCAÇÃO INFANTIL|ENSINO FUNDAMENTAL|ENSINO MÉDIO|ENSINO INFANTIL|EDUCAÇÃO INFANTIL E ENSINO FUNDAMENTAL)\b/gi,
+                /^(EDUCAÇÃO INFANTIL|ENSINO FUNDAMENTAL|ENSINO MÉDIO|ENSINO INFANTIL|EDUCAÇÃO INFANTIL E ENSINO FUNDAMENTAL|FUNDAMENTAL)\b/gi,
                 /^(PROFESSOR[A]?)\b/gi,
                 /^[\s\-–—,]+/gi, 
                 /^(DE|E|DO|DA)\s+/gi 
