@@ -427,26 +427,27 @@ if (!$event) {
             } else {
                 html += '<div class="grid">';
                 phaseMatches.forEach(m => {
+                    const isLive = m.status === 'live';
+                    const isFinished = m.status === 'finished';
                     const time = new Date(m.scheduled_time);
-                    const status = m.status === 'live' ? 'live' : (m.status === 'finished' ? 'finished' : 'scheduled');
-                    const statusText = status === 'live' ? 'Ao Vivo' : (status === 'finished' ? 'Encerrado' : 'Agendado');
-                    
-                    // Clean school names
+                    const isFem = m.team_gender === 'F';
+                    const genderLabel = isFem ? '♀️ Fem' : '♂️ Masc';
+                    const genderColor = isFem ? '#ec4899' : '#10b981';
+
                     const cleanName = (name) => {
-                        if (!name) return 'TBD';
+                        if (!name) return 'A definir';
                         return name
-                            .replace(/^ESCOLA MUNICIPAL\s+/i, '')
-                            .replace(/^ESCOLA\s+/i, '')
-                            .replace(/^MUNICIPAL\s+/i, '');
+                            .replace(/^(ESCOLA MUNICIPAL |MUNICIPAL |ESCOLA )*(DE )*(ENSINO INFANTIL E FUNDAMENTAL |ENSINO FUNDAMENTAL |ENSINO INFANTIL |ENSINO INFANTIL - FUNDAMENTAL )*/i, '')
+                            .trim();
                     };
-                    
+
                     const teamA = cleanName(m.team_a_name);
                     const teamB = cleanName(m.team_b_name);
                     
                     // Determine winner/draw for finished matches
                     let teamAStyle = '';
                     let teamBStyle = '';
-                    if (status === 'finished') {
+                    if (isFinished) {
                         if (m.score_team_a > m.score_team_b) {
                             teamAStyle = 'color:#FFD700;font-weight:800;'; // Gold for winner
                         } else if (m.score_team_b > m.score_team_a) {
@@ -458,21 +459,17 @@ if (!$event) {
                         }
                     }
                     
-                    const isFem = m.team_gender === 'F';
-                    const genderLabel = isFem ? '♀️ Fem' : '♂️ Masc';
-                    const genderColor = isFem ? '#ec4899' : '#10b981';
-
                     html += `<div class="card ${isFem ? 'fem' : ''}">`;
                     html += `<div class="card-header">`;
                     html += `<span>📅 ${time.toLocaleDateString('pt-BR')} ${time.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'})}</span>`;
                     html += `<span class="badge" style="background:${genderColor}20; color:${genderColor}; border:1px solid ${genderColor}40">${genderLabel}</span>`;
-                    html += `<span class="badge badge-${status}">${statusText}</span>`;
+                    html += `<span class="badge badge-${m.status === 'live' ? 'live' : (m.status === 'finished' ? 'finished' : 'scheduled')}">${m.status === 'live' ? 'Ao Vivo' : (m.status === 'finished' ? 'Encerrado' : 'Agendado')}</span>`;
                     html += `</div>`;
                     html += `<div class="modality-label" style="font-size:0.75rem;color:#10b981;font-weight:800;margin-bottom:0.5rem">${m.modality_name}${m.group_name ? ' • Grupo ' + m.group_name : ''}</div>`;
                     html += '<div class="teams">';
-                    html += `<div class="team"><span style="${teamAStyle}">${teamA}</span>${status !== 'scheduled' ? '<span>'+m.score_team_a+'</span>' : ''}</div>`;
+                    html += `<div class="team"><span style="${teamAStyle}">${teamA}</span>${m.status !== 'scheduled' ? '<span>'+m.score_team_a+'</span>' : ''}</div>`;
                     html += '<div class="vs">VS</div>';
-                    html += `<div class="team"><span style="${teamBStyle}">${teamB}</span>${status !== 'scheduled' ? '<span>'+m.score_team_b+'</span>' : ''}</div>`;
+                    html += `<div class="team"><span style="${teamBStyle}">${teamB}</span>${m.status !== 'scheduled' ? '<span>'+m.score_team_b+'</span>' : ''}</div>`;
                     html += '</div>';
                     html += `<div style="font-size:0.8rem;color:#64748b">📍 ${m.venue || 'Local TBD'}</div>`;
                     html += '</div>';

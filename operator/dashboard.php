@@ -342,6 +342,15 @@ function render() {
             const isFem = m.team_gender === 'F';
             const genderLabel = isFem ? '♀️ Fem' : '♂️ Masc';
             const genderColor = isFem ? '#ec4899' : '#10b981';
+            const cleanName = (name) => {
+                if (!name) return 'A definir';
+                return name
+                    .replace(/^(ESCOLA MUNICIPAL |MUNICIPAL |ESCOLA )*(DE )*(ENSINO INFANTIL E FUNDAMENTAL |ENSINO FUNDAMENTAL |ENSINO INFANTIL |ENSINO INFANTIL - FUNDAMENTAL )*/i, '')
+                    .trim();
+            };
+
+            const teamA = cleanName(m.team_a_name);
+            const teamB = cleanName(m.team_b_name);
 
             html += `
                 <div class="match-card ${isFem ? 'fem' : ''}">
@@ -357,12 +366,12 @@ function render() {
                     </div>
                     <div class="match-teams">
                         <div class="team-row">
-                            <span>${m.team_a_name || 'A definir'}</span>
+                            <span>${teamA}</span>
                             ${isFinished || isLive ? `<span style="color:white">${m.score_team_a}</span>` : ''}
                         </div>
                         <div class="vs-divider">VS</div>
                         <div class="team-row">
-                            <span>${m.team_b_name || 'A definir'}</span>
+                            <span>${teamB}</span>
                             ${isFinished || isLive ? `<span style="color:white">${m.score_team_b}</span>` : ''}
                         </div>
                     </div>
