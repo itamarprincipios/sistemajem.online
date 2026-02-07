@@ -11,22 +11,21 @@ if (!$matchId) {
     die("ID da partida não fornecido.");
 }
 
-// Get match data - with detailed debugging
+// Get match data - with explicit column selection
 try {
-    // First, try simple query
-    $matchSimple = queryOne("SELECT * FROM matches WHERE id = ?", [$matchId]);
-    
-    if (!$matchSimple) {
-        die("Erro: Partida ID $matchId não existe na tabela matches. Verifique se o ID está correto.");
-    }
-    
-    // Now try with joins
     $match = queryOne("
-        SELECT m.*, 
-               COALESCE(t1.school_name_snapshot, 'Equipe A') as team_a_name, 
-               COALESCE(t2.school_name_snapshot, 'Equipe B') as team_b_name,
-               COALESCE(c.name, 'Categoria') as category_name,
-               COALESCE(mod.name, 'Modalidade') as modality_name
+        SELECT 
+            m.id, m.competition_event_id, m.modality_id, m.category_id, m.phase,
+            m.team_a_id, m.team_b_id, m.venue, m.scheduled_time, m.start_time, m.end_time,
+            m.status, m.score_team_a, m.score_team_b, m.winner_team_id,
+            m.team_a_coach, m.team_a_assistant, m.team_b_coach, m.team_b_assistant,
+            m.referee_primary, m.referee_assistant, m.referee_fourth,
+            m.observations, m.parent_match_id, m.created_at, m.updated_at,
+            m.team_a_lineup, m.team_a_captain_id, m.team_b_lineup, m.team_b_captain_id,
+            COALESCE(t1.school_name_snapshot, 'Equipe A') as team_a_name, 
+            COALESCE(t2.school_name_snapshot, 'Equipe B') as team_b_name,
+            COALESCE(c.name, 'Categoria') as category_name,
+            COALESCE(mod.name, 'Modalidade') as modality_name
         FROM matches m
         LEFT JOIN competition_teams t1 ON m.team_a_id = t1.id
         LEFT JOIN competition_teams t2 ON m.team_b_id = t2.id
@@ -36,7 +35,7 @@ try {
     ", [$matchId]);
     
     if (!$match) {
-        die("Erro: Query com JOINs falhou. Match simples existe mas query complexa retornou vazio. IDs: team_a={$matchSimple['team_a_id']}, team_b={$matchSimple['team_b_id']}, category={$matchSimple['category_id']}, modality={$matchSimple['modality_id']}");
+        die("Erro: Partida não encontrada (ID: $matchId). A query retornou vazio.");
     }
 } catch (Exception $e) {
     die("Erro na query: " . $e->getMessage());
