@@ -162,15 +162,15 @@ try {
         // 1. Match Data
         $match = queryOne("
             SELECT m.*, 
-                   t1.school_name_snapshot as team_a_name, 
-                   t2.school_name_snapshot as team_b_name,
-                   c.name as category_name,
-                   mod.name as modality_name
+                   COALESCE(t1.school_name_snapshot, 'Equipe A') as team_a_name, 
+                   COALESCE(t2.school_name_snapshot, 'Equipe B') as team_b_name,
+                   COALESCE(c.name, 'Categoria') as category_name,
+                   COALESCE(mod.name, 'Modalidade') as modality_name
             FROM matches m
-            JOIN competition_teams t1 ON m.team_a_id = t1.id
-            JOIN competition_teams t2 ON m.team_b_id = t2.id
-            JOIN categories c ON m.category_id = c.id
-            JOIN modalities mod ON m.modality_id = mod.id
+            LEFT JOIN competition_teams t1 ON m.team_a_id = t1.id
+            LEFT JOIN competition_teams t2 ON m.team_b_id = t2.id
+            LEFT JOIN categories c ON m.category_id = c.id
+            LEFT JOIN modalities mod ON m.modality_id = mod.id
             WHERE m.id = ?
         ", [$matchId]);
 
