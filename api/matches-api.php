@@ -101,7 +101,7 @@ try {
                 } else {
                      echo json_encode(['success' => true, 'data' => $matches]);
                 }
-            } else {
+            } elseif ($action === 'options') {
                 // Return filters for UI (Modalities/Cats available in competition)
                  $eventId = $_GET['event_id'] ?? 0;
                  
@@ -125,6 +125,27 @@ try {
                      'modalities' => $modalities, 
                      'categories' => $categories
                  ]]);
+            } elseif ($action === 'team_counts') {
+                // Get team counts by gender for a specific event and category
+                $eventId = $_GET['event_id'] ?? 0;
+                $categoryId = $_GET['category_id'] ?? 0;
+                
+                $maleCount = queryOne("
+                    SELECT COUNT(*) as count 
+                    FROM competition_teams 
+                    WHERE competition_event_id = ? AND category_id = ? AND gender = 'M'
+                ", [$eventId, $categoryId])['count'] ?? 0;
+                
+                $femaleCount = queryOne("
+                    SELECT COUNT(*) as count 
+                    FROM competition_teams 
+                    WHERE competition_event_id = ? AND category_id = ? AND gender = 'F'
+                ", [$eventId, $categoryId])['count'] ?? 0;
+                
+                echo json_encode(['success' => true, 'data' => [
+                    'male' => (int)$maleCount,
+                    'female' => (int)$femaleCount
+                ]]);
             }
             break;
 
