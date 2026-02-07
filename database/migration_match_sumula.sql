@@ -8,3 +8,4 @@ ADD COLUMN team_b_captain_id INT NULL AFTER team_b_lineup,
 ADD COLUMN observations TEXT NULL AFTER referee_fourth,
 ADD FOREIGN KEY (team_a_captain_id) REFERENCES competition_team_athletes(id) ON DELETE SET NULL,
 ADD FOREIGN KEY (team_b_captain_id) REFERENCES competition_team_athletes(id) ON DELETE SET NULL;
+

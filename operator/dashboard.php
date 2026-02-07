@@ -140,8 +140,6 @@ $pageTitle = 'Painel do Operador';
             margin-bottom: 4px;
             display: block;
         }
-            display: block;
-        }
 
         /* Modal Súmula */
         .modal-sumula {
@@ -470,10 +468,11 @@ function render() {
 
                     <div class="match-footer" style="flex-direction: column; gap: 10px;">
                         ${!isFinished ? `
-                            <div style="display: flex; align-items: center; gap: 1rem; width: 100%;">
-                                <button class="inline-save-btn" id="save-${m.id}" onclick="saveMatch(${m.id})" style="flex: 1;">SALVAR AGENDAMENTO</button>
-                                <span id="status-${m.id}" class="save-status"></span>
-                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 0.5rem; width: 100%;">
+                                <div style="display: flex; align-items: center; gap: 1rem; width: 100%;">
+                                    <button class="inline-save-btn" id="save-${m.id}" onclick="saveMatch(${m.id})" style="flex: 1;">SALVAR AGENDAMENTO</button>
+                                    <span id="status-${m.id}" class="save-status"></span>
+                                </div>
                                 <a href="match_control.php?id=${m.id}" class="btn-control ${isLive ? 'btn-live' : ''}" style="width: 100%; padding: 0.75rem;">
                                     ${isLive ? 'ABRIR PLACAR' : 'INICIAR PARTIDA'}
                                 </a>
@@ -558,7 +557,7 @@ async function generateSumula(id) {
         const res = await fetch(`../api/match-events-api.php?action=get_match_sumula&match_id=${id}`);
         const result = await res.json();
         
-        if (!result.success) throw new Exception(result.error);
+        if (!result.success) throw new Error(result.error);
         
         const data = result.data;
         const m = data.match;
