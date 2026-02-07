@@ -265,6 +265,23 @@ let state = {
     phase: {}     // key: catKey, value: phase_id
 };
 
+const saveState = () => {
+    localStorage.setItem('jem_dashboard_state', JSON.stringify(state));
+};
+
+const loadState = () => {
+    const saved = localStorage.getItem('jem_dashboard_state');
+    if (saved) {
+        try {
+            const parsed = JSON.parse(saved);
+            // Deep merge or validate could be done here, but simple assignment for now
+            state = { ...state, ...parsed };
+        } catch(e) { console.error('Error loading saved state', e); }
+    }
+};
+
+loadState();
+
 // Phase mapping
 const PHASE_NAMES = {
     'group_stage': 'FASE DE GRUPOS',
@@ -290,11 +307,13 @@ async function loadMatches() {
 
 function switchMod(id) {
     state.modality = id;
+    saveState();
     render();
 }
 
 function switchCat(key) {
     state.category[state.modality] = key;
+    saveState();
     render();
 }
 
@@ -314,6 +333,7 @@ function switchPhase(key, direction) {
     if (newIndex < 0 || newIndex >= availablePhases.length) return;
     
     state.phase[key] = availablePhases[newIndex];
+    saveState();
     render();
 }
 
