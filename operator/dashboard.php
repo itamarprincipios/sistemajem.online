@@ -367,10 +367,11 @@ const PHASE_NAMES = {
     'quarter_final': 'QUARTAS DE FINAL',
     'semi_final': 'SEMIFINAL',
     'final': 'FINAL',
-    'third_place': 'DISPUTA DE 3º LUGAR'
+    'third_place': 'DISPUTA DE 3º LUGAR',
+    'podium': 'PÓDIO'
 };
 
-const PHASE_ORDER = ['group_stage', 'round_of_16', 'quarter_final', 'semi_final', 'final', 'third_place'];
+const PHASE_ORDER = ['group_stage', 'round_of_16', 'quarter_final', 'semi_final', 'final', 'third_place', 'podium'];
 
 async function loadMatches() {
     try {
@@ -406,14 +407,15 @@ function switchPhase(key, direction) {
     
     const currentIndex = availablePhases.indexOf(currentPhase);
     const newIndex = currentIndex + direction;
+    const globalIdx = PHASE_ORDER.indexOf(currentPhase);
 
     // Smart Arrow: Allow moving to the next phase if the current one is complete
     const isCurrentComplete = categoryMatches.length > 0 && 
                                categoryMatches.filter(m => m.phase === currentPhase).every(m => m.status === 'finished' || (m.score_team_a !== null && m.score_team_b !== null));
 
-    if (newIndex >= availablePhases.length && isCurrentComplete && currentIndex < PHASE_ORDER.length - 1) {
+    if (newIndex >= availablePhases.length && isCurrentComplete && globalIdx < PHASE_ORDER.length - 1) {
         // Move to the next logical phase even if matches don't exist yet
-        state.phase[key] = PHASE_ORDER[currentIndex + 1];
+        state.phase[key] = PHASE_ORDER[globalIdx + 1];
     } else if (newIndex >= 0 && newIndex < availablePhases.length) {
         state.phase[key] = availablePhases[newIndex];
     } else {
@@ -520,6 +522,12 @@ function render() {
             <button class="phase-nav-btn" onclick="switchPhase('${currCatKey}', 1)" ${!canNext ? 'disabled' : ''}>→</button>
         </div>
     `;
+
+    if (currPhase === 'podium') {
+        renderPodium(container, currCatId, currGender, navHtml);
+        renderTabs(modalityTabs, categoryTabs, modIds, mods, catKeys);
+        return;
+    }
 
     const phaseMatches = catMatches.filter(m => m.phase === currPhase);
 
@@ -848,6 +856,84 @@ function copySumula() {
     navigator.clipboard.writeText(text).then(() => {
         alert('Súmula copiada para a área de transferência!');
     });
+}
+
+async function renderPodium(container, catId, gender, navHtml) {
+    container.innerHTML = `
+        ${navHtml}
+        <div style="text-align:center; padding: 3rem;">
+            <div class="preview-badge" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white;">🏆 PREMIAÇÃO</div>
+            <h2 style="color: #f59e0b; margin-bottom: 2rem; font-size: 2.5rem; text-shadow: 0 0 20px rgba(245, 158, 11, 0.4);">PÓDIO FINAL</h2>
+            <div id="podiumContent" class="bracket-container" style="justify-content: center; align-items: flex-end; gap: 2rem; min-height: 400px;">
+                Calculando medalhistas...
+            </div>
+        </div>
+    `;
+
+    try {
+        const catMatches = allMatches.filter(m => 
+            m.modality_id == state.modality && m.category_id == catId && 
+            (m.team_gender || 'M') == gender
+        );
+
+        const finalMatch = catMatches.find(m => m.phase === 'final');
+        const thirdMatch = catMatches.find(m => m.phase === 'third_place');
+
+        const getWinner = (m) => {
+            if (!m || m.status !== 'finished') return null;
+            const isA = (m.score_team_a || 0) > (m.score_team_b || 0);
+            return isA ? { name: m.team_a_name, id: m.team_a_id } : { name: m.team_b_name, id: m.team_b_id };
+        };
+
+        const getLoser = (m) => {
+            if (!m || m.status !== 'finished') return null;
+            const isA = (m.score_team_a || 0) > (m.score_team_b || 0);
+            return isA ? { name: m.team_b_name, id: m.team_b_id } : { name: m.team_a_name, id: m.team_a_id };
+        };
+
+        const first = getWinner(finalMatch);
+        const second = getLoser(finalMatch);
+        const third = getWinner(thirdMatch);
+
+        const podiumDiv = document.getElementById('podiumContent');
+        podiumDiv.innerHTML = '';
+
+        const createPodiumCard = (team, pos, color, height, label, icon) => {
+            const card = document.createElement('div');
+            card.style.cssText = `
+                display: flex; flex-direction: column; align-items: center; 
+                gap: 1rem; width: 220px;
+            `;
+            
+            card.innerHTML = `
+                <div style="font-size: 3rem; filter: drop-shadow(0 0 10px ${color}60);">${icon}</div>
+                <div style="
+                    background: #1e293b; border: 2px solid ${color}; 
+                    border-radius: 16px 16px 0 0; width: 100%; height: ${height}px;
+                    display: flex; flex-direction: column; justify-content: center; align-items: center;
+                    box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
+                    position: relative; padding: 1rem; text-align: center;
+                ">
+                    <div style="color: ${color}; font-weight: 900; font-size: 1.5rem; margin-bottom: 0.5rem;">${label}</div>
+                    <div style="color: white; font-weight: 700; font-size: 1.1rem; line-height: 1.2;">
+                        ${team ? cleanName(team.name).toUpperCase() : '---'}
+                    </div>
+                </div>
+            `;
+            return card;
+        };
+
+        // 2nd Place (Silver)
+        podiumDiv.appendChild(createPodiumCard(second, 2, '#94a3b8', 180, '2º LUGAR', '🥈'));
+        // 1st Place (Gold)
+        podiumDiv.appendChild(createPodiumCard(first, 1, '#f59e0b', 240, 'CAMPEÃO', '🥇'));
+        // 3rd Place (Bronze)
+        podiumDiv.appendChild(createPodiumCard(third, 3, '#b45309', 140, '3º LUGAR', '🥉'));
+
+    } catch(e) {
+        console.error(e);
+        document.getElementById('podiumContent').innerHTML = 'Erro ao carregar pódio.';
+    }
 }
 
 async function renderBracketPreview(container, catId, gender, phase, navHtml = '') {
