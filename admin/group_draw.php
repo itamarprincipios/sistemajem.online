@@ -67,16 +67,65 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function loadGroups() {
-    // TODO: Load existing groups or show empty state
     const container = document.getElementById('groupsContainer');
-    container.innerHTML = `
-        <div class="glass-card" style="grid-column: 1 / -1; text-align: center; padding: 3rem;">
-            <h3 style="color: var(--text-secondary); margin-bottom: 1rem;">Nenhum grupo sorteado ainda</h3>
-            <p style="color: var(--text-secondary);">
-                Clique em um dos botões acima para sortear os grupos ou gerar automaticamente a fase de grupos
-            </p>
-        </div>
-    `;
+    container.innerHTML = '<div class="glass-card" style="grid-column: 1 / -1; text-align: center; padding: 3rem;"><p>Carregando grupos...</p></div>';
+
+    try {
+        const res = await fetch(`../api/matches-api.php?action=list_groups&event_id=${eventId}&category_id=${categoryId}&gender=${gender}`);
+        const result = await res.json();
+        
+        if (result.success && result.data.length > 0) {
+            renderGroups(result.data);
+        } else {
+            container.innerHTML = `
+                <div class="glass-card" style="grid-column: 1 / -1; text-align: center; padding: 3rem;">
+                    <h3 style="color: var(--text-secondary); margin-bottom: 1rem;">Nenhum grupo sorteado ainda</h3>
+                    <p style="color: var(--text-secondary);">
+                        Clique em um dos botões acima para sortear os grupos ou gerar automaticamente a fase de grupos
+                    </p>
+                </div>
+            `;
+        }
+    } catch (e) {
+        console.error(e);
+        Toast.error('Erro ao carregar grupos');
+    }
+}
+
+function renderGroups(groups) {
+    const container = document.getElementById('groupsContainer');
+    container.innerHTML = '';
+    
+    groups.forEach((group, index) => {
+        const groupCard = document.createElement('div');
+        groupCard.className = 'glass-card';
+        groupCard.style.padding = '0';
+        groupCard.style.overflow = 'hidden';
+        
+        let teamsHtml = '';
+        group.teams.forEach((team, i) => {
+            teamsHtml += `
+                <div style="display: flex; align-items: center; padding: 0.8rem 1.2rem; border-bottom: 1px solid rgba(255,255,255,0.05); gap: 1rem;">
+                    <span style="color: var(--text-secondary); font-size: 0.9rem; min-width: 15px;">${i + 1}</span>
+                    <div style="width: 24px; height: 16px; background: rgba(255,255,255,0.1); border-radius: 2px; display: flex; align-items: center; justify-content: center; font-size: 0.6rem;">
+                         🏛️
+                    </div>
+                    <span style="font-weight: 500;">${team.school_name}</span>
+                </div>
+            `;
+        });
+
+        groupCard.innerHTML = `
+            <div style="background: rgba(255,255,255,0.03); padding: 0.8rem 1.2rem; border-bottom: 1px solid rgba(255,255,255,0.08);">
+                <h3 style="font-size: 1.1rem; color: #fff;">Grupo ${group.group_name}</h3>
+                <span style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase;">Equipe</span>
+            </div>
+            <div style="background: transparent;">
+                ${teamsHtml}
+            </div>
+        `;
+        container.appendChild(groupCard);
+    });
 }
 
 async function generateGroupsAutomatically() {
@@ -84,17 +133,34 @@ async function generateGroupsAutomatically() {
     
     Toast.info('Gerando fase de grupos automaticamente...');
     
-    // TODO: Implement automatic generation
-    Toast.success('Funcionalidade em desenvolvimento');
+    try {
+        const res = await fetch('../api/matches-api.php?action=generate_group_stage', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                event_id: eventId,
+                category_id: categoryId,
+                gender: gender
+            })
+        });
+        
+        const result = await res.json();
+        
+        if (result.success) {
+            Toast.success(result.message);
+            loadGroups();
+        } else {
+            Toast.error(result.error || 'Erro ao gerar grupos');
+        }
+    } catch (e) {
+        console.error(e);
+        Toast.error('Erro na conexão com o servidor');
+    }
 }
 
 async function drawGroups() {
-    if (!confirm('Isso irá sortear aleatoriamente os grupos. Continuar?')) return;
-    
-    Toast.info('Sorteando grupos...');
-    
-    // TODO: Implement group drawing
-    Toast.success('Funcionalidade em desenvolvimento');
+    // Para esta fase, vamos focar no automático primeiro conforme solicitado
+    Toast.info('Esta funcionalidade será integrada no sorteio automático.');
 }
 </script>
 

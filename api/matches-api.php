@@ -147,8 +147,40 @@ try {
                     'female' => (int)$femaleCount
                 ]]);
             }
-            break;
+            if ($action === 'list_groups') {
+                $eventId = $_GET['event_id'] ?? 0;
+                $categoryId = $_GET['category_id'] ?? 0;
+                $gender = $_GET['gender'] ?? 'M';
 
+                $groups = query("
+                    SELECT DISTINCT group_name FROM competition_teams 
+                    WHERE competition_event_id = ? AND category_id = ? AND gender = ? AND group_name IS NOT NULL
+                    ORDER BY group_name
+                ", [$eventId, $categoryId, $gender]);
+                
+                $data = [];
+                foreach ($groups as $group) {
+                    $groupName = $group['group_name'];
+                    $teams = query("
+                        SELECT ct.*, s.name as school_name 
+                        FROM competition_teams ct
+                        JOIN schools s ON ct.school_id = s.id
+                        WHERE ct.competition_event_id = ? 
+                        AND ct.category_id = ? 
+                        AND ct.gender = ? 
+                        AND ct.group_name = ?
+                        ORDER BY ct.id
+                    ", [$eventId, $categoryId, $gender, $groupName]);
+                    
+                    $data[] = [
+                        'group_name' => $groupName,
+                        'teams' => $teams
+                    ];
+                }
+                
+                echo json_encode(['success' => true, 'data' => $data]);
+                exit;
+            }
             break;
 
         case 'POST':
