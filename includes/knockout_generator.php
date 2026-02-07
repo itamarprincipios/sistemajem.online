@@ -163,19 +163,34 @@ function getQualifiedTeams($eventId, $modalityId, $categoryId, $gender = null, $
  * Check if a phase is complete (all matches finished)
  */
 function isPhaseComplete($eventId, $modalityId, $categoryId, $phase, $gender = null) {
-    $sql = "SELECT COUNT(*) as total, 
-            SUM(CASE WHEN status = 'finished' THEN 1 ELSE 0 END) as finished
-            FROM matches 
-            WHERE competition_event_id = ? 
-            AND modality_id = ? 
-            AND category_id = ? 
-            AND phase = ?";
-    
-    $params = [$eventId, $modalityId, $categoryId, $phase];
+    if ($gender) {
+        $sql = "SELECT COUNT(*) as total, 
+                SUM(CASE WHEN m.status = 'finished' THEN 1 ELSE 0 END) as finished
+                FROM matches m
+                JOIN competition_teams t ON m.team_a_id = t.id
+                WHERE m.competition_event_id = ? 
+                AND m.modality_id = ? 
+                AND m.category_id = ? 
+                AND m.phase = ?
+                AND t.gender = ?";
+        $params = [$eventId, $modalityId, $categoryId, $phase, $gender];
+    } else {
+        $sql = "SELECT COUNT(*) as total, 
+                SUM(CASE WHEN status = 'finished' THEN 1 ELSE 0 END) as finished
+                FROM matches 
+                WHERE competition_event_id = ? 
+                AND modality_id = ? 
+                AND category_id = ? 
+                AND phase = ?";
+        $params = [$eventId, $modalityId, $categoryId, $phase];
+    }
     
     $result = queryOne($sql, $params);
     
-    return $result['total'] > 0 && $result['total'] == $result['finished'];
+    $total = (int)($result['total'] ?? 0);
+    $finished = (int)($result['finished'] ?? 0);
+    
+    return $total > 0 && $total === $finished;
 }
 
 /**
