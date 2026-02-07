@@ -11,35 +11,24 @@ if (!$matchId) {
     die("ID da partida não fornecido.");
 }
 
-// Get match data - with explicit column selection
-try {
-    $match = queryOne("
-        SELECT 
-            m.id, m.competition_event_id, m.modality_id, m.category_id, m.phase,
-            m.team_a_id, m.team_b_id, m.venue, m.scheduled_time, m.start_time, m.end_time,
-            m.status, m.score_team_a, m.score_team_b, m.winner_team_id,
-            m.team_a_coach, m.team_a_assistant, m.team_b_coach, m.team_b_assistant,
-            m.referee_primary, m.referee_assistant, m.referee_fourth,
-            m.observations, m.parent_match_id, m.created_at, m.updated_at,
-            m.team_a_lineup, m.team_a_captain_id, m.team_b_lineup, m.team_b_captain_id,
-            COALESCE(t1.school_name_snapshot, 'Equipe A') as team_a_name, 
-            COALESCE(t2.school_name_snapshot, 'Equipe B') as team_b_name,
-            COALESCE(c.name, 'Categoria') as category_name,
-            COALESCE(mod.name, 'Modalidade') as modality_name
-        FROM matches m
-        LEFT JOIN competition_teams t1 ON m.team_a_id = t1.id
-        LEFT JOIN competition_teams t2 ON m.team_b_id = t2.id
-        LEFT JOIN categories c ON m.category_id = c.id
-        LEFT JOIN modalities mod ON m.modality_id = mod.id
-        WHERE m.id = ?
-    ", [$matchId]);
-    
-    if (!$match) {
-        die("Erro: Partida não encontrada (ID: $matchId). A query retornou vazio.");
-    }
-} catch (Exception $e) {
-    die("Erro na query: " . $e->getMessage());
+// Get match data - simplified approach without complex JOINs
+$match = queryOne("SELECT * FROM matches WHERE id = ?", [$matchId]);
+
+if (!$match) {
+    die("Partida não encontrada (ID: $matchId)");
 }
+
+// Get team names separately
+$teamA = queryOne("SELECT school_name_snapshot FROM competition_teams WHERE id = ?", [$match['team_a_id']]);
+$teamB = queryOne("SELECT school_name_snapshot FROM competition_teams WHERE id = ?", [$match['team_b_id']]);
+$category = queryOne("SELECT name FROM categories WHERE id = ?", [$match['category_id']]);
+$modality = queryOne("SELECT name FROM modalities WHERE id = ?", [$match['modality_id']]);
+
+// Add names to match array
+$match['team_a_name'] = $teamA['school_name_snapshot'] ?? 'Equipe A';
+$match['team_b_name'] = $teamB['school_name_snapshot'] ?? 'Equipe B';
+$match['category_name'] = $category['name'] ?? 'Categoria';
+$match['modality_name'] = $modality['name'] ?? 'Modalidade';
 
 // Get athletes
 $athletesA = query("SELECT id, name_snapshot, jersey_number FROM competition_team_athletes WHERE competition_team_id = ? ORDER BY jersey_number", [$match['team_a_id']]);
