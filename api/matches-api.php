@@ -149,12 +149,101 @@ try {
             }
             break;
 
+            break;
+
         case 'POST':
             if (!isAdmin()) throw new Exception('Apenas admin pode gerar jogos');
             
             $data = json_decode(file_get_contents('php://input'), true);
             
-            if ($action === 'generate') {
+            if ($action === 'generate_group_stage') {
+                $eventId = $data['event_id'];
+                $categoryId = $data['category_id'];
+                $gender = $data['gender'];
+                
+                // 1. Get Teams
+                $teams = query("
+                    SELECT id FROM competition_teams 
+                    WHERE competition_event_id = ? AND category_id = ? AND gender = ?
+                ", [$eventId, $categoryId, $gender]);
+                
+                if (count($teams) < 4) throw new Exception('Mínimo de 4 equipes para gerar fase de grupos');
+                
+                // 2. Shuffle Teams (Random Draw)
+                shuffle($teams);
+                
+                // 3. Divide into groups of 4
+                $teamCount = count($teams);
+                $teamsPerGroup = 4;
+                $numGroups = min(8, ceil($teamCount / $teamsPerGroup)); // Max 8 groups
+                $groupNames = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+                $matchesGenerated = 0;
+                
+                // Clear existing matches for this category/gender if any?
+                // Ideally we should warn the user before this. Assuming UI handles confirmation.
+                $futsalId = queryOne("SELECT id FROM modalities WHERE name LIKE '%Futsal%'")['id'] ?? 1; // Fallback
+                
+                // Clear previous matches for this specific segment
+                // This is important to avoid duplicates if re-generating
+                execute("
+                    DELETE FROM matches 
+                    WHERE competition_event_id = ? AND category_id = ? 
+                    AND team_a_id IN (SELECT id FROM competition_teams WHERE gender = ?)
+                ", [$eventId, $categoryId, $gender]);
+
+                // 4. Assign groups and generate matches
+                for ($i = 0; $i < $teamCount; $i++) {
+                    $groupIndex = floor($i / $teamsPerGroup);
+                    if ($groupIndex >= $numGroups) break; // Safety
+                    
+                    $groupName = $groupNames[$groupIndex];
+                    
+                    // Update team group
+                    execute("UPDATE competition_teams SET group_name = ? WHERE id = ?", 
+                        [$groupName, $teams[$i]['id']]
+                    );
+                }
+                
+                // 5. Generate matches for each group
+                for ($g = 0; $g < $numGroups; $g++) {
+                    $groupName = $groupNames[$g];
+                    
+                    // Get teams in this group (now assigned)
+                    $groupTeams = query("
+                        SELECT id FROM competition_teams 
+                        WHERE competition_event_id = ? 
+                        AND category_id = ? 
+                        AND gender = ? 
+                        AND group_name = ?
+                    ", [$eventId, $categoryId, $gender, $groupName]);
+                    
+                    // Round robin
+                    for ($i = 0; $i < count($groupTeams); $i++) {
+                        for ($j = $i + 1; $j < count($groupTeams); $j++) {
+                            execute("
+                                INSERT INTO matches 
+                                (competition_event_id, modality_id, category_id, team_a_id, team_b_id, phase, scheduled_time, status)
+                                VALUES (?, ?, ?, ?, ?, 'group_stage', ?, 'scheduled')
+                            ", [
+                                $eventId,
+                                $futsalId,
+                                $categoryId,
+                                $groupTeams[$i]['id'],
+                                $groupTeams[$j]['id'],
+                                date('Y-m-d H:i:s', strtotime('+1 day 08:00:00'))
+                            ]);
+                            $matchesGenerated++;
+                        }
+                    }
+                }
+                
+                echo json_encode([
+                    'success' => true, 
+                    'message' => "Sorteio realizado! $numGroups grupos formados e $matchesGenerated partidas geradas."
+                ]);
+                exit;
+
+            } elseif ($action === 'generate') {
                 $eventId = $data['event_id'];
                 $modalityId = $data['modality_id'];
                 $categoryId = $data['category_id'];
