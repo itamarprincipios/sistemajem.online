@@ -11,7 +11,7 @@ try {
     requireLogin(); 
     
     $input = json_decode(file_get_contents('php://input'), true);
-    $action = $input['action'] ?? '';
+    $action = $input['action'] ?? $_GET['action'] ?? '';
 
     if ($action === 'ping') {
         echo json_encode(['success' => true, 'message' => 'pong', 'session' => $_SESSION['user_name'] ?? 'Guest']);
