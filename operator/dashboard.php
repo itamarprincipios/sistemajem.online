@@ -557,7 +557,9 @@ async function generateSumula(id) {
         const res = await fetch(`../api/match-events-api.php?action=get_match_sumula&match_id=${id}`);
         const result = await res.json();
         
-        if (!result.success) throw new Error(result.error);
+        console.log('API Response:', result); // Debug
+        
+        if (!result.success) throw new Error(result.error || 'Erro desconhecido na API');
         
         const data = result.data;
         const m = data.match;
@@ -646,8 +648,8 @@ ${m.observations || 'NADA HOUVE'}
 
         textDiv.textContent = markdown;
     } catch (err) {
-        console.error(err);
-        textDiv.textContent = 'Erro ao carregar dados da súmula. Verifique se a partida possui todos os dados registrados.';
+        console.error('Erro completo:', err);
+        textDiv.textContent = `Erro ao carregar dados da súmula.\n\nDetalhes: ${err.message}\n\nVerifique o console do navegador (F12) para mais informações.`;
     }
 }
 
