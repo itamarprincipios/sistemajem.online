@@ -128,15 +128,15 @@ function renderEvents(events) {
             
             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-bottom: 1.5rem; background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 8px; text-align: center;">
                 <div>
-                    <div style="font-weight: bold; font-size: 1.1rem;">-</div>
+                    <div data-stat="teams" style="font-weight: bold; font-size: 1.1rem;">-</div>
                     <div style="font-size: 0.75rem; color: var(--text-secondary);">Equipes</div>
                 </div>
                 <div>
-                    <div style="font-weight: bold; font-size: 1.1rem;">-</div>
+                    <div data-stat="athletes" style="font-weight: bold; font-size: 1.1rem;">-</div>
                     <div style="font-size: 0.75rem; color: var(--text-secondary);">Atletas</div>
                 </div>
                  <div>
-                    <div style="font-weight: bold; font-size: 1.1rem;">-</div>
+                    <div data-stat="matches" style="font-weight: bold; font-size: 1.1rem;">-</div>
                     <div style="font-size: 0.75rem; color: var(--text-secondary);">Partidas</div>
                 </div>
             </div>
@@ -169,12 +169,18 @@ async function loadEventStats(id, cardElement) {
         const res = await fetch(`../api/competition-events-api.php?action=get&id=${id}`);
         const data = await res.json();
         if (data.success && data.data.stats) {
-            const statsDiv = cardElement.querySelectorAll('div > div > div:first-child');
-            statsDiv[0].textContent = data.data.stats.teams;
-            statsDiv[1].textContent = data.data.stats.athletes;
-            statsDiv[2].textContent = data.data.stats.matches;
+            // Use more specific selectors with data attributes
+            const teamsEl = cardElement.querySelector('[data-stat="teams"]');
+            const athletesEl = cardElement.querySelector('[data-stat="athletes"]');
+            const matchesEl = cardElement.querySelector('[data-stat="matches"]');
+            
+            if (teamsEl) teamsEl.textContent = data.data.stats.teams;
+            if (athletesEl) athletesEl.textContent = data.data.stats.athletes;
+            if (matchesEl) matchesEl.textContent = data.data.stats.matches;
         }
-    } catch (e) { console.error(e); }
+    } catch (e) { 
+        console.error('Error loading stats for event', id, e); 
+    }
 }
 
 async function handleCreate(e) {
