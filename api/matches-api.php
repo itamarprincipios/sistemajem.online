@@ -181,6 +181,26 @@ try {
                 echo json_encode(['success' => true, 'data' => $data]);
                 exit;
             }
+
+            if ($action === 'list_available_teams') {
+                $eventId = $_GET['event_id'] ?? 0;
+                $categoryId = $_GET['category_id'] ?? 0;
+                $gender = $_GET['gender'] ?? 'M';
+
+                $teams = query("
+                    SELECT ct.*, s.name as school_name 
+                    FROM competition_teams ct
+                    JOIN schools s ON ct.school_id = s.id
+                    WHERE ct.competition_event_id = ? 
+                    AND ct.category_id = ? 
+                    AND ct.gender = ? 
+                    AND ct.group_name IS NULL
+                    ORDER BY s.name
+                ", [$eventId, $categoryId, $gender]);
+                
+                echo json_encode(['success' => true, 'data' => $teams]);
+                exit;
+            }
             break;
 
         case 'POST':
@@ -188,6 +208,16 @@ try {
             
             $data = json_decode(file_get_contents('php://input'), true);
             
+            if ($action === 'assign_team_group') {
+                $teamId = $data['team_id'];
+                $groupName = $data['group_name'];
+
+                execute("UPDATE competition_teams SET group_name = ? WHERE id = ?", [$groupName, $teamId]);
+                
+                echo json_encode(['success' => true, 'message' => 'Equipe atribuída ao grupo com sucesso!']);
+                exit;
+            }
+
             if ($action === 'generate_group_stage') {
                 $eventId = $data['event_id'];
                 $categoryId = $data['category_id'];

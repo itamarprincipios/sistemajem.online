@@ -47,9 +47,9 @@ include '../includes/sidebar.php';
                     <button class="btn btn-primary" onclick="generateGroupsAutomatically()">
                         ⚡ Gerar Fase de Grupos Automaticamente
                     </button>
-                    <button class="btn" style="background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%); color: white; border: none;" onclick="drawGroups()">
+                    <a href="group_draw_manual.php?event_id=<?php echo $eventId; ?>&category_id=<?php echo $categoryId; ?>&gender=<?php echo $gender; ?>" class="btn" style="background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%); color: white; border: none; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">
                         🎲 Sortear Fase de Grupos
-                    </button>
+                    </a>
                 </div>
             </div>
         </div>
