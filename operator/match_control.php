@@ -218,11 +218,15 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
         <button class="athlete-btn" style="background: #ef4444; margin-top: 1rem; width: 100%;" onclick="closeModals()">Cancelar</button>
     </div>
 
+
     <!-- Appointments Modal -->
     <div id="appointmentsModal" class="modal-sheet" style="max-height: 90vh;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-            <h2 style="color: #10b981;">📋 Apontamentos da Partida</h2>
-            <button onclick="closeModals()" style="background: none; border: none; color: #94a3b8; font-size: 1.5rem; cursor: pointer;">&times;</button>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; gap: 1rem;">
+            <h2 style="color: #10b981; margin: 0;">📋 Apontamentos da Partida</h2>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <button class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.9rem;" onclick="saveAppointments()">💾 SALVAR</button>
+                <button onclick="closeModals()" style="background: none; border: none; color: #94a3b8; font-size: 1.5rem; cursor: pointer; padding: 0;">&times;</button>
+            </div>
         </div>
         
         <div class="appointments-grid">
@@ -270,11 +274,6 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
 
         <div class="app-section-title" style="margin-top: 1.5rem;">RELATO DO ÁRBITRO (OBSERVAÇÕES)</div>
         <textarea id="observations" class="staff-input" style="height: 100px; margin-top: 0.5rem;" placeholder="Descreva incidentes, motivos de cartões ou atrasos..."><?php echo htmlspecialchars($match['observations'] ?? ''); ?></textarea>
-
-        <div style="margin-top: 2rem; display: flex; gap: 1rem;">
-            <button class="btn btn-secondary" style="flex: 1; background: #334155; border: none; color: white;" onclick="closeModals()">Voltar</button>
-            <button class="btn btn-primary" style="flex: 2;" onclick="saveAppointments()">💾 SALVAR APONTAMENTOS</button>
-        </div>
     </div>
 
     <script>
