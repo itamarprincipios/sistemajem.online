@@ -13,6 +13,8 @@ $match = queryOne("
     SELECT m.*, 
            t1.school_name_snapshot as team_a_name, 
            t2.school_name_snapshot as team_b_name,
+           t1.registration_id as team_a_reg_id,
+           t2.registration_id as team_b_reg_id,
            TIMESTAMPDIFF(SECOND, m.start_time, NOW()) as elapsed_seconds
     FROM matches m
     JOIN competition_teams t1 ON m.team_a_id = t1.id
@@ -21,6 +23,21 @@ $match = queryOne("
 ", [$matchId]);
 
 if (!$match) die("Partida não encontrada");
+
+// Initialize staff if empty from registrations
+if (!$match['team_a_coach'] || !$match['team_b_coach']) {
+    $regA = queryOne("SELECT tecnico_nome, auxiliar_tecnico_nome FROM registrations WHERE id = ?", [$match['team_a_reg_id']]);
+    $regB = queryOne("SELECT tecnico_nome, auxiliar_tecnico_nome FROM registrations WHERE id = ?", [$match['team_b_reg_id']]);
+    
+    if (!$match['team_a_coach']) {
+        $match['team_a_coach'] = $regA['tecnico_nome'] ?? '';
+        $match['team_a_assistant'] = $regA['auxiliar_tecnico_nome'] ?? '';
+    }
+    if (!$match['team_b_coach']) {
+        $match['team_b_coach'] = $regB['tecnico_nome'] ?? '';
+        $match['team_b_assistant'] = $regB['auxiliar_tecnico_nome'] ?? '';
+    }
+}
 
 // Load Athletes for Modals
 $athletesA = query("SELECT id, name_snapshot, jersey_number FROM competition_team_athletes WHERE competition_team_id = ?", [$match['team_a_id']]);
@@ -86,6 +103,16 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
         .event-icon { font-size: 1.2rem; }
         .player-info { font-weight: 600; flex: 1; }
         .side-B .player-info { text-align: right; }
+        
+        /* Appointments Modal Styles */
+        .appointments-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+        .team-app-col { display: flex; flex-direction: column; gap: 0.5rem; }
+        .app-section-title { font-size: 0.9rem; font-weight: 800; color: #10b981; margin-top: 1rem; border-bottom: 1px solid rgba(16,185,129,0.3); padding-bottom: 4px; }
+        .player-row { display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.05); padding: 6px 10px; border-radius: 6px; }
+        .jersey-input { width: 45px; background: #0f172a; border: 1px solid #334155; color: #fbbf24; text-align: center; border-radius: 4px; font-weight: bold; padding: 4px; }
+        .player-name-small { flex: 1; font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .staff-input { background: #0f172a; border: 1px solid #334155; color: white; padding: 8px; border-radius: 6px; font-size: 0.9rem; width: 100%; }
+        .staff-label { font-size: 0.75rem; color: #94a3b8; margin-top: 4px; }
     </style>
 </head>
 <body>
@@ -132,13 +159,14 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
         <!-- Events list populated by JS -->
     </div>
 
-    <div class="status-bar">
+    <div class="status-bar" style="display: flex; gap: 0.5rem;">
+        <button class="btn btn-secondary" style="flex: 1; background: #334155; color: white; border: none;" onclick="openAppointmentsModal()">📋 APONTAMENTOS</button>
         <?php if ($match['status'] === 'scheduled'): ?>
-            <button class="btn btn-primary" style="width: 100%" onclick="updateStatus('live')">▶️ INICIAR PARTIDA</button>
+            <button class="btn btn-primary" style="flex: 2" onclick="updateStatus('live')">▶️ INICIAR PARTIDA</button>
         <?php elseif ($match['status'] === 'live'): ?>
-            <button class="btn btn-danger" style="width: 100%" onclick="updateStatus('finished')">🏁 ENCERRAR PARTIDA</button>
+            <button class="btn btn-danger" style="flex: 2" onclick="updateStatus('finished')">🏁 ENCERRAR PARTIDA</button>
         <?php else: ?>
-            <div style="width: 100%; text-align: center;">PARTIDA FINALIZADA</div>
+            <div style="flex: 2; text-align: center;">PARTIDA FINALIZADA</div>
         <?php endif; ?>
     </div>
 
@@ -149,6 +177,45 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
             <!-- Populated by JS -->
         </div>
         <button class="athlete-btn" style="background: #ef4444; margin-top: 1rem; width: 100%;" onclick="closeModals()">Cancelar</button>
+    </div>
+
+    <!-- Appointments Modal -->
+    <div id="appointmentsModal" class="modal-sheet" style="max-height: 90vh;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h2 style="color: #10b981;">📋 Apontamentos da Partida</h2>
+            <button onclick="closeModals()" style="background: none; border: none; color: #94a3b8; font-size: 1.5rem; cursor: pointer;">&times;</button>
+        </div>
+        
+        <div class="appointments-grid">
+            <!-- Team A -->
+            <div class="team-app-col">
+                <div class="app-section-title">TIME A: <span id="modal-team-a-name"></span></div>
+                <div id="list-a-appointments" style="display: flex; flex-direction: column; gap: 4px;"></div>
+                
+                <div class="app-section-title">COMISSÃO TÉCNICA</div>
+                <div class="staff-label">Técnico</div>
+                <input type="text" id="coach-a" class="staff-input" placeholder="Nome do Técnico" value="<?php echo htmlspecialchars($match['team_a_coach'] ?? ''); ?>">
+                <div class="staff-label">Auxiliar</div>
+                <input type="text" id="assistant-a" class="staff-input" placeholder="Nome do Auxiliar" value="<?php echo htmlspecialchars($match['team_a_assistant'] ?? ''); ?>">
+            </div>
+
+            <!-- Team B -->
+            <div class="team-app-col">
+                <div class="app-section-title">TIME B: <span id="modal-team-b-name"></span></div>
+                <div id="list-b-appointments" style="display: flex; flex-direction: column; gap: 4px;"></div>
+                
+                <div class="app-section-title">COMISSÃO TÉCNICA</div>
+                <div class="staff-label">Técnico</div>
+                <input type="text" id="coach-b" class="staff-input" placeholder="Nome do Técnico" value="<?php echo htmlspecialchars($match['team_b_coach'] ?? ''); ?>">
+                <div class="staff-label">Auxiliar</div>
+                <input type="text" id="assistant-b" class="staff-input" placeholder="Nome do Auxiliar" value="<?php echo htmlspecialchars($match['team_b_assistant'] ?? ''); ?>">
+            </div>
+        </div>
+
+        <div style="margin-top: 2rem; display: flex; gap: 1rem;">
+            <button class="btn btn-secondary" style="flex: 1; background: #334155; border: none; color: white;" onclick="closeModals()">Voltar</button>
+            <button class="btn btn-primary" style="flex: 2;" onclick="saveAppointments()">💾 SALVAR APONTAMENTOS</button>
+        </div>
     </div>
 
     <script>
@@ -189,6 +256,69 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
             `;
             
             modal.classList.add('active');
+        }
+
+        function openAppointmentsModal() {
+            closeModals();
+            document.getElementById('modal-team-a-name').textContent = cleanName('<?php echo $match['team_a_name']; ?>');
+            document.getElementById('modal-team-b-name').textContent = cleanName('<?php echo $match['team_b_name']; ?>');
+            
+            const renderList = (athletes, containerId) => {
+                const container = document.getElementById(containerId);
+                container.innerHTML = athletes.map(at => `
+                    <div class="player-row">
+                        <input type="number" class="jersey-input" value="${at.jersey_number || ''}" onchange="updateAthleteJersey(${at.id}, this.value)">
+                        <span class="player-name-small">${at.name_snapshot}</span>
+                    </div>
+                `).join('');
+            };
+
+            renderList(athletesA, 'list-a-appointments');
+            renderList(athletesB, 'list-b-appointments');
+            
+            document.getElementById('appointmentsModal').classList.add('active');
+        }
+
+        function updateAthleteJersey(athleteId, number) {
+            // Find in local lists to keep in sync without reload
+            const atA = athletesA.find(a => a.id == athleteId);
+            if (atA) atA.jersey_number = number;
+            const atB = athletesB.find(a => a.id == athleteId);
+            if (atB) atB.jersey_number = number;
+        }
+
+        async function saveAppointments() {
+            try {
+                const payload = {
+                    action: 'save_appointments',
+                    match_id: matchId,
+                    staff: {
+                        team_a_coach: document.getElementById('coach-a').value,
+                        team_a_assistant: document.getElementById('assistant-a').value,
+                        team_b_coach: document.getElementById('coach-b').value,
+                        team_b_assistant: document.getElementById('assistant-b').value
+                    },
+                    athletes: [...athletesA, ...athletesB].map(a => ({ id: a.id, jersey_number: a.jersey_number }))
+                };
+
+                const res = await fetch('../api/match-events-api.php', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+                
+                const data = await res.json();
+                if (data.success) {
+                    closeModals();
+                    alert('Apontamentos salvos com sucesso!');
+                    loadTimeline(); // Para atualizar os números na timeline se mudaram
+                } else {
+                    alert('Erro ao salvar: ' + data.error);
+                }
+            } catch (e) {
+                console.error(e);
+                alert('Erro de conexão ao salvar apontamentos');
+            }
         }
         
         function closeModals() {
