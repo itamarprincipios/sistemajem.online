@@ -347,7 +347,7 @@ if (!$event) {
             const loadAwards = async () => {
                 const [catId, gender] = catKey.split('_');
                 try {
-                    const res = await fetch(`../api/awards-api.php?event_id=${EVENT_ID}&modality_id=${state.modality}&category_id=${catId}&gender=${gender}`);
+                    const res = await fetch(`../api/awards-api.php?event_id=${EVENT_ID}&modality_id=${state.modality}&category_id=${catId}&gender=${gender}&_t=${Date.now()}`);
                     const data = await res.json();
                     awards = data.data || [];
                     

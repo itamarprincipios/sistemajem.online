@@ -990,7 +990,7 @@ async function renderPodium(container, catId, gender, navHtml, catMatches) {
         // Fetch saved awards from DB
         let dbAwards = [];
         try {
-            const res = await fetch(`../api/awards-api.php?event_id=${EVENT_ID}&modality_id=${state.modality}&category_id=${catId}&gender=${gender}`);
+            const res = await fetch(`../api/awards-api.php?event_id=${EVENT_ID}&modality_id=${state.modality}&category_id=${catId}&gender=${gender}&_t=${Date.now()}`);
             const result = await res.json();
             dbAwards = result.data || [];
         } catch(e) { console.error('Error fetching awards', e); }
