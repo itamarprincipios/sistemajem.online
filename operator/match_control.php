@@ -61,7 +61,7 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
         .timer-box { text-align: center; }
         .timer { font-size: 2.5rem; font-family: monospace; font-weight: bold; color: #fbbf24; }
         
-        .controls { padding: 1rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; height: calc(100vh - 250px); align-content: start; }
+        .controls { padding: 1rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; height: auto; align-content: start; }
         .team-controls { display: flex; flex-direction: column; gap: 1rem; }
         
         .btn-goal { background: #10b981; color: white; border: none; padding: 1.5rem; font-size: 1.5rem; font-weight: bold; border-radius: 12px; cursor: pointer; box-shadow: 0 4px #059669; }
@@ -77,7 +77,7 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
         .athlete-btn { background: #334155; border: 1px solid #475569; color: white; padding: 1rem; text-align: left; border-radius: 8px; font-size: 1.1rem; }
 
         /* Timeline Styles */
-        .timeline-container { padding: 1rem; flex: 1; overflow-y: auto; margin-bottom: 80px; min-height: 200px; }
+        .timeline-container { padding: 1rem; flex: 1; overflow-y: auto; margin-bottom: 80px; min-height: 300px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; margin-top: 1rem; }
         .timeline-item { display: flex; align-items: center; gap: 1rem; margin-bottom: 0.75rem; padding: 0.5rem 1rem; border-radius: 8px; background: rgba(255,255,255,0.05); font-size: 0.95rem; }
         .timeline-item.side-A { flex-direction: row; border-left: 4px solid #10b981; }
         .timeline-item.side-B { flex-direction: row-reverse; border-right: 4px solid #10b981; }
@@ -97,7 +97,7 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
 
     <div class="score-board">
         <div class="team-box">
-            <div class="team-name"><?php echo $match['team_a_name']; ?></div>
+            <div class="team-name" id="name-A"><?php echo $match['team_a_name']; ?></div>
             <div class="team-score" id="scoreA"><?php echo $match['score_team_a']; ?></div>
         </div>
         <div class="timer-box">
@@ -105,12 +105,12 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
             <div style="font-size: 0.8rem; color: #666;">TEMPO DE JOGO</div>
         </div>
         <div class="team-box">
-            <div class="team-name"><?php echo $match['team_b_name']; ?></div>
+            <div class="team-name" id="name-B"><?php echo $match['team_b_name']; ?></div>
             <div class="team-score" id="scoreB"><?php echo $match['score_team_b']; ?></div>
         </div>
     </div>
 
-    <div class="controls">
+    <div class="controls" style="height: auto;">
         <div class="team-controls">
             <button class="btn-goal" onclick="openEventModal('A', 'GOAL')">⚽ GOL TIME A</button>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
@@ -125,6 +125,10 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
                 <button class="btn btn-secondary" style="background: #ef4444; color: white; border: none;" onclick="openEventModal('B', 'RED_CARD')">🟥 Cartão</button>
             </div>
         </div>
+    </div>
+
+    <div class="timeline-container" id="timeline">
+        <!-- Events list populated by JS -->
     </div>
 
     <div class="status-bar">
@@ -314,7 +318,15 @@ $athletesB = query("SELECT id, name_snapshot, jersey_number FROM competition_tea
         }
 
         // Initial load
-        loadTimeline();
+        window.addEventListener('DOMContentLoaded', () => {
+            loadTimeline();
+            
+            // Names cleaning
+            const nameA = document.getElementById('name-A');
+            const nameB = document.getElementById('name-B');
+            if(nameA) nameA.textContent = cleanName(nameA.textContent);
+            if(nameB) nameB.textContent = cleanName(nameB.textContent);
+        });
 
         // Make functions globally accessible
         window.updateStatus = updateStatus;
