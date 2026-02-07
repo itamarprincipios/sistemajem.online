@@ -60,9 +60,15 @@ if (!$event) {
         .badge-finished { background: rgba(148, 163, 184, 0.2); color: #94a3b8; border: 1px solid #94a3b8; }
         .badge-scheduled { background: rgba(59, 130, 246, 0.2); color: #3b82f6; border: 1px solid #3b82f6; }
         
-        .teams { display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1rem; }
         .team { display: flex; justify-content: space-between; font-size: 1.1rem; font-weight: 600; }
-        .vs { text-align: center; color: #475569; font-weight: 800; font-size: 0.8rem; }
+        .vs { text-align: center; color: #475569; font-weight: 800; font-size: 0.8rem; margin: 0.5rem 0; }
+        
+        /* Event Styles */
+        .event-row { font-size: 0.75rem; color: #94a3b8; display: flex; flex-direction: column; gap: 2px; margin-top: 4px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 4px; }
+        .event-item { display: flex; align-items: center; gap: 4px; }
+        .team-a-events { align-items: flex-start; }
+        .team-b-events { align-items: flex-end; }
+        .event-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
         
         .empty { text-align: center; padding: 3rem; color: #64748b; }
         
@@ -455,6 +461,23 @@ if (!$event) {
                     const teamA = cleanName(m.team_a_name);
                     const teamB = cleanName(m.team_b_name);
                     
+                    // Filter match events by team
+                    const iconMap = { 'GOAL': '⚽', 'YELLOW_CARD': '🟨', 'RED_CARD': '🟥', 'OWN_GOAL': '🔄' };
+                    const getEventHtml = (teamId, side) => {
+                        const teamEvents = (m.events || []).filter(e => e.team_id == teamId);
+                        if (teamEvents.length === 0) return '';
+                        return `
+                            <div class="event-row team-${side}-events">
+                                ${teamEvents.map(e => `
+                                    <div class="event-item">
+                                        <span>${iconMap[e.event_type] || '🏳️'}</span>
+                                        <span class="event-name">${e.athlete_name || 'Atleta'} ${e.event_time ? '('+e.event_time+')' : ''}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        `;
+                    };
+
                     // Determine winner/draw for finished matches
                     let teamAStyle = '';
                     let teamBStyle = '';
@@ -478,11 +501,21 @@ if (!$event) {
                     html += `</div>`;
                     html += `<div class="modality-label" style="font-size:0.75rem;color:#10b981;font-weight:800;margin-bottom:0.5rem">${m.modality_name}${m.group_name ? ' • Grupo ' + m.group_name : ''}</div>`;
                     html += '<div class="teams">';
-                    html += `<div class="team"><span style="${teamAStyle}">${teamA}</span>${m.status !== 'scheduled' ? '<span>'+m.score_team_a+'</span>' : ''}</div>`;
+                    html += `
+                        <div>
+                            <div class="team"><span style="${teamAStyle}">${teamA}</span>${m.status !== 'scheduled' ? '<span>'+m.score_team_a+'</span>' : ''}</div>
+                            ${getEventHtml(m.team_a_id, 'a')}
+                        </div>
+                    `;
                     html += '<div class="vs">VS</div>';
-                    html += `<div class="team"><span style="${teamBStyle}">${teamB}</span>${m.status !== 'scheduled' ? '<span>'+m.score_team_b+'</span>' : ''}</div>`;
+                    html += `
+                        <div>
+                            <div class="team"><span style="${teamBStyle}">${teamB}</span>${m.status !== 'scheduled' ? '<span>'+m.score_team_b+'</span>' : ''}</div>
+                            ${getEventHtml(m.team_b_id, 'b')}
+                        </div>
+                    `;
                     html += '</div>';
-                    html += `<div style="font-size:0.8rem;color:#64748b">📍 ${m.venue || 'Local TBD'}</div>`;
+                    html += `<div style="font-size:0.8rem;color:#64748b;margin-top:0.5rem">📍 ${m.venue || 'Local TBD'}</div>`;
                     html += '</div>';
                 });
                 html += '</div>';
