@@ -9,6 +9,10 @@ if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] === 'professor') {
 }
 
 $pageTitle = 'Painel do Operador';
+
+// Get active event
+$activeEvent = queryOne("SELECT id, name FROM competition_events WHERE active_flag = TRUE LIMIT 1");
+$activeEventId = $activeEvent['id'] ?? 'null';
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -181,6 +185,78 @@ $pageTitle = 'Painel do Operador';
             border: 1px solid #1e293b;
         }
         .sumula-footer { padding: 1.5rem; border-top: 1px solid #334155; display: flex; gap: 1rem; justify-content: flex-end; }
+
+        /* Bracket Styles */
+        .bracket-container {
+            display: flex;
+            gap: 2rem;
+            padding: 2rem;
+            overflow-x: auto;
+            align-items: center;
+            justify-content: center;
+            min-height: 400px;
+        }
+        .bracket-column {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            gap: 2rem;
+        }
+        .bracket-match {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            width: 250px;
+            overflow: hidden;
+            position: relative;
+        }
+        .bracket-match::after {
+            content: '';
+            position: absolute;
+            right: -2rem;
+            top: 50%;
+            width: 2rem;
+            height: 2px;
+            background: #334155;
+            display: none; /* Will show based on logic */
+        }
+        .bracket-team {
+            padding: 0.75rem 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        .bracket-team:first-child { border-bottom: 1px solid #334155; }
+        .bracket-team .team-name {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 180px;
+        }
+        .bracket-team .team-rank {
+            font-size: 0.7rem;
+            color: #64748b;
+            background: rgba(0,0,0,0.3);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        .bracket-btn-container {
+            margin-top: 2rem;
+            text-align: center;
+        }
+        .preview-badge {
+            background: #f59e0b;
+            color: #000;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            display: inline-block;
+        }
+
     </style>
 </head>
 <body>
@@ -234,6 +310,8 @@ $pageTitle = 'Painel do Operador';
     <!-- Schedule Modal Removed -->
 
 <script>
+const EVENT_ID = <?php echo $activeEventId; ?>;
+
 // Global Utilities
 const cleanName = (name) => {
     if (!name) return 'A definir';
@@ -327,12 +405,21 @@ function switchPhase(key, direction) {
     );
     
     const currentIndex = availablePhases.indexOf(currentPhase);
-    if (currentIndex === -1) return; 
-    
     const newIndex = currentIndex + direction;
-    if (newIndex < 0 || newIndex >= availablePhases.length) return;
+
+    // Smart Arrow: Allow moving to the next phase if the current one is complete
+    const isCurrentComplete = categoryMatches.length > 0 && 
+                               categoryMatches.filter(m => m.phase === currentPhase).every(m => m.status === 'finished');
+
+    if (newIndex >= availablePhases.length && isCurrentComplete && currentIndex < PHASE_ORDER.length - 1) {
+        // Move to the next logical phase even if matches don't exist yet
+        state.phase[key] = PHASE_ORDER[currentIndex + 1];
+    } else if (newIndex >= 0 && newIndex < availablePhases.length) {
+        state.phase[key] = availablePhases[newIndex];
+    } else {
+        return;
+    }
     
-    state.phase[key] = availablePhases[newIndex];
     saveState();
     render();
 }
@@ -351,6 +438,22 @@ function render() {
     
     if (allMatches.length === 0) {
         container.innerHTML = '<p style="text-align:center; color: #64748b; padding-top: 5rem;">Nenhum jogo encontrado.</p>';
+        return;
+    }
+
+    // Check if we are in PREVIEW mode
+    const [currCatId, currGender] = (state.category[state.modality] || '0_M').split('_');
+    const currCatKey = state.category[state.modality];
+    const currPhase = state.phase[currCatKey] || 'group_stage';
+    const phaseMatches = allMatches.filter(m => 
+        m.modality_id == state.modality && 
+        m.category_id == currCatId && 
+        (m.team_gender || 'M') == currGender && 
+        m.phase === currPhase
+    );
+
+    if (phaseMatches.length === 0 && currPhase !== 'group_stage') {
+        renderBracketPreview(container, currCatId, currGender, currPhase);
         return;
     }
 
@@ -683,6 +786,111 @@ function copySumula() {
     navigator.clipboard.writeText(text).then(() => {
         alert('Súmula copiada para a área de transferência!');
     });
+}
+
+async function renderBracketPreview(container, catId, gender, phase) {
+    container.innerHTML = `
+        <div style="text-align:center; padding: 3rem;">
+            <div class="preview-badge">✨ PRÉ-VISUALIZAÇÃO</div>
+            <h2 style="color: #10b981; margin-bottom: 0.5rem;">${PHASE_NAMES[phase]}</h2>
+            <p style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 2rem;">Os jogos ainda não foram gerados. Confira o chaveamento baseado na classificação atual:</p>
+            <div id="bracketLoading" class="bracket-container">Calculando classificação...</div>
+            <div id="bracketActions" style="display:none;" class="bracket-btn-container">
+                <button onclick="generateKnockout('${phase}')" class="btn btn-primary" style="padding: 1rem 2rem; font-size: 1rem; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3);">
+                    ⚡ Confirmar e Gerar Jogos
+                </button>
+            </div>
+        </div>
+    `;
+
+    try {
+        const res = await fetch(`../api/standings-api.php?action=group_standings&event_id=${EVENT_ID}&modality_id=${state.modality}&category_id=${catId}&gender=${gender}`);
+        const result = await res.json();
+        const standings = result.data;
+        
+        const bracketDiv = document.getElementById('bracketLoading');
+        bracketDiv.innerHTML = '';
+        bracketDiv.className = 'bracket-container';
+
+        // Prepare matchups logic (1A vs 2B, 1B vs 2A, etc.)
+        const groups = Object.keys(standings).sort();
+        const matches = [];
+
+        for(let i=0; i < groups.length; i++) {
+            const groupA = groups[i];
+            const groupB = groups[(i + 1) % groups.length];
+            
+            const firstA = (standings[groupA] || []).find(t => t.position === 1);
+            const secondB = (standings[groupB] || []).find(t => t.position === 2);
+
+            if (firstA && secondB) {
+                matches.push({ a: firstA, b: secondB, label: `1º ${groupA} vs 2º ${groupB}` });
+            }
+        }
+
+        if (matches.length === 0) {
+            bracketDiv.innerHTML = '<p style="color: #ef4444;">Não há times suficientes classificados para gerar esta fase.</p>';
+            return;
+        }
+
+        const column = document.createElement('div');
+        column.className = 'bracket-column';
+        
+        matches.forEach(m => {
+            const matchDiv = document.createElement('div');
+            matchDiv.className = 'bracket-match';
+            matchDiv.innerHTML = `
+                <div style="padding: 4px 10px; font-size: 0.6rem; color: #64748b; background: rgba(0,0,0,0.2); border-bottom: 1px solid #334155;">${m.label}</div>
+                <div class="bracket-team">
+                    <span class="team-name">${cleanName(m.a.team_name)}</span>
+                    <span class="team-rank">1º ${m.a.group}</span>
+                </div>
+                <div class="bracket-team">
+                    <span class="team-name">${cleanName(m.b.team_name)}</span>
+                    <span class="team-rank">2º ${m.b.group}</span>
+                </div>
+            `;
+            column.appendChild(matchDiv);
+        });
+
+        bracketDiv.appendChild(column);
+        document.getElementById('bracketActions').style.display = 'block';
+
+    } catch(e) {
+        console.error(e);
+        document.getElementById('bracketLoading').innerHTML = '<p style="color: #ef4444;">Erro ao calcular o chaveamento.</p>';
+    }
+}
+
+async function generateKnockout(phase) {
+    if (!confirm(`Deseja gerar os jogos para ${PHASE_NAMES[phase]}?`)) return;
+
+    const [catId, gender] = (state.category[state.modality] || '0_M').split('_');
+
+    try {
+        const res = await fetch('../api/generate-knockout-api.php', {
+            method: 'POST',
+            body: JSON.stringify({
+                event_id: EVENT_ID,
+                modality_id: state.modality,
+                category_id: catId,
+                gender: gender,
+                phase: phase
+            })
+        });
+
+        const result = await res.json();
+        if (result.success) {
+            alert(result.message);
+            // Reload EVERYTHING
+            loadMatches(); 
+        } else {
+            alert('Erro: ' + result.error);
+        }
+    } catch(e) {
+        console.error(e);
+        alert('Erro ao processar solicitação.');
+    }
 }
 
 loadMatches();
