@@ -1,37 +1,31 @@
 <?php
 require_once 'includes/db.php';
 
-echo "MODALITIES:\n";
-$modalities = query("SELECT id, name FROM modalities");
-foreach ($modalities as $m) echo "{$m['id']}: {$m['name']}\n";
+$res = [];
 
-echo "\nCATEGORIES:\n";
-$categories = query("SELECT id, name FROM categories");
-foreach ($categories as $c) echo "{$c['id']}: {$c['name']}\n";
+$res['modalities'] = query("SELECT id, name FROM modalities");
+$res['categories'] = query("SELECT id, name FROM categories");
+$res['event'] = queryOne("SELECT id, name FROM competition_events WHERE active_flag = 1");
 
-echo "\nACTIVE EVENT:\n";
-$event = queryOne("SELECT id, name FROM competition_events WHERE active_flag = 1");
-if ($event) echo "{$event['id']}: {$event['name']}\n";
-
-if ($event) {
-    echo "\nMATCHES FOR FRALDINHA FEM (Assuming Category 1, Modality 2 - adjust if needed):\n";
-    // I will try to find the category ID for 'Fraldinha' and modality for 'Society'
-    $fraldinhaId = 0;
-    foreach ($categories as $c) if (stripos($c['name'], 'Fraldinha') !== false) $fraldinhaId = $c['id'];
+if ($res['event']) {
+    $eventId = $res['event']['id'];
+    $res['matches_summary'] = query("
+        SELECT m.modality_id, m.category_id, mod.name as mod_name, cat.name as cat_name, m.phase, m.status, count(*) as cnt
+        FROM matches m
+        JOIN modalities mod ON m.modality_id = mod.id
+        JOIN categories cat ON m.category_id = cat.id
+        WHERE m.competition_event_id = ?
+        GROUP BY m.modality_id, m.category_id, m.phase, m.status
+    ", [$eventId]);
     
-    $societyId = 0;
-    foreach ($modalities as $m) if (stripos($m['name'], 'Society') !== false) $societyId = $m['id'];
-    
-    echo "Fraldinha ID: $fraldinhaId, Society ID: $societyId\n";
-    
-    if ($fraldinhaId && $societyId) {
-        $matches = query("SELECT id, team_a_id, team_b_id, score_team_a, score_team_b, status, phase 
-                          FROM matches 
-                          WHERE competition_event_id = ? AND modality_id = ? AND category_id = ?
-                          ORDER BY phase, scheduled_time", [$event['id'], $societyId, $fraldinhaId]);
-        
-        foreach ($matches as $m) {
-            echo "ID: {$m['id']} | {$m['phase']} | TeamA: {$m['team_a_id']} vs TeamB: {$m['team_b_id']} | Score: {$m['score_team_a']}x{$m['score_team_b']} | Status: {$m['status']}\n";
-        }
-    }
+    // Check for Fraldinha Fem specifically
+    $res['fraldinha_fem_teams'] = query("
+        SELECT id, school_name_snapshot, group_name, gender 
+        FROM competition_teams 
+        WHERE category_id IN (SELECT id FROM categories WHERE name LIKE '%Fraldinha%')
+        AND gender = 'F'
+    ");
 }
+
+header('Content-Type: application/json');
+echo json_encode($res, JSON_PRETTY_PRINT);
