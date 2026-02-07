@@ -49,6 +49,11 @@ if (!$event) {
         .card { background: #1e293b; padding: 1.5rem; border-radius: 16px; border: 1px solid #334155; }
         .card:hover { transform: translateY(-4px); border-color: #10b981; transition: all 0.2s; }
         
+        /* Female Card Styles */
+        .card.fem { border-color: rgba(236, 72, 153, 0.3); }
+        .card.fem:hover { border-color: #ec4899; box-shadow: 0 0 15px rgba(236, 72, 153, 0.15); }
+        .card.fem .modality-label { color: #f472b6 !important; }
+        
         .card-header { display: flex; justify-content: space-between; margin-bottom: 1rem; font-size: 0.85rem; color: #94a3b8; }
         .badge { padding: 2px 8px; border-radius: 4px; font-weight: 600; font-size: 0.75rem; }
         .badge-live { background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid #ef4444; }
@@ -453,16 +458,17 @@ if (!$event) {
                         }
                     }
                     
-                    const genderLabel = m.team_gender === 'F' ? '♀️ Fem' : '♂️ Masc';
-                    const genderColor = m.team_gender === 'F' ? '#ec4899' : '#10b981';
+                    const isFem = m.team_gender === 'F';
+                    const genderLabel = isFem ? '♀️ Fem' : '♂️ Masc';
+                    const genderColor = isFem ? '#ec4899' : '#10b981';
 
-                    html += '<div class="card">';
+                    html += `<div class="card ${isFem ? 'fem' : ''}">`;
                     html += `<div class="card-header">`;
                     html += `<span>📅 ${time.toLocaleDateString('pt-BR')} ${time.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'})}</span>`;
                     html += `<span class="badge" style="background:${genderColor}20; color:${genderColor}; border:1px solid ${genderColor}40">${genderLabel}</span>`;
                     html += `<span class="badge badge-${status}">${statusText}</span>`;
                     html += `</div>`;
-                    html += `<div style="font-size:0.75rem;color:#10b981;font-weight:800;margin-bottom:0.5rem">${m.modality_name}${m.group_name ? ' • Grupo ' + m.group_name : ''}</div>`;
+                    html += `<div class="modality-label" style="font-size:0.75rem;color:#10b981;font-weight:800;margin-bottom:0.5rem">${m.modality_name}${m.group_name ? ' • Grupo ' + m.group_name : ''}</div>`;
                     html += '<div class="teams">';
                     html += `<div class="team"><span style="${teamAStyle}">${teamA}</span>${status !== 'scheduled' ? '<span>'+m.score_team_a+'</span>' : ''}</div>`;
                     html += '<div class="vs">VS</div>';

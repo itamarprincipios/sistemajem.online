@@ -31,6 +31,11 @@ $pageTitle = 'Painel do Operador';
         .match-card { background: #1e293b; padding: 1.5rem; border-radius: 16px; border: 1px solid #334155; transition: transform 0.2s, border-color 0.2s; position: relative; }
         .match-card:hover { transform: translateY(-4px); border-color: #10b981; }
         
+        /* Female Card Styles */
+        .match-card.fem { border-color: rgba(236, 72, 153, 0.3); }
+        .match-card.fem:hover { border-color: #ec4899; box-shadow: 0 0 15px rgba(236, 72, 153, 0.15); }
+        .match-card.fem .modality-label { color: #f472b6 !important; }
+        
         .match-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; font-size: 0.85rem; color: #94a3b8; }
         .status-badge { padding: 2px 8px; border-radius: 4px; font-weight: 600; font-size: 0.75rem; text-transform: uppercase; }
         .status-live { background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid #ef4444; animation: pulse 2s infinite; }
@@ -327,11 +332,12 @@ function renderPhaseContent(key) {
         const isLive = m.status === 'live';
         const isFinished = m.status === 'finished';
         const time = new Date(m.scheduled_time);
-        const genderLabel = m.team_gender === 'F' ? '♀️ Fem' : '♂️ Masc';
-        const genderColor = m.team_gender === 'F' ? '#ec4899' : '#10b981';
+        const isFem = m.team_gender === 'F';
+        const genderLabel = isFem ? '♀️ Fem' : '♂️ Masc';
+        const genderColor = isFem ? '#ec4899' : '#10b981';
 
         const card = document.createElement('div');
-        card.className = 'match-card';
+        card.className = `match-card ${isFem ? 'fem' : ''}`;
         card.innerHTML = `
             <div class="match-header">
                 <span>📅 ${time.toLocaleDateString('pt-BR')} às ${time.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})}</span>
@@ -340,7 +346,7 @@ function renderPhaseContent(key) {
                     ${isLive ? 'Ao Vivo' : (isFinished ? 'Encerrado' : 'Agendado')}
                 </span>
             </div>
-            <div style="margin-bottom: 0.5rem; font-size: 0.75rem; color: #10b981; font-weight: 800;">
+            <div class="modality-label" style="margin-bottom: 0.5rem; font-size: 0.75rem; color: #10b981; font-weight: 800;">
                 ${m.modality_name}${m.group_name ? ' • Grupo ' + m.group_name : ''}
             </div>
             <div class="match-teams">
