@@ -383,3 +383,42 @@ function generateFinal($eventId, $modalityId, $categoryId, $gender, $baseDateTim
     
     return 1;
 }
+
+/**
+ * Generate 3rd Place match from Semifinal losers
+ */
+function generateThirdPlace($eventId, $modalityId, $categoryId, $gender, $baseDateTime, $venue) {
+    $sfMatches = query("SELECT m.id, m.team_a_id, m.team_b_id, m.winner_team_id 
+                        FROM matches m
+                        JOIN competition_teams t ON m.team_a_id = t.id
+                        WHERE m.competition_event_id = ? 
+                        AND m.modality_id = ? 
+                        AND m.category_id = ? 
+                        AND m.phase = 'semi_final' 
+                        AND m.status = 'finished'
+                        AND t.gender = ?
+                        ORDER BY m.scheduled_time ASC", 
+                       [$eventId, $modalityId, $categoryId, $gender]);
+    
+    if (count($sfMatches) < 2) {
+        throw new Exception("Semifinais não concluídas para este gênero.");
+    }
+    
+    // Loser is the one that is NOT the winner
+    $teamA = ($sfMatches[0]['winner_team_id'] == $sfMatches[0]['team_a_id']) ? $sfMatches[0]['team_b_id'] : $sfMatches[0]['team_a_id'];
+    $teamB = ($sfMatches[1]['winner_team_id'] == $sfMatches[1]['team_a_id']) ? $sfMatches[1]['team_b_id'] : $sfMatches[1]['team_a_id'];
+    
+    if (!$teamA || !$teamB) {
+        throw new Exception("Perdedores das Semifinais ainda não definidos");
+    }
+    
+    execute("INSERT INTO matches (
+        competition_event_id, modality_id, category_id, phase,
+        team_a_id, team_b_id, venue, scheduled_time, status
+    ) VALUES (?, ?, ?, 'third_place', ?, ?, ?, ?, 'scheduled')", [
+        $eventId, $modalityId, $categoryId,
+        $teamA, $teamB, $venue, $baseDateTime
+    ]);
+    
+    return 1;
+}

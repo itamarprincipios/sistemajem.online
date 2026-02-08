@@ -51,6 +51,9 @@ try {
         case 'final':
             $count = generateFinal($eventId, $modalityId, $categoryId, $gender, $baseTime, $venue);
             break;
+        case 'third_place':
+            $count = generateThirdPlace($eventId, $modalityId, $categoryId, $gender, $baseTime, $venue);
+            break;
         default:
             throw new Exception('Invalid phase for generation');
     }
