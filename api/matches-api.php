@@ -42,7 +42,9 @@ try {
                     LEFT JOIN modalities mdl ON m.modality_id = mdl.id
                     LEFT JOIN categories cat ON m.category_id = cat.id
                     LEFT JOIN competition_events ce ON m.competition_event_id = ce.id
+                    WHERE m.secretaria_id = ?
                 ";
+                $params[] = CURRENT_TENANT_ID;
 
                 if (isset($_GET['event_id']) && $_GET['event_id']) {
                     $ids = explode(',', $_GET['event_id']);
@@ -76,7 +78,7 @@ try {
                 }
 
                 if (!empty($filters)) {
-                    $sql .= " WHERE " . implode(" AND ", $filters);
+                    $sql .= " AND " . implode(" AND ", $filters);
                 }
 
                 $sql .= " ORDER BY m.scheduled_time ASC, m.id ASC";
@@ -317,15 +319,16 @@ try {
                             for ($j = $i + 1; $j < count($groupTeams); $j++) {
                                 execute("
                                     INSERT INTO matches 
-                                    (competition_event_id, modality_id, category_id, team_a_id, team_b_id, phase, scheduled_time, status)
-                                    VALUES (?, ?, ?, ?, ?, 'group_stage', ?, 'scheduled')
+                                    (competition_event_id, modality_id, category_id, team_a_id, team_b_id, phase, scheduled_time, status, secretaria_id)
+                                    VALUES (?, ?, ?, ?, ?, 'group_stage', ?, 'scheduled', ?)
                                 ", [
                                     $eventId,
                                     $modalityId,
                                     $catId,
                                     $groupTeams[$i]['id'],
                                     $groupTeams[$j]['id'],
-                                    date('Y-m-d H:i:s', strtotime('+1 day 08:00:00'))
+                                    date('Y-m-d H:i:s', strtotime('+1 day 08:00:00')),
+                                    CURRENT_TENANT_ID
                                 ]);
                                 $matchesGenerated++;
                             }
@@ -418,15 +421,16 @@ try {
                         for ($j = $i + 1; $j < count($groupTeams); $j++) {
                             execute("
                                 INSERT INTO matches 
-                                (competition_event_id, modality_id, category_id, team_a_id, team_b_id, phase, scheduled_time, status)
-                                VALUES (?, ?, ?, ?, ?, 'group_stage', ?, 'scheduled')
+                                (competition_event_id, modality_id, category_id, team_a_id, team_b_id, phase, scheduled_time, status, secretaria_id)
+                                VALUES (?, ?, ?, ?, ?, 'group_stage', ?, 'scheduled', ?)
                             ", [
                                 $eventId,
                                 $modalityId,
                                 $categoryId,
                                 $groupTeams[$i]['id'],
                                 $groupTeams[$j]['id'],
-                                date('Y-m-d H:i:s', strtotime('+1 day 08:00:00'))
+                                date('Y-m-d H:i:s', strtotime('+1 day 08:00:00')),
+                                CURRENT_TENANT_ID
                             ]);
                             $matchesGenerated++;
                         }
@@ -486,14 +490,14 @@ try {
                             
                             $sqlInsert = "
                                 INSERT INTO matches 
-                                (competition_event_id, modality_id, category_id, team_a_id, team_b_id, phase, scheduled_time, status)
-                                VALUES (?, ?, ?, ?, ?, 'group_stage', ?, 'scheduled')
+                                (competition_event_id, modality_id, category_id, team_a_id, team_b_id, phase, scheduled_time, status, secretaria_id)
+                                VALUES (?, ?, ?, ?, ?, 'group_stage', ?, 'scheduled', ?)
                             ";
                             
                             // Default time: Tomorrow 8am (Placeholder)
                             $defaultTime = date('Y-m-d H:i:s', strtotime('+1 day 08:00:00'));
                             
-                            execute($sqlInsert, [$eventId, $modalityId, $categoryId, $teamA['id'], $teamB['id'], $defaultTime]);
+                            execute($sqlInsert, [$eventId, $modalityId, $categoryId, $teamA['id'], $teamB['id'], $defaultTime, CURRENT_TENANT_ID]);
                             $generatedCount++;
                         }
                     }
@@ -538,11 +542,11 @@ try {
                                 
                                 $sqlInsert = "
                                     INSERT INTO matches 
-                                    (competition_event_id, modality_id, category_id, team_a_id, team_b_id, phase, scheduled_time, status)
-                                    VALUES (?, ?, ?, ?, ?, 'group_stage', ?, 'scheduled')
+                                    (competition_event_id, modality_id, category_id, team_a_id, team_b_id, phase, scheduled_time, status, secretaria_id)
+                                    VALUES (?, ?, ?, ?, ?, 'group_stage', ?, 'scheduled', ?)
                                 ";
                                 $defaultTime = date('Y-m-d H:i:s', strtotime('+1 day 08:00:00'));
-                                execute($sqlInsert, [$eventId, $modalityId, $categoryId, $teamA['id'], $teamB['id'], $defaultTime]);
+                                execute($sqlInsert, [$eventId, $modalityId, $categoryId, $teamA['id'], $teamB['id'], $defaultTime, CURRENT_TENANT_ID]);
                                 $generatedCount++;
                             }
                         }
