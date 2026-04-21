@@ -42,16 +42,29 @@ try {
                 throw new Exception('Este slug já está em uso por outra secretaria.');
             }
             
-            $sql = "INSERT INTO secretarias (nome, slug, email) VALUES (?, ?, ?)";
-            
-            if (execute($sql, [
-                $data['nome'],
-                $data['slug'],
-                $data['email'] ?? null
-            ])) {
-                echo json_encode(['success' => true, 'id' => lastInsertId()]);
-            } else {
-                throw new Exception('Erro ao criar secretaria');
+            $pdo = getConnection();
+            $pdo->beginTransaction();
+
+            try {
+                // 1. Criar a Secretaria
+                $sqlSec = "INSERT INTO secretarias (nome, slug, email) VALUES (?, ?, ?)";
+                $stmtSec = $pdo->prepare($sqlSec);
+                $stmtSec->execute([$data['nome'], $data['slug'], $data['email']]);
+                $secretariaId = $pdo->lastInsertId();
+
+                // 2. Criar o Usuário Administrador
+                if (!empty($data['password'])) {
+                    $hashedPassword = password_hash($data['password'], PASSWORD_BCRYPT);
+                    $sqlUser = "INSERT INTO users (secretaria_id, name, email, password, role, is_active) VALUES (?, ?, ?, ?, 'admin', 1)";
+                    $stmtUser = $pdo->prepare($sqlUser);
+                    $stmtUser->execute([$secretariaId, 'Admin ' . $data['nome'], $data['email'], $hashedPassword]);
+                }
+
+                $pdo->commit();
+                echo json_encode(['success' => true, 'id' => $secretariaId]);
+            } catch (Exception $e) {
+                $pdo->rollBack();
+                throw $e;
             }
             break;
             
@@ -64,18 +77,41 @@ try {
                 throw new Exception('Este slug já está em uso por outra secretaria.');
             }
             
-            $sql = "UPDATE secretarias SET nome = ?, slug = ?, email = ?, is_active = ? WHERE id = ?";
-            
-            if (execute($sql, [
-                $data['nome'],
-                $data['slug'],
-                $data['email'] ?? null,
-                $data['is_active'] ? 1 : 0,
-                $data['id']
-            ])) {
+            $pdo = getConnection();
+            $pdo->beginTransaction();
+
+            try {
+                // 1. Atualizar a Secretaria
+                $sqlSec = "UPDATE secretarias SET nome = ?, slug = ?, email = ?, is_active = ? WHERE id = ?";
+                $stmtSec = $pdo->prepare($sqlSec);
+                $stmtSec->execute([
+                    $data['nome'],
+                    $data['slug'],
+                    $data['email'] ?? null,
+                    $data['is_active'] ? 1 : 0,
+                    $data['id']
+                ]);
+
+                // 2. Atualizar Senha do Administrador (se fornecida)
+                if (!empty($data['password'])) {
+                    $hashedPassword = password_hash($data['password'], PASSWORD_BCRYPT);
+                    // Procura o admin vinculado a este e-mail nesta secretaria
+                    $adminExists = queryOne("SELECT id FROM users WHERE secretaria_id = ? AND role = 'admin'", [$data['id']]);
+                    
+                    if ($adminExists) {
+                        execute("UPDATE users SET password = ?, email = ? WHERE id = ?", [$hashedPassword, $data['email'], $adminExists['id']]);
+                    } else {
+                        // Se não existir (caso bizarro), cria um novo
+                        execute("INSERT INTO users (secretaria_id, name, email, password, role, is_active) VALUES (?, ?, ?, ?, 'admin', 1)", 
+                            [$data['id'], 'Admin ' . $data['nome'], $data['email'], $hashedPassword]);
+                    }
+                }
+
+                $pdo->commit();
                 echo json_encode(['success' => true]);
-            } else {
-                throw new Exception('Erro ao atualizar secretaria');
+            } catch (Exception $e) {
+                $pdo->rollBack();
+                throw $e;
             }
             break;
             

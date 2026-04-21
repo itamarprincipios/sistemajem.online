@@ -69,8 +69,13 @@ include '../includes/sidebar.php';
                 </div>
                 
                 <div class="form-group">
-                    <label class="form-label">Email de Contato</label>
-                    <input type="email" id="email" class="form-input">
+                    <label class="form-label">Email de Contato (Login do Admin) *</label>
+                    <input type="email" id="email" class="form-input" required placeholder="admin@cidade.com">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Senha do Administrador <span id="pwdLabel">(Obrigatória no cadastro)</span></label>
+                    <input type="password" id="password" class="form-input" placeholder="••••••••">
                 </div>
 
                 <div class="form-group" id="statusGroup" style="display: none;">
@@ -132,11 +137,13 @@ function openModal(id = null) {
     if (id) {
         document.getElementById('modalTitle').textContent = 'Editar Secretaria';
         document.getElementById('statusGroup').style.display = 'block';
+        document.getElementById('pwdLabel').textContent = '(Deixe em branco para não alterar)';
         loadSecretaria(id);
     } else {
         document.getElementById('modalTitle').textContent = 'Nova Secretaria';
         document.getElementById('secretariaId').value = '';
         document.getElementById('statusGroup').style.display = 'none';
+        document.getElementById('pwdLabel').textContent = '(Obrigatória)';
     }
     
     modal.classList.add('active');
@@ -165,11 +172,19 @@ function editSecretaria(id) {
 
 async function saveSecretaria() {
     const id = document.getElementById('secretariaId').value;
+    const password = document.getElementById('password').value;
+
+    if (!id && !password) {
+        Toast.error('A senha é obrigatória para novas secretarias');
+        return;
+    }
+
     const data = {
         id: id || undefined,
         nome: document.getElementById('nome').value,
         slug: document.getElementById('slug').value,
         email: document.getElementById('email').value,
+        password: password || undefined,
         is_active: document.getElementById('is_active').value == "1"
     };
     
