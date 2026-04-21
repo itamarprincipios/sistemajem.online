@@ -18,20 +18,14 @@ function login($email, $password) {
         $hasTenantContext = defined('CURRENT_TENANT_ID');
 
         // REGRA DE SEGURANÇA:
-        // 1. Se estivermos em uma URL de secretaria (ex: /boavista/):
-        //    O usuário deve ser Super Admin OU pertencer a essa secretaria.
+        // Se estivermos em uma URL de secretaria (ex: /boavista/):
+        // O usuário deve ser Super Admin OU pertencer a essa secretaria.
         if ($hasTenantContext) {
             if (!$isSuperAdmin && $user['secretaria_id'] != CURRENT_TENANT_ID) {
                 return false; // Usuário não pertence a esta secretaria
             }
         } 
-        // 2. Se estivermos na URL raiz (sem secretaria na URL):
-        //    APENAS Super Admins podem logar.
-        else {
-            if (!$isSuperAdmin) {
-                return false; // Admins de secretaria não podem logar na raiz global
-            }
-        }
+        // Se estiver na raiz, permitimos o login de todos (o redirecionamento tratará o destino)
 
         // Set session variables
         $_SESSION['user_id'] = $user['id'];
@@ -220,19 +214,30 @@ function cpfExists($cpf, $excludeUserId = null) {
 }
 
 /**
- * Get redirect URL based on role
+ * Get redirect URL based on role and tenant
  */
 function getRedirectUrl($role) {
+    $secretariaId = $_SESSION['secretaria_id'] ?? null;
+    $slug = '';
+
+    // Se o usuário pertence a uma secretaria, buscar o slug dela
+    if ($secretariaId) {
+        $secretaria = queryOne("SELECT slug FROM secretarias WHERE id = ?", [$secretariaId]);
+        if ($secretaria) {
+            $slug = '/' . $secretaria['slug'];
+        }
+    }
+
     switch ($role) {
         case 'super_admin':
             return SITE_URL . '/superadmin/';
         case 'admin':
-            return SITE_URL . '/admin/dashboard.php';
+            return SITE_URL . $slug . '/admin/dashboard.php';
         case 'professor':
-            return SITE_URL . '/professor/dashboard.php';
+            return SITE_URL . $slug . '/professor/dashboard.php';
         case 'operator':
-            return SITE_URL . '/operator/dashboard.php';
+            return SITE_URL . $slug . '/operator/dashboard.php';
         default:
-            return SITE_URL . '/index.php';
+            return SITE_URL . $slug . '/index.php';
     }
 }
