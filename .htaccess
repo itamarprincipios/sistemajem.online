@@ -6,6 +6,13 @@ RewriteCond %{REQUEST_FILENAME} -f [OR]
 RewriteCond %{REQUEST_FILENAME} -d
 RewriteRule ^ - [L]
 
-# Capturar o tenant (primeiro segmento) e passar para os scripts
-# Exemplo: /boavista/admin/index.php -> admin/index.php?tenant=boavista
+# Se a URL começar com /admin/, /superadmin/, /assets/ etc, não aplica a regra de tenant
+RewriteRule ^(admin|superadmin|assets|includes|api|config|database|professor|operator|uploads)/ - [L]
+
+# Capturar o tenant (primeiro segmento) e passar para o index.php da raiz
+# Exemplo: /boavista/ -> index.php?tenant=boavista
+RewriteRule ^([a-zA-Z0-9_-]+)/?$ index.php?tenant=$1 [QSA,L]
+
+# Capturar tenant e arquivo interno
+# Exemplo: /boavista/contato.php -> contato.php?tenant=boavista
 RewriteRule ^([a-zA-Z0-9_-]+)/(.*)$ $2?tenant=$1 [QSA,L]
