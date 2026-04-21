@@ -10,17 +10,26 @@ require_once __DIR__ . '/db.php';
  * Login user
  */
 function login($email, $password) {
-    // Se estivermos em um contexto de secretaria, filtrar por ela
-    $params = [$email];
-    $sql = "SELECT * FROM users WHERE email = ? AND is_active = 1";
-    
-    $user = queryOne($sql, $params);
+    // Busca o usuário apenas pelo e-mail
+    $user = queryOne("SELECT * FROM users WHERE email = ? AND is_active = 1", [$email]);
     
     if ($user && password_verify($password, $user['password'])) {
-        // Verificar se o usuário pertence a esta secretaria ou se é super_admin
-        if ($user['role'] !== 'super_admin' && defined('CURRENT_TENANT_ID')) {
-            if ($user['secretaria_id'] != CURRENT_TENANT_ID) {
+        $isSuperAdmin = ($user['role'] === 'super_admin');
+        $hasTenantContext = defined('CURRENT_TENANT_ID');
+
+        // REGRA DE SEGURANÇA:
+        // 1. Se estivermos em uma URL de secretaria (ex: /boavista/):
+        //    O usuário deve ser Super Admin OU pertencer a essa secretaria.
+        if ($hasTenantContext) {
+            if (!$isSuperAdmin && $user['secretaria_id'] != CURRENT_TENANT_ID) {
                 return false; // Usuário não pertence a esta secretaria
+            }
+        } 
+        // 2. Se estivermos na URL raiz (sem secretaria na URL):
+        //    APENAS Super Admins podem logar.
+        else {
+            if (!$isSuperAdmin) {
+                return false; // Admins de secretaria não podem logar na raiz global
             }
         }
 
