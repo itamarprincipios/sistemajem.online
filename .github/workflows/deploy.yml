@@ -19,13 +19,13 @@ jobs:
         server: ${{ secrets.FTP_SERVER }}
         username: ${{ secrets.FTP_USERNAME }}
         password: ${{ secrets.FTP_PASSWORD }}
-        server-dir: jgsescolares.online/
+        server-dir: public_html/
         # Arquivos que NÃO devem ser enviados
         exclude: |
           **/.git*
           **/.git*/**
           **/node_modules/**
-          config/config.php
+          # config/config.php (Removido da exclusão para aplicar Micro-SaaS)
           config/config.production.php
           jem_deploy.zip
           test.php
