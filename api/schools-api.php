@@ -23,12 +23,13 @@ try {
                 $limit = ITEMS_PER_PAGE;
                 $offset = ($page - 1) * $limit;
                 
-                $where = '';
-                $params = [];
+                $where = "WHERE secretaria_id = ?";
+                $params = [CURRENT_TENANT_ID];
                 
                 if ($search) {
-                    $where = "WHERE name LIKE ? OR municipality LIKE ?";
-                    $params = ["%$search%", "%$search%"];
+                    $where .= " AND (name LIKE ? OR municipality LIKE ?)";
+                    $params[] = "%$search%";
+                    $params[] = "%$search%";
                 }
                 
                 $total = queryOne("SELECT COUNT(*) as count FROM schools $where", $params)['count'];
@@ -42,10 +43,10 @@ try {
                     'pages' => ceil($total / $limit)
                 ]);
             } elseif ($action === 'get' && isset($_GET['id'])) {
-                $school = queryOne("SELECT * FROM schools WHERE id = ?", [$_GET['id']]);
+                $school = queryOne("SELECT * FROM schools WHERE id = ? AND secretaria_id = ?", [$_GET['id'], CURRENT_TENANT_ID]);
                 echo json_encode(['success' => true, 'data' => $school]);
             } else {
-                $schools = query("SELECT * FROM schools ORDER BY name");
+                $schools = query("SELECT * FROM schools WHERE secretaria_id = ? ORDER BY name", [CURRENT_TENANT_ID]);
                 echo json_encode(['success' => true, 'data' => $schools]);
             }
             break;
@@ -53,10 +54,11 @@ try {
         case 'POST':
             $data = json_decode(file_get_contents('php://input'), true);
             
-            $sql = "INSERT INTO schools (name, municipality, address, phone, email, director, coordinator) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?)";
+            $sql = "INSERT INTO schools (secretaria_id, name, municipality, address, phone, email, director, coordinator) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
             
             if (execute($sql, [
+                CURRENT_TENANT_ID,
                 $data['name'],
                 $data['municipality'],
                 $data['address'] ?? null,
@@ -77,7 +79,7 @@ try {
             $sql = "UPDATE schools SET 
                     name = ?, municipality = ?, address = ?, phone = ?, 
                     email = ?, director = ?, coordinator = ?
-                    WHERE id = ?";
+                    WHERE id = ? AND secretaria_id = ?";
             
             if (execute($sql, [
                 $data['name'],
@@ -87,7 +89,8 @@ try {
                 $data['email'] ?? null,
                 $data['director'] ?? null,
                 $data['coordinator'] ?? null,
-                $data['id']
+                $data['id'],
+                CURRENT_TENANT_ID
             ])) {
                 echo json_encode(['success' => true]);
             } else {
@@ -105,15 +108,15 @@ try {
             
             if (!$force) {
                 // Check if school has students or users
-                $hasStudents = queryOne("SELECT COUNT(*) as count FROM students WHERE school_id = ?", [$id])['count'];
-                $hasUsers = queryOne("SELECT COUNT(*) as count FROM users WHERE school_id = ?", [$id])['count'];
+                $hasStudents = queryOne("SELECT COUNT(*) as count FROM students WHERE school_id = ? AND secretaria_id = ?", [$id, CURRENT_TENANT_ID])['count'];
+                $hasUsers = queryOne("SELECT COUNT(*) as count FROM users WHERE school_id = ? AND secretaria_id = ?", [$id, CURRENT_TENANT_ID])['count'];
                 
                 if ($hasStudents > 0 || $hasUsers > 0) {
                     throw new Exception('DEPENDENCY_ERROR: Esta escola possui alunos ou professores vinculados');
                 }
             }
             
-            if (execute("DELETE FROM schools WHERE id = ?", [$id])) {
+            if (execute("DELETE FROM schools WHERE id = ? AND secretaria_id = ?", [$id, CURRENT_TENANT_ID])) {
                 echo json_encode(['success' => true]);
             } else {
                 throw new Exception('Erro ao excluir escola');

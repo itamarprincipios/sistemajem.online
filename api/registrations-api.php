@@ -33,6 +33,7 @@ try {
                     JOIN modalities m ON r.modality_id = m.id
                     JOIN categories c ON r.category_id = c.id
                     LEFT JOIN users u ON r.created_by_user_id = u.id
+                    WHERE r.secretaria_id = ?
                     ORDER BY 
                         CASE r.status 
                             WHEN 'pending' THEN 1 
@@ -40,7 +41,7 @@ try {
                             WHEN 'rejected' THEN 3 
                         END,
                         r.created_at DESC
-                ");
+                ", [CURRENT_TENANT_ID]);
                 
                 echo json_encode(['success' => true, 'data' => $registrations]);
                 
@@ -66,8 +67,8 @@ try {
                     JOIN modalities m ON r.modality_id = m.id
                     JOIN categories c ON r.category_id = c.id
                     LEFT JOIN users u ON r.created_by_user_id = u.id
-                    WHERE r.id = ?
-                ", [$id]);
+                    WHERE r.id = ? AND r.secretaria_id = ?
+                ", [$id, CURRENT_TENANT_ID]);
                 
                 if (!$registration) {
                     throw new Exception('Inscrição não encontrada');
@@ -112,9 +113,9 @@ try {
                 throw new Exception('Motivo da rejeição é obrigatório');
             }
             
-            $sql = "UPDATE registrations SET status = ?, rejection_reason = ? WHERE id = ?";
+            $sql = "UPDATE registrations SET status = ?, rejection_reason = ? WHERE id = ? AND secretaria_id = ?";
             
-            if (execute($sql, [$status, $rejectionReason, $id])) {
+            if (execute($sql, [$status, $rejectionReason, $id, CURRENT_TENANT_ID])) {
                 echo json_encode(['success' => true]);
             } else {
                 throw new Exception('Erro ao atualizar inscrição');
@@ -128,11 +129,11 @@ try {
                 throw new Exception('ID não fornecido');
             }
             
-            // Delete enrollments first (although FK cascade might handle it, explicit is safer)
+            // Delete enrollments first
             execute("DELETE FROM enrollments WHERE registration_id = ?", [$id]);
             
             // Delete registration
-            if (execute("DELETE FROM registrations WHERE id = ?", [$id])) {
+            if (execute("DELETE FROM registrations WHERE id = ? AND secretaria_id = ?", [$id, CURRENT_TENANT_ID])) {
                 echo json_encode(['success' => true]);
             } else {
                 throw new Exception('Erro ao excluir equipe');

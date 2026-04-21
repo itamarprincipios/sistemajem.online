@@ -1,0 +1,11 @@
+RewriteEngine On
+RewriteBase /
+
+# Não redirecionar se o arquivo ou diretório existir fisicamente
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Capturar o tenant (primeiro segmento) e passar para os scripts
+# Exemplo: /boavista/admin/index.php -> admin/index.php?tenant=boavista
+RewriteRule ^([a-zA-Z0-9_-]+)/(.*)$ $2?tenant=$1 [QSA,L]

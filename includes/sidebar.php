@@ -105,7 +105,32 @@ $userRole = getCurrentUserRole();
     </div>
     
     <nav class="sidebar-nav">
-        <?php if ($userRole === 'admin'): ?>
+        <?php if ($userRole === 'super_admin'): ?>
+            <!-- Super Admin Navigation -->
+            <div class="nav-section">
+                <div class="nav-section-title">Global</div>
+                <a href="<?php echo SITE_URL; ?>/superadmin/dashboard.php" 
+                   class="nav-link <?php echo $currentPage === 'dashboard.php' ? 'active' : ''; ?>">
+                    <span class="nav-icon">🗺️</span>
+                    <span>Dashboard Global</span>
+                </a>
+                <a href="<?php echo SITE_URL; ?>/superadmin/secretarias.php" 
+                   class="nav-link <?php echo $currentPage === 'secretarias.php' ? 'active' : ''; ?>">
+                    <span class="nav-icon">🏛️</span>
+                    <span>Secretarias</span>
+                </a>
+            </div>
+            
+            <div class="nav-section">
+                <div class="nav-section-title">Sistema</div>
+                <a href="<?php echo SITE_URL; ?>/admin/reports.php" 
+                   class="nav-link">
+                    <span class="nav-icon">📉</span>
+                    <span>Logs Globais</span>
+                </a>
+            </div>
+
+        <?php elseif ($userRole === 'admin'): ?>
             <!-- Admin Navigation -->
             <div class="nav-section">
                 <div class="nav-section-title">Principal</div>

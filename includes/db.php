@@ -21,6 +21,23 @@ function getConnection() {
                 PDO::ATTR_EMULATE_PREPARES => false,
             ];
             $pdo = new PDO($dsn, DB_USER, DB_PASS, $options);
+            
+            // Load tenant context if slug is present
+            if (defined('CURRENT_TENANT_SLUG') && CURRENT_TENANT_SLUG) {
+                $stmt = $pdo->prepare("SELECT id, nome FROM secretarias WHERE slug = ? AND is_active = 1");
+                $stmt->execute([CURRENT_TENANT_SLUG]);
+                $tenant = $stmt->fetch();
+                if ($tenant) {
+                    define('CURRENT_TENANT_ID', $tenant['id']);
+                    define('CURRENT_TENANT_NAME', $tenant['nome']);
+                } else {
+                    // Redirect or error if tenant not found
+                    if (!strpos($_SERVER['REQUEST_URI'], 'superadmin')) {
+                        header("Location: /");
+                        exit;
+                    }
+                }
+            }
         } catch (PDOException $e) {
             error_log("Database connection failed: " . $e->getMessage());
             die("Erro de conexão com o banco de dados. Por favor, tente novamente mais tarde.");

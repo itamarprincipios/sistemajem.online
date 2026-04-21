@@ -10,15 +10,27 @@ require_once __DIR__ . '/db.php';
  * Login user
  */
 function login($email, $password) {
-    $user = queryOne("SELECT * FROM users WHERE email = ? AND is_active = 1", [$email]);
+    // Se estivermos em um contexto de secretaria, filtrar por ela
+    $params = [$email];
+    $sql = "SELECT * FROM users WHERE email = ? AND is_active = 1";
+    
+    $user = queryOne($sql, $params);
     
     if ($user && password_verify($password, $user['password'])) {
+        // Verificar se o usuário pertence a esta secretaria ou se é super_admin
+        if ($user['role'] !== 'super_admin' && defined('CURRENT_TENANT_ID')) {
+            if ($user['secretaria_id'] != CURRENT_TENANT_ID) {
+                return false; // Usuário não pertence a esta secretaria
+            }
+        }
+
         // Set session variables
         $_SESSION['user_id'] = $user['id'];
         $_SESSION['user_name'] = $user['name'];
         $_SESSION['user_email'] = $user['email'];
         $_SESSION['user_role'] = $user['role'];
         $_SESSION['school_id'] = $user['school_id'];
+        $_SESSION['secretaria_id'] = $user['secretaria_id'];
         $_SESSION['logged_in'] = true;
         
         return true;
@@ -59,6 +71,13 @@ function isProfessor() {
 }
 
 /**
+ * Check if user is super admin
+ */
+function isSuperAdmin() {
+    return isLoggedIn() && $_SESSION['user_role'] === 'super_admin';
+}
+
+/**
  * Require login
  */
 function requireLogin() {
@@ -84,7 +103,18 @@ function requireAdmin() {
  */
 function requireProfessor() {
     requireLogin();
-    if (!isProfessor()) {
+    if (!isProfessor() && !isAdmin() && !isSuperAdmin()) {
+        header('Location: ' . SITE_URL . '/index.php');
+        exit;
+    }
+}
+
+/**
+ * Require super admin role
+ */
+function requireSuperAdmin() {
+    requireLogin();
+    if (!isSuperAdmin()) {
         header('Location: ' . SITE_URL . '/index.php');
         exit;
     }
@@ -185,6 +215,8 @@ function cpfExists($cpf, $excludeUserId = null) {
  */
 function getRedirectUrl($role) {
     switch ($role) {
+        case 'super_admin':
+            return SITE_URL . '/superadmin/dashboard.php';
         case 'admin':
             return SITE_URL . '/admin/dashboard.php';
         case 'professor':

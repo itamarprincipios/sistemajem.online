@@ -23,9 +23,9 @@ try {
                     SELECT u.*, s.name as school_name 
                     FROM users u
                     LEFT JOIN schools s ON u.school_id = s.id
-                    WHERE u.role = 'professor' AND u.is_active = 1
+                    WHERE u.role = 'professor' AND u.is_active = 1 AND u.secretaria_id = ?
                     ORDER BY u.name
-                ");
+                ", [CURRENT_TENANT_ID]);
                 echo json_encode(['success' => true, 'data' => $professors]);
                 
             } elseif ($action === 'requests') {
@@ -34,13 +34,13 @@ try {
                     SELECT u.*, s.name as school_name 
                     FROM users u
                     LEFT JOIN schools s ON u.school_id = s.id
-                    WHERE u.role = 'professor' AND u.is_active = 0
+                    WHERE u.role = 'professor' AND u.is_active = 0 AND u.secretaria_id = ?
                     ORDER BY u.created_at DESC
-                ");
+                ", [CURRENT_TENANT_ID]);
                 echo json_encode(['success' => true, 'data' => $requests]);
                 
             } elseif ($action === 'get' && isset($_GET['id'])) {
-                $professor = queryOne("SELECT * FROM users WHERE id = ? AND role = 'professor'", [$_GET['id']]);
+                $professor = queryOne("SELECT * FROM users WHERE id = ? AND role = 'professor' AND secretaria_id = ?", [$_GET['id'], CURRENT_TENANT_ID]);
                 if ($professor) {
                     unset($professor['password']); // Don't send password
                 }
@@ -60,7 +60,7 @@ try {
                     // Approve registration (activate user)
                     $userId = $data['request_id'];
                     
-                    if (execute("UPDATE users SET is_active = 1 WHERE id = ?", [$userId])) {
+                    if (execute("UPDATE users SET is_active = 1 WHERE id = ? AND secretaria_id = ?", [$userId, CURRENT_TENANT_ID])) {
                         echo json_encode(['success' => true, 'message' => 'Professor aprovado com sucesso']);
                     } else {
                         throw new Exception('Erro ao aprovar professor');
@@ -70,7 +70,7 @@ try {
                     // Reject registration (delete user)
                     $userId = $data['request_id'];
                     
-                    if (execute("DELETE FROM users WHERE id = ?", [$userId])) {
+                    if (execute("DELETE FROM users WHERE id = ? AND secretaria_id = ?", [$userId, CURRENT_TENANT_ID])) {
                         echo json_encode(['success' => true]);
                     } else {
                         throw new Exception('Erro ao rejeitar solicitação');
@@ -91,10 +91,11 @@ try {
                 
                 $hashedPassword = hashPassword($data['password']);
                 
-                $sql = "INSERT INTO users (name, email, password, cpf, phone, role, school_id, is_active) 
-                        VALUES (?, ?, ?, ?, ?, 'professor', ?, 1)";
+                $sql = "INSERT INTO users (secretaria_id, name, email, password, cpf, phone, role, school_id, is_active) 
+                        VALUES (?, ?, ?, ?, ?, ?, 'professor', ?, 1)";
                 
                 if (execute($sql, [
+                    CURRENT_TENANT_ID,
                     $data['name'],
                     $data['email'],
                     $hashedPassword,
@@ -115,24 +116,25 @@ try {
             // Update professor
             if (isset($data['is_active']) && count($data) === 2) {
                 // Status toggle only
-                $sql = "UPDATE users SET is_active = ? WHERE id = ? AND role = 'professor'";
-                $params = [$data['is_active'] ? 1 : 0, $data['id']];
+                $sql = "UPDATE users SET is_active = ? WHERE id = ? AND role = 'professor' AND secretaria_id = ?";
+                $params = [$data['is_active'] ? 1 : 0, $data['id'], CURRENT_TENANT_ID];
             } else {
                 // Full update
-                $sql = "UPDATE users SET name = ?, email = ?, cpf = ?, phone = ?, school_id = ? WHERE id = ? AND role = 'professor'";
+                $sql = "UPDATE users SET name = ?, email = ?, cpf = ?, phone = ?, school_id = ? WHERE id = ? AND role = 'professor' AND secretaria_id = ?";
                 $params = [
                     $data['name'],
                     $data['email'],
                     $data['cpf'],
                     $data['phone'] ?? null,
                     $data['school_id'],
-                    $data['id']
+                    $data['id'],
+                    CURRENT_TENANT_ID
                 ];
                 
                 // Update password if provided
                 if (!empty($data['password'])) {
                     $hashedPassword = hashPassword($data['password']);
-                    $sql = "UPDATE users SET name = ?, email = ?, cpf = ?, phone = ?, school_id = ?, password = ? WHERE id = ? AND role = 'professor'";
+                    $sql = "UPDATE users SET name = ?, email = ?, cpf = ?, phone = ?, school_id = ?, password = ? WHERE id = ? AND role = 'professor' AND secretaria_id = ?";
                     $params = [
                         $data['name'],
                         $data['email'],
@@ -140,7 +142,8 @@ try {
                         $data['phone'] ?? null,
                         $data['school_id'],
                         $hashedPassword,
-                        $data['id']
+                        $data['id'],
+                        CURRENT_TENANT_ID
                     ];
                 }
             }
@@ -165,7 +168,7 @@ try {
                 throw new Exception('Não é possível excluir professor com alunos cadastrados');
             }
             
-            if (execute("DELETE FROM users WHERE id = ? AND role = 'professor'", [$id])) {
+            if (execute("DELETE FROM users WHERE id = ? AND role = 'professor' AND secretaria_id = ?", [$id, CURRENT_TENANT_ID])) {
                 echo json_encode(['success' => true]);
             } else {
                 throw new Exception('Erro ao excluir professor');

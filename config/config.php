@@ -11,6 +11,10 @@ define('DB_USER', 'u199671261_admdatabase');
 define('DB_PASS', 'yv!B6+Lp');
 define('DB_CHARSET', 'utf8mb4');
 
+// Tenant Detection (Micro-SaaS)
+$tenant_slug = $_GET['tenant'] ?? null;
+define('CURRENT_TENANT_SLUG', $tenant_slug);
+
 // System Configuration
 define('SITE_NAME', 'Sistema JEM');
 define('SITE_URL', 'https://sistemajem.online');

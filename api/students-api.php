@@ -51,9 +51,9 @@ try {
                     SELECT s.*, u.name as professor_name 
                     FROM students s
                     LEFT JOIN users u ON s.created_by_user_id = u.id
-                    WHERE s.school_id = ? 
+                    WHERE s.school_id = ? AND s.secretaria_id = ?
                     ORDER BY s.name
-                ", [$schoolId]);
+                ", [$schoolId, CURRENT_TENANT_ID]);
                 
                 $currentUserId = getCurrentUserId();
                 
@@ -63,7 +63,7 @@ try {
                 $id = $_GET['id'] ?? null;
                 if (!$id) throw new Exception('ID não fornecido');
                 
-                $student = queryOne("SELECT * FROM students WHERE id = ? AND school_id = ?", [$id, $schoolId]);
+                $student = queryOne("SELECT * FROM students WHERE id = ? AND school_id = ? AND secretaria_id = ?", [$id, $schoolId, CURRENT_TENANT_ID]);
                 
                 if ($student) {
                     echo json_encode(['success' => true, 'data' => $student]);
@@ -91,7 +91,7 @@ try {
             }
             
             // Check if Document already exists
-            $exists = queryOne("SELECT id FROM students WHERE document_number = ? AND id != ?", [$data['document_number'], $data['id'] ?? 0]);
+            $exists = queryOne("SELECT id FROM students WHERE document_number = ? AND secretaria_id = ? AND id != ?", [$data['document_number'], CURRENT_TENANT_ID, $data['id'] ?? 0]);
             if ($exists) {
                 throw new Exception('Documento já cadastrado para outro aluno');
             }
@@ -146,9 +146,10 @@ try {
                     $params[] = $docPath;
                 }
                 
-                $sql .= " WHERE id = ? AND school_id = ?";
+                $sql .= " WHERE id = ? AND school_id = ? AND secretaria_id = ?";
                 $params[] = $data['id'];
                 $params[] = $schoolId;
+                $params[] = CURRENT_TENANT_ID;
                 
                 if (execute($sql, $params)) {
                     echo json_encode(['success' => true]);
@@ -170,10 +171,11 @@ try {
                     throw new Exception('Erro: Seu usuário não está vinculado a nenhuma escola. Entre em contato com o administrador.');
                 }
 
-                $sql = "INSERT INTO students (school_id, name, document_number, birth_date, gender, phone, age, photo_path, document_path, created_by_user_id) 
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                $sql = "INSERT INTO students (secretaria_id, school_id, name, document_number, birth_date, gender, phone, age, photo_path, document_path, created_by_user_id) 
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
                 
                 if (execute($sql, [
+                    CURRENT_TENANT_ID,
                     $schoolId,
                     $data['name'], 
                     $data['document_number'], 
@@ -214,7 +216,7 @@ try {
                 throw new Exception('Você não tem permissão para excluir este aluno');
             }
             
-            if (execute("DELETE FROM students WHERE id = ? AND school_id = ?", [$id, $schoolId])) {
+            if (execute("DELETE FROM students WHERE id = ? AND school_id = ? AND secretaria_id = ?", [$id, $schoolId, CURRENT_TENANT_ID])) {
                 // Delete files if they exist
                 if ($student['photo_path'] && file_exists('../' . $student['photo_path'])) {
                     unlink('../' . $student['photo_path']);
