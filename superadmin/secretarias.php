@@ -122,7 +122,6 @@ function renderTable(data) {
             <td><span class="badge ${s.is_active == 1 ? 'badge-success' : 'badge-danger'}">${s.is_active == 1 ? 'Ativa' : 'Inativa'}</span></td>
             <td>
                 <button class="btn btn-sm btn-secondary" onclick="editSecretaria(${s.id})">Editar</button>
-                <a href="../${s.slug}/admin" target="_blank" class="btn btn-sm btn-primary" style="margin-left: 0.5rem;">Acessar</a>
             </td>
         `;
         tbody.appendChild(row);
