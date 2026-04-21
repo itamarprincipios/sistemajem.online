@@ -109,8 +109,8 @@ $userRole = getCurrentUserRole();
             <!-- Super Admin Navigation -->
             <div class="nav-section">
                 <div class="nav-section-title">Global</div>
-                <a href="<?php echo SITE_URL; ?>/superadmin/dashboard.php" 
-                   class="nav-link <?php echo $currentPage === 'dashboard.php' ? 'active' : ''; ?>">
+                <a href="<?php echo SITE_URL; ?>/superadmin/" 
+                   class="nav-link <?php echo ($currentPage === 'index.php' && strpos($_SERVER['REQUEST_URI'], 'superadmin') !== false) ? 'active' : ''; ?>">
                     <span class="nav-icon">🗺️</span>
                     <span>Dashboard Global</span>
                 </a>

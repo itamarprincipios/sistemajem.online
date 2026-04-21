@@ -1,3 +1,12 @@
+<?php
+require_once 'config/config.php';
+require_once 'includes/auth.php';
+
+if (isLoggedIn()) {
+    header('Location: ' . getRedirectUrl(getCurrentUserRole()));
+    exit;
+}
+?>
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>

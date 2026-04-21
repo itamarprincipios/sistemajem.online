@@ -225,7 +225,7 @@ function cpfExists($cpf, $excludeUserId = null) {
 function getRedirectUrl($role) {
     switch ($role) {
         case 'super_admin':
-            return SITE_URL . '/superadmin/dashboard.php';
+            return SITE_URL . '/superadmin/';
         case 'admin':
             return SITE_URL . '/admin/dashboard.php';
         case 'professor':
