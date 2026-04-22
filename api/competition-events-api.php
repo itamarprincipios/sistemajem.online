@@ -19,10 +19,10 @@ try {
     switch ($method) {
         case 'GET':
             if ($action === 'list') {
-                $events = query("SELECT * FROM competition_events ORDER BY created_at DESC");
+                $events = query("SELECT * FROM competition_events WHERE secretaria_id = ? ORDER BY created_at DESC", [CURRENT_TENANT_ID]);
                 echo json_encode(['success' => true, 'data' => $events]);
             } elseif ($action === 'get' && isset($_GET['id'])) {
-                $event = queryOne("SELECT * FROM competition_events WHERE id = ?", [$_GET['id']]);
+                $event = queryOne("SELECT * FROM competition_events WHERE id = ? AND secretaria_id = ?", [$_GET['id'], CURRENT_TENANT_ID]);
                 
                 // Get statistics
                 $teamCount = queryOne("SELECT COUNT(*) as c FROM competition_teams WHERE competition_event_id = ?", [$_GET['id']])['c'];
@@ -48,12 +48,13 @@ try {
             $data = json_decode(file_get_contents('php://input'), true);
             
             if ($action === 'create') {
-                $sql = "INSERT INTO competition_events (name, start_date, end_date, location_city, status) VALUES (?, ?, ?, ?, 'planning')";
+                $sql = "INSERT INTO competition_events (name, start_date, end_date, location_city, status, secretaria_id) VALUES (?, ?, ?, ?, 'planning', ?)";
                 if (execute($sql, [
                     $data['name'],
                     $data['start_date'],
                     $data['end_date'] ?? null,
-                    $data['location_city'] ?? null
+                    $data['location_city'] ?? null,
+                    CURRENT_TENANT_ID
                 ])) {
                     echo json_encode(['success' => true, 'id' => lastInsertId()]);
                 } else {
@@ -70,13 +71,13 @@ try {
                 // 2. Clear existing snapshot (optional, strict mode for now)
                 // execute("DELETE FROM competition_teams WHERE competition_event_id = ?", [$eventId]);
                 
-                // 3. Get Approved Registrations
+                // 3. Get Approved Registrations (Only for THIS secretaria)
                 $registrations = query("
                     SELECT r.*, s.name as school_name 
                     FROM registrations r 
                     JOIN schools s ON r.school_id = s.id 
-                    WHERE r.status = 'approved'
-                ");
+                    WHERE r.status = 'approved' AND r.secretaria_id = ?
+                ", [CURRENT_TENANT_ID]);
                 
                 $teamsImported = 0;
                 $athletesImported = 0;
@@ -89,10 +90,10 @@ try {
                         // Insert Team
                         execute("
                             INSERT INTO competition_teams 
-                            (competition_event_id, registration_id, school_id, modality_id, category_id, gender, school_name_snapshot) 
-                            VALUES (?, ?, ?, ?, ?, ?, ?)
+                            (competition_event_id, registration_id, school_id, modality_id, category_id, gender, school_name_snapshot, secretaria_id) 
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                         ", [
-                            $eventId, $reg['id'], $reg['school_id'], $reg['modality_id'], $reg['category_id'], $reg['gender'], $reg['school_name']
+                            $eventId, $reg['id'], $reg['school_id'], $reg['modality_id'], $reg['category_id'], $reg['gender'], $reg['school_name'], CURRENT_TENANT_ID
                         ]);
                         $teamId = lastInsertId();
                         $teamsImported++;
@@ -138,12 +139,13 @@ try {
                     throw new Exception("Já existe um campeonato de $modalityName para este ano!");
                 }
                 
-                // 2. Create Event
-                execute("INSERT INTO competition_events (name, start_date, end_date, location_city, status, active_flag) VALUES (?, ?, ?, ?, 'planning', TRUE)", [
+                // 2. Create Event vinculated to current tenant
+                execute("INSERT INTO competition_events (name, start_date, end_date, location_city, status, active_flag, secretaria_id) VALUES (?, ?, ?, ?, 'planning', TRUE, ?)", [
                     $eventName,
                     date('Y-m-d'),
                     date('Y-m-d', strtotime('+30 days')),
-                    'Rorainópolis'
+                    $data['location_city'] ?? 'Sede',
+                    CURRENT_TENANT_ID
                 ]);
                 $eventId = lastInsertId();
                 
@@ -156,8 +158,8 @@ try {
                     SELECT r.*, s.name as school_name 
                     FROM registrations r 
                     JOIN schools s ON r.school_id = s.id 
-                    WHERE r.status = 'approved' AND r.modality_id = ?
-                ", [$modalityId]);
+                    WHERE r.status = 'approved' AND r.modality_id = ? AND r.secretaria_id = ?
+                ", [$modalityId, CURRENT_TENANT_ID]);
                 
                 $teamsImported = 0;
                 $athletesImported = 0;
@@ -166,10 +168,10 @@ try {
                     // Insert Team
                     execute("
                         INSERT INTO competition_teams 
-                        (competition_event_id, registration_id, school_id, modality_id, category_id, gender, school_name_snapshot) 
-                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                        (competition_event_id, registration_id, school_id, modality_id, category_id, gender, school_name_snapshot, secretaria_id) 
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                     ", [
-                        $eventId, $reg['id'], $reg['school_id'], $reg['modality_id'], $reg['category_id'], $reg['gender'], $reg['school_name']
+                        $eventId, $reg['id'], $reg['school_id'], $reg['modality_id'], $reg['category_id'], $reg['gender'], $reg['school_name'], CURRENT_TENANT_ID
                     ]);
                     $teamId = lastInsertId();
                     $teamsImported++;
@@ -224,9 +226,9 @@ try {
                             for ($i = 0; $i < count($groupTeams); $i++) {
                                 for ($j = $i + 1; $j < count($groupTeams); $j++) {
                                     execute("
-                                        INSERT INTO matches (competition_event_id, modality_id, category_id, team_a_id, team_b_id, phase, scheduled_time, status)
-                                        VALUES (?, ?, ?, ?, ?, 'group_stage', ?, 'scheduled')
-                                    ", [$eventId, $modalityId, $cat['category_id'], $groupTeams[$i]['id'], $groupTeams[$j]['id'], date('Y-m-d H:i:s', strtotime('+1 day 08:00:00'))]);
+                                        INSERT INTO matches (competition_event_id, modality_id, category_id, team_a_id, team_b_id, phase, scheduled_time, status, secretaria_id)
+                                        VALUES (?, ?, ?, ?, ?, 'group_stage', ?, 'scheduled', ?)
+                                    ", [$eventId, $modalityId, $cat['category_id'], $groupTeams[$i]['id'], $groupTeams[$j]['id'], date('Y-m-d H:i:s', strtotime('+1 day 08:00:00')), CURRENT_TENANT_ID]);
                                     $matchesGenerated++;
                                 }
                             }
@@ -257,14 +259,14 @@ try {
             
             // Allow status change
             if (isset($data['status'])) {
-                 $sql = "UPDATE competition_events SET status = ? WHERE id = ?";
-                 execute($sql, [$data['status'], $id]);
+                 $sql = "UPDATE competition_events SET status = ? WHERE id = ? AND secretaria_id = ?";
+                 execute($sql, [$data['status'], $id, CURRENT_TENANT_ID]);
             }
             
             // Activate Flag
             if (isset($data['active_flag']) && $data['active_flag'] === true) {
-                execute("UPDATE competition_events SET active_flag = FALSE"); // Reset others
-                execute("UPDATE competition_events SET active_flag = TRUE WHERE id = ?", [$id]);
+                execute("UPDATE competition_events SET active_flag = FALSE WHERE secretaria_id = ?", [CURRENT_TENANT_ID]); // Reset others
+                execute("UPDATE competition_events SET active_flag = TRUE WHERE id = ? AND secretaria_id = ?", [$id, CURRENT_TENANT_ID]);
             }
             
             echo json_encode(['success' => true]);
@@ -277,10 +279,10 @@ try {
             beginTransaction();
             try {
                 // Delete in order of dependency
-                execute("DELETE FROM matches WHERE competition_event_id = ?", [$id]);
-                execute("DELETE FROM competition_team_athletes WHERE competition_team_id IN (SELECT id FROM competition_teams WHERE competition_event_id = ?)", [$id]);
-                execute("DELETE FROM competition_teams WHERE competition_event_id = ?", [$id]);
-                execute("DELETE FROM competition_events WHERE id = ?", [$id]);
+                execute("DELETE FROM matches WHERE competition_event_id = ? AND secretaria_id = ?", [$id, CURRENT_TENANT_ID]);
+                execute("DELETE FROM competition_team_athletes WHERE competition_team_id IN (SELECT id FROM competition_teams WHERE competition_event_id = ? AND secretaria_id = ?)", [$id, CURRENT_TENANT_ID]);
+                execute("DELETE FROM competition_teams WHERE competition_event_id = ? AND secretaria_id = ?", [$id, CURRENT_TENANT_ID]);
+                execute("DELETE FROM competition_events WHERE id = ? AND secretaria_id = ?", [$id, CURRENT_TENANT_ID]);
                 
                 // Log action
                 execute("INSERT INTO audit_logs (user_id, action, entity, entity_id, changes) VALUES (?, 'EVENT_DELETE', 'event', ?, ?)", 
