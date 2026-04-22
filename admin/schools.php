@@ -231,36 +231,36 @@ function renderTable(schools) {
         row.className = 'row-hover';
         row.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
         
-        row.innerHTML = \`
+        row.innerHTML = `
             <td style="padding: 1.25rem 2rem;">
                 <div style="display: flex; align-items: center; gap: 1.25rem;">
-                    <div class="avatar-school" style="background: \${color}20; color: \${color}; border: 1px solid \${color}30;">\${initials}</div>
+                    <div class="avatar-school" style="background: ${color}20; color: ${color}; border: 1px solid ${color}30;">${initials}</div>
                     <div style="display: flex; flex-direction: column;">
-                        <span style="font-weight: 600; color: #fff; font-size: 1rem; margin-bottom: 2px;">\${school.name}</span>
-                        <span style="font-size: 0.85rem; color: var(--text-muted);">\${school.director ? 'Dir: ' + school.director : 'Direção não informada'}</span>
+                        <span style="font-weight: 600; color: #fff; font-size: 1rem; margin-bottom: 2px;">${school.name}</span>
+                        <span style="font-size: 0.85rem; color: var(--text-muted);">${school.director ? 'Dir: ' + school.director : 'Direção não informada'}</span>
                     </div>
                 </div>
             </td>
             <td style="padding: 1.25rem 1rem;">
-                <span class="badge-pill-elite badge-municipality-elite">📍 \${school.municipality}</span>
+                <span class="badge-pill-elite badge-municipality-elite">📍 ${school.municipality}</span>
             </td>
             <td style="padding: 1.25rem 1rem;">
                 <div style="display: flex; flex-direction: column;">
-                    <span style="font-size: 0.9rem; color: var(--text-secondary);">\${school.email || '-'}</span>
-                    <span style="font-size: 0.8rem; color: var(--text-muted);">\${school.phone || ''}</span>
+                    <span style="font-size: 0.9rem; color: var(--text-secondary);">${school.email || '-'}</span>
+                    <span style="font-size: 0.8rem; color: var(--text-muted);">${school.phone || ''}</span>
                 </div>
             </td>
             <td style="padding: 1.25rem 2rem; text-align: right;">
                 <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
-                    <button class="btn-action-circle" onclick="editSchool(\${school.id})" title="Editar instituição">
+                    <button class="btn-action-circle" onclick="editSchool(${school.id})" title="Editar instituição">
                         <span style="font-size: 1rem;">✏️</span>
                     </button>
-                    <button class="btn-action-circle btn-delete-elite" onclick="deleteSchool(\${school.id})" title="Remover permanentemente">
+                    <button class="btn-action-circle btn-delete-elite" onclick="deleteSchool(${school.id})" title="Remover permanentemente">
                         <span style="font-size: 1rem;">🗑️</span>
                     </button>
                 </div>
             </td>
-        \`;
+        `;
         tbody.appendChild(row);
     });
 }

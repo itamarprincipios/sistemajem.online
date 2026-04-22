@@ -240,13 +240,13 @@ function renderTable(operators) {
             </td>
             <td style="padding: 1.25rem 1rem;">
                 <div style="display: flex; flex-wrap: wrap; gap: 0.65rem;">
-                    ${op.modality_name ? \`<span class="badge-pill badge-modality-elite">⚽ \${op.modality_name}</span>\` : '<span class="badge-pill" style="background: rgba(255,255,255,0.05); color: var(--text-muted);">Acesso Global</span>'}
-                    ${op.assigned_venue ? \`<span class="badge-pill badge-venue-elite">📍 \${op.assigned_venue}</span>\` : ''}
+                    ${op.modality_name ? `<span class="badge-pill badge-modality-elite">⚽ ${op.modality_name}</span>` : '<span class="badge-pill" style="background: rgba(255,255,255,0.05); color: var(--text-muted);">Acesso Global</span>'}
+                    ${op.assigned_venue ? `<span class="badge-pill badge-venue-elite">📍 ${op.assigned_venue}</span>` : ''}
                 </div>
             </td>
             <td style="padding: 1.25rem 2rem; text-align: right;">
                 <div style="display: flex; justify-content: flex-end;">
-                    <button class="btn-delete-circle" onclick="deleteOperator(\${op.id})" title="Remover operador">
+                    <button class="btn-delete-circle" onclick="deleteOperator(${op.id})" title="Remover operador">
                         <span style="font-size: 1.1rem;">🗑️</span>
                     </button>
                 </div>
