@@ -9,6 +9,63 @@ require_once __DIR__ . '/../config/config.php';
 /**
  * Get database connection
  */
+/**
+ * Initialize Tenant Context Globally
+ */
+function initializeTenantContext() {
+    if (defined('CURRENT_TENANT_ID')) return;
+
+    try {
+        $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET, DB_USER, DB_PASS, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+        ]);
+        
+        // Priority 1: URL Slug
+        if (defined('CURRENT_TENANT_SLUG') && CURRENT_TENANT_SLUG) {
+            $stmt = $pdo->prepare("SELECT id, nome FROM secretarias WHERE slug = ? AND is_active = 1");
+            $stmt->execute([CURRENT_TENANT_SLUG]);
+            $tenant = $stmt->fetch();
+            if ($tenant) {
+                define('CURRENT_TENANT_ID', $tenant['id']);
+                define('CURRENT_TENANT_NAME', $tenant['nome']);
+            }
+        } 
+        
+        // Priority 2: Session
+        if (!defined('CURRENT_TENANT_ID') && isset($_SESSION['secretaria_id']) && $_SESSION['secretaria_id']) {
+            $stmt = $pdo->prepare("SELECT id, nome FROM secretarias WHERE id = ? AND is_active = 1");
+            $stmt->execute([$_SESSION['secretaria_id']]);
+            $tenant = $stmt->fetch();
+            if ($tenant) {
+                define('CURRENT_TENANT_ID', $tenant['id']);
+                define('CURRENT_TENANT_NAME', $tenant['nome']);
+            }
+        }
+
+        // Safety Check for logged in users
+        $uri = $_SERVER['REQUEST_URI'];
+        if (!defined('CURRENT_TENANT_ID') && 
+            !strpos($uri, 'superadmin') && 
+            !strpos($uri, 'login.php') && 
+            !strpos($uri, 'assets') && 
+            isset($_SESSION['logged_in']) && $_SESSION['logged_in']) {
+            // Se for admin e não tiver tenant, é erro crítico de identificação
+            if ($_SESSION['user_role'] === 'admin' || $_SESSION['user_role'] === 'professor') {
+                error_log("Tenant identification failed for user " . $_SESSION['user_id']);
+            }
+        }
+    } catch (PDOException $e) {
+        error_log("Tenant initialization failed: " . $e->getMessage());
+    }
+}
+
+// Chamar a inicialização imediatamente
+initializeTenantContext();
+
+/**
+ * Get database connection
+ */
 function getConnection() {
     static $pdo = null;
     
@@ -21,44 +78,9 @@ function getConnection() {
                 PDO::ATTR_EMULATE_PREPARES => false,
             ];
             $pdo = new PDO($dsn, DB_USER, DB_PASS, $options);
-            
-            // Load tenant context
-            if (defined('CURRENT_TENANT_SLUG') && CURRENT_TENANT_SLUG) {
-                // Priority 1: URL Slug
-                $stmt = $pdo->prepare("SELECT id, nome FROM secretarias WHERE slug = ? AND is_active = 1");
-                $stmt->execute([CURRENT_TENANT_SLUG]);
-                $tenant = $stmt->fetch();
-                if ($tenant) {
-                    if (!defined('CURRENT_TENANT_ID')) define('CURRENT_TENANT_ID', $tenant['id']);
-                    if (!defined('CURRENT_TENANT_NAME')) define('CURRENT_TENANT_NAME', $tenant['nome']);
-                }
-            } 
-            
-            // Priority 2: Session (if not already defined by slug)
-            if (!defined('CURRENT_TENANT_ID') && isset($_SESSION['secretaria_id']) && $_SESSION['secretaria_id']) {
-                $stmt = $pdo->prepare("SELECT id, nome FROM secretarias WHERE id = ? AND is_active = 1");
-                $stmt->execute([$_SESSION['secretaria_id']]);
-                $tenant = $stmt->fetch();
-                if ($tenant) {
-                    define('CURRENT_TENANT_ID', $tenant['id']);
-                    define('CURRENT_TENANT_NAME', $tenant['nome']);
-                }
-            }
-
-            // SAFETY CHECK: If we are not in Super Admin context and still have no tenant, throw error
-            $isSuperAdminPath = strpos($_SERVER['REQUEST_URI'], 'superadmin') !== false;
-            $isPublicAsset = strpos($_SERVER['REQUEST_URI'], 'assets') !== false || strpos($_SERVER['REQUEST_URI'], 'uploads') !== false;
-            $isLoginPath = strpos($_SERVER['REQUEST_URI'], 'login.php') !== false || strpos($_SERVER['REQUEST_URI'], 'logout.php') !== false;
-
-            if (!defined('CURRENT_TENANT_ID') && !$isSuperAdminPath && !$isPublicAsset && !$isLoginPath && $_SERVER['REQUEST_URI'] !== '/') {
-                // If we are logged in but don't have a tenant context, something is wrong with the session
-                if (isset($_SESSION['logged_in']) && $_SESSION['logged_in']) {
-                    throw new Exception("Erro de Identificação: Sua sessão expirou ou a secretaria não foi reconhecida. Por favor, faça login novamente.");
-                }
-            }
         } catch (PDOException $e) {
             error_log("Database connection failed: " . $e->getMessage());
-            die("Erro de conexão com o banco de dados. Por favor, tente novamente mais tarde.");
+            die("Erro de conexão com o banco de dados.");
         }
     }
     
