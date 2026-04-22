@@ -41,6 +41,16 @@ try {
                 $operators = query($sql, $params);
                 echo json_encode(['success' => true, 'data' => $operators]);
                 
+            } elseif ($action === 'get' && isset($_GET['id'])) {
+                $sql = "
+                    SELECT co.*, u.name, u.email, u.phone 
+                    FROM competition_operators co
+                    JOIN users u ON co.user_id = u.id
+                    WHERE co.id = ? AND u.secretaria_id = ?
+                ";
+                $operator = queryOne($sql, [$_GET['id'], CURRENT_TENANT_ID]);
+                echo json_encode(['success' => true, 'data' => $operator]);
+                
             } elseif ($action === 'events') {
                 // Helper to get active events for dropdown
                  $events = query("SELECT id, name FROM competition_events WHERE status != 'finished' AND secretaria_id = ?", [CURRENT_TENANT_ID]);
@@ -103,6 +113,47 @@ try {
                 
             } else {
                 throw new Exception('Ação desconhecida');
+            }
+            break;
+
+        case 'PUT':
+            $data = json_decode(file_get_contents('php://input'), true);
+            $id = $data['id'] ?? null;
+            if (!$id) throw new Exception('ID do operador não fornecido');
+
+            // 1. Verificar se o operador pertence a esta secretaria
+            $checkSql = "SELECT co.user_id FROM competition_operators co JOIN users u ON co.user_id = u.id WHERE co.id = ? AND u.secretaria_id = ?";
+            $opCheck = queryOne($checkSql, [$id, CURRENT_TENANT_ID]);
+            if (!$opCheck) throw new Exception('Operador não encontrado ou acesso negado');
+            $userId = $opCheck['user_id'];
+
+            // 2. Atualizar Usuário (Nome, Email e Senha Opcional)
+            $updateUserSql = "UPDATE users SET name = ?, email = ? ";
+            $paramsUser = [$data['name'], $data['email']];
+
+            if (!empty($data['password'])) {
+                $updateUserSql .= ", password = ? ";
+                $paramsUser[] = password_hash($data['password'], PASSWORD_BCRYPT);
+            }
+
+            $updateUserSql .= " WHERE id = ?";
+            $paramsUser[] = $userId;
+
+            if (!execute($updateUserSql, $paramsUser)) {
+                throw new Exception('Erro ao atualizar dados do usuário');
+            }
+
+            // 3. Atualizar Dados do Operador
+            $updateOpSql = "UPDATE competition_operators SET competition_event_id = ?, assigned_modality_id = ?, assigned_venue = ? WHERE id = ?";
+            if (execute($updateOpSql, [
+                $data['competition_event_id'],
+                $data['assigned_modality_id'] ?: null,
+                $data['assigned_venue'] ?: null,
+                $id
+            ])) {
+                echo json_encode(['success' => true]);
+            } else {
+                throw new Exception('Erro ao atualizar atribuições do operador');
             }
             break;
 

@@ -22,7 +22,7 @@ include '../includes/sidebar.php';
                 <h2 style="font-size: 1.75rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 0.5rem; color: #fff;">Equipe de Campo</h2>
                 <p style="color: var(--text-secondary); font-size: 1rem; max-width: 500px; line-height: 1.5;">Gerencie as pessoas responsáveis pelo lançamento de resultados e gestão das súmulas em tempo real.</p>
             </div>
-            <button class="btn btn-primary" onclick="openCreateModal()" style="height: 54px; padding: 0 1.75rem; border-radius: 14px; font-size: 1rem; box-shadow: 0 10px 20px rgba(59, 130, 246, 0.25);">
+            <button class="btn btn-primary" onclick="openOperatorModal()" style="height: 54px; padding: 0 1.75rem; border-radius: 14px; font-size: 1rem; box-shadow: 0 10px 20px rgba(59, 130, 246, 0.25);">
                 <span style="font-size: 1.4rem; margin-right: 8px;">+</span> Novo Operador
             </button>
         </div>
@@ -121,7 +121,8 @@ include '../includes/sidebar.php';
             <button class="modal-close" onclick="closeCreateModal()">×</button>
         </div>
         <div class="modal-body">
-            <form id="createForm" onsubmit="handleCreate(event)">
+            <form id="createForm" onsubmit="saveOperator(event)">
+                <input type="hidden" id="operatorId" name="id">
                 <div class="form-group">
                     <label class="form-label">Nome Completo</label>
                     <input type="text" name="name" class="form-input" required>
@@ -131,8 +132,8 @@ include '../includes/sidebar.php';
                     <input type="email" name="email" class="form-input" required>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Senha Inicial</label>
-                    <input type="password" name="password" class="form-input" required minlength="6">
+                    <label class="form-label">Senha Inicial / Reset</label>
+                    <input type="password" name="password" class="form-input">
                 </div>
                 
                 <hr style="border-color: var(--border); margin: 1.5rem 0;">
@@ -245,7 +246,10 @@ function renderTable(operators) {
                 </div>
             </td>
             <td style="padding: 1.25rem 2rem; text-align: right;">
-                <div style="display: flex; justify-content: flex-end;">
+                <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+                    <button class="btn-delete-circle" style="background: rgba(59, 130, 246, 0.1); border-color: rgba(59,130,246,0.2); color: #60a5fa;" onclick="openOperatorModal(${op.id})" title="Editar operador">
+                        <span style="font-size: 1rem;">✏️</span>
+                    </button>
                     <button class="btn-delete-circle" onclick="deleteOperator(${op.id})" title="Remover operador">
                         <span style="font-size: 1.1rem;">🗑️</span>
                     </button>
@@ -270,28 +274,72 @@ function populateSelects(events, modalities) {
     });
 }
 
-async function handleCreate(e) {
+async function openOperatorModal(id = null) {
+    const modal = document.getElementById('createModal');
+    const form = document.getElementById('createForm');
+    const title = modal.querySelector('.modal-title');
+    const pwdLabel = form.querySelector('label[for="password"]');
+    
+    form.reset();
+    document.getElementById('operatorId').value = id || '';
+    
+    if (id) {
+        title.textContent = 'Editar Operador';
+        // Senha opcional na edição
+        document.querySelector('input[name="password"]').required = false;
+        document.querySelector('input[name="password"]').placeholder = 'Deixe em branco para manter a atual';
+        await loadOperatorData(id);
+    } else {
+        title.textContent = 'Novo Operador';
+        document.querySelector('input[name="password"]').required = true;
+        document.querySelector('input[name="password"]').placeholder = '';
+    }
+    
+    modal.classList.add('active');
+}
+
+async function loadOperatorData(id) {
+    try {
+        const res = await fetch(`../api/competition-operators-api.php?action=get&id=${id}`);
+        const result = await res.json();
+        if (result.success) {
+            const op = result.data;
+            const form = document.getElementById('createForm');
+            form.elements['name'].value = op.name;
+            form.elements['email'].value = op.email;
+            form.elements['competition_event_id'].value = op.competition_event_id;
+            form.elements['assigned_modality_id'].value = op.assigned_modality_id || '';
+            form.elements['assigned_venue'].value = op.assigned_venue || '';
+        }
+    } catch (e) {
+        Toast.error('Erro ao carregar dados do operador');
+    }
+}
+
+async function saveOperator(e) {
     e.preventDefault();
     const formData = new FormData(e.target);
     const data = Object.fromEntries(formData);
+    const id = document.getElementById('operatorId').value;
     
     try {
-        const res = await fetch('../api/competition-operators-api.php?action=create', {
-            method: 'POST',
+        const url = '../api/competition-operators-api.php' + (id ? '' : '?action=create');
+        const res = await fetch(url, {
+            method: id ? 'PUT' : 'POST',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         });
         const result = await res.json();
         
         if (result.success) {
-            Toast.success('Operador cadastrado!');
+            Toast.success(id ? 'Operador atualizado!' : 'Operador cadastrado!');
             closeCreateModal();
             loadData();
-            e.target.reset();
         } else {
             Toast.error(result.error);
         }
     } catch (err) {
-        Toast.error('Erro ao cadastrar');
+        Toast.error('Erro ao salvar dados');
     }
 }
 
@@ -309,7 +357,6 @@ async function deleteOperator(id) {
     }
 }
 
-function openCreateModal() { document.getElementById('createModal').classList.add('active'); }
 function closeCreateModal() { document.getElementById('createModal').classList.remove('active'); }
 
 loadData();
