@@ -27,11 +27,12 @@ try {
                     JOIN users u ON co.user_id = u.id
                     JOIN competition_events ce ON co.competition_event_id = ce.id
                     LEFT JOIN modalities m ON co.assigned_modality_id = m.id
+                    WHERE u.secretaria_id = ?
                 ";
                 
-                $params = [];
+                $params = [CURRENT_TENANT_ID];
                 if ($eventId) {
-                    $sql .= " WHERE co.competition_event_id = ?";
+                    $sql .= " AND co.competition_event_id = ?";
                     $params[] = $eventId;
                 }
                 
@@ -42,12 +43,12 @@ try {
                 
             } elseif ($action === 'events') {
                 // Helper to get active events for dropdown
-                 $events = query("SELECT id, name FROM competition_events WHERE status != 'finished'");
+                 $events = query("SELECT id, name FROM competition_events WHERE status != 'finished' AND secretaria_id = ?", [CURRENT_TENANT_ID]);
                  echo json_encode(['success' => true, 'data' => $events]);
                  
             } elseif ($action === 'modalities') {
                 // Helper to get modalities
-                 $modalities = query("SELECT id, name FROM modalities ORDER BY name");
+                 $modalities = query("SELECT id, name FROM modalities WHERE secretaria_id = ? ORDER BY name", [CURRENT_TENANT_ID]);
                  echo json_encode(['success' => true, 'data' => $modalities]);
                  
             } else {
@@ -67,19 +68,23 @@ try {
                 
                 if (!$user) {
                     $password = password_hash($data['password'], PASSWORD_BCRYPT);
-                    $sqlUser = "INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, 'operator')";
-                    if (execute($sqlUser, [$data['name'], $email, $password])) {
+                    $sqlUser = "INSERT INTO users (name, email, password, role, secretaria_id) VALUES (?, ?, ?, 'operator', ?)";
+                    if (execute($sqlUser, [$data['name'], $email, $password, CURRENT_TENANT_ID])) {
                         $userId = lastInsertId();
                     } else {
                         throw new Exception('Erro ao criar usuário');
                     }
                 } else {
                     $userId = $user['id'];
-                    // Update role if not admin
-                     $existingRole = queryOne("SELECT role FROM users WHERE id = ?", [$userId])['role'];
-                     if ($existingRole !== 'admin' && $existingRole !== 'operator') {
+                    // Update role if not admin and check if same tenant
+                    $existingUser = queryOne("SELECT role, secretaria_id FROM users WHERE id = ?", [$userId]);
+                    if ($existingUser['secretaria_id'] != CURRENT_TENANT_ID) {
+                        throw new Exception('Este email já pertence a outra secretaria');
+                    }
+                    
+                    if ($existingUser['role'] !== 'admin' && $existingUser['role'] !== 'operator') {
                          execute("UPDATE users SET role = 'operator' WHERE id = ?", [$userId]);
-                     }
+                    }
                 }
                 
                 // 2. Create Operator Entry
@@ -105,8 +110,8 @@ try {
             $id = $_GET['id'];
             if (!$id) throw new Exception('ID obrigatório');
             
-            // Delete operator link (User remains)
-             if (execute("DELETE FROM competition_operators WHERE id = ?", [$id])) {
+            // Delete operator link (Ensure it belongs to the tenant)
+             if (execute("DELETE co FROM competition_operators co JOIN users u ON co.user_id = u.id WHERE co.id = ? AND u.secretaria_id = ?", [$id, CURRENT_TENANT_ID])) {
                  echo json_encode(['success' => true]);
              } else {
                  throw new Exception('Erro ao excluir operador');

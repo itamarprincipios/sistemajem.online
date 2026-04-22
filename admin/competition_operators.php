@@ -97,24 +97,21 @@ include '../includes/sidebar.php';
 <script>
 async function loadData() {
     try {
-        // Load Operators
-        const resOp = await fetch('../api/competition-operators-api.php?action=list');
+        const [resOp, resEv, resMod] = await Promise.all([
+            fetch('../api/competition-operators-api.php?action=list'),
+            fetch('../api/competition-operators-api.php?action=events'),
+            fetch('../api/competition-operators-api.php?action=modalities')
+        ]);
+        
         const dataOp = await resOp.json();
-        
-        // Load Events for Select
-        const resEv = await fetch('../api/competition-operators-api.php?action=events');
         const dataEv = await resEv.json();
-        
-        // Load Modalities for Select
-        const resMod = await fetch('../api/competition-operators-api.php?action=modalities');
         const dataMod = await resMod.json();
         
         renderTable(dataOp.data);
         populateSelects(dataEv.data, dataMod.data);
-        
     } catch (e) {
         console.error(e);
-        Toast.error('Erro ao carregar dados');
+        Toast.error('Erro ao conectar com o servidor');
     }
 }
 
@@ -122,23 +119,33 @@ function renderTable(operators) {
     const tbody = document.getElementById('operatorsTable');
     tbody.innerHTML = '';
     
-    if (operators.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 2rem;">Nenhum operador cadastrado</td></tr>';
+    if (!operators || operators.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 4rem; color: var(--text-secondary);">Nenhum operador vinculado a esta secretaria.</td></tr>';
         return;
     }
     
     operators.forEach(op => {
         const row = document.createElement('tr');
         row.innerHTML = `
-            <td style="font-weight: 500;">${op.name}</td>
-            <td>${op.email}</td>
-            <td><span class="badge badge-info">${op.event_name}</span></td>
-            <td>
-                ${op.modality_name ? `<span class="badge">${op.modality_name}</span>` : '<span class="badge">Todas</span>'}
-                ${op.assigned_venue ? `<span class="badge">${op.assigned_venue}</span>` : ''}
+            <td style="padding-left: 2rem;">
+                <span class="operator-name">${op.name}</span>
             </td>
             <td>
-                <button class="btn btn-sm btn-danger" onclick="deleteOperator(${op.id})">Remover</button>
+                <span class="operator-email">${op.email}</span>
+            </td>
+            <td>
+                <span class="badge badge-info" style="font-weight: 500;">🏆 ${op.event_name}</span>
+            </td>
+            <td>
+                <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;">
+                    ${op.modality_name ? `<span class="badge badge-modality">⚽ ${op.modality_name}</span>` : '<span class="badge" style="background: rgba(255,255,255,0.05);">Tudo</span>'}
+                    ${op.assigned_venue ? `<span class="badge badge-venue">📍 ${op.assigned_venue}</span>` : ''}
+                </div>
+            </td>
+            <td style="text-align: center; padding-right: 2rem;">
+                <button class="btn btn-sm btn-danger" onclick="deleteOperator(${op.id})" style="padding: 0.5rem 0.75rem; display: inline-flex; align-items: center; gap: 0.35rem;">
+                    <span>🗑️</span> Remover
+                </button>
             </td>
         `;
         tbody.appendChild(row);
