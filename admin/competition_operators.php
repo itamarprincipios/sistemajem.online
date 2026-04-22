@@ -15,35 +15,103 @@ include '../includes/sidebar.php';
         <h1 class="top-bar-title">Operadores de Jogos</h1>
     </div>
     
-    <div class="content-wrapper">
-        <div class="glass-card" style="margin-bottom: 2rem;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <h2>Equipe de Campo</h2>
-                    <p style="color: var(--text-secondary);">Cadastre pessoas para operar as partidas (súmula eletrônica)</p>
-                </div>
-                <button class="btn btn-primary" onclick="openCreateModal()">+ Novo Operador</button>
+    <div class="content-wrapper" style="max-width: 1400px; margin: 0 auto;">
+        <!-- Header Hero - Elite UI -->
+        <div class="glass-card" style="margin-bottom: 2.5rem; border: none; background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%); display: flex; justify-content: space-between; align-items: center; padding: 2.5rem; box-shadow: 0 20px 40px rgba(0,0,0,0.2);">
+            <div>
+                <h2 style="font-size: 1.75rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 0.5rem; color: #fff;">Equipe de Campo</h2>
+                <p style="color: var(--text-secondary); font-size: 1rem; max-width: 500px; line-height: 1.5;">Gerencie as pessoas responsáveis pelo lançamento de resultados e gestão das súmulas em tempo real.</p>
             </div>
+            <button class="btn btn-primary" onclick="openCreateModal()" style="height: 54px; padding: 0 1.75rem; border-radius: 14px; font-size: 1rem; box-shadow: 0 10px 20px rgba(59, 130, 246, 0.25);">
+                <span style="font-size: 1.4rem; margin-right: 8px;">+</span> Novo Operador
+            </button>
         </div>
 
-        <div class="table-container glass-card">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Nome</th>
-                        <th>Email</th>
-                        <th>Evento Atribuído</th>
-                        <th>Permissão (Modalidade/Local)</th>
-                        <th>Ações</th>
-                    </tr>
-                </thead>
-                <tbody id="operatorsTable">
-                    <!-- Loaded dynamically -->
-                </tbody>
-            </table>
+        <!-- Tabela Elite -->
+        <div class="glass-card" style="padding: 0; overflow: hidden; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05);">
+            <div class="table-container">
+                <table class="table" style="margin: 0; border-collapse: separate; border-spacing: 0;">
+                    <thead>
+                        <tr style="background: rgba(255,255,255,0.02);">
+                            <th style="padding: 1.5rem 2rem; width: 350px;">Operador</th>
+                            <th style="padding: 1.5rem 1rem;">Evento Atribuído</th>
+                            <th style="padding: 1.5rem 1rem;">Permissões de Acesso</th>
+                            <th style="padding: 1.5rem 2rem; text-align: right;">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="operatorsTable">
+                        <tr><td colspan="4" style="text-align: center; padding: 6rem; color: var(--text-secondary);">
+                            <div style="font-size: 2.5rem; margin-bottom: 1rem;">🧤</div>
+                            Sincronizando equipe...
+                        </td></tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
+
+<style>
+    .avatar-circle {
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 0.9rem;
+        color: #fff;
+        text-transform: uppercase;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .user-meta {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+    .badge-pill {
+        padding: 6px 14px;
+        border-radius: 50px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        letter-spacing: 0.01em;
+        transition: all 0.2s ease;
+    }
+    .badge-pill:hover {
+        filter: brightness(1.1);
+        transform: translateY(-1px);
+    }
+    .badge-event-elite { background: rgba(14, 165, 233, 0.12); color: #38bdf8; border: 1px solid rgba(14, 165, 233, 0.1); }
+    .badge-modality-elite { background: rgba(139, 92, 246, 0.12); color: #a78bfa; border: 1px solid rgba(139, 92, 246, 0.1); }
+    .badge-venue-elite { background: rgba(245, 158, 11, 0.12); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.1); }
+    
+    .row-hover:hover {
+        background: rgba(255,255,255,0.035) !important;
+    }
+    .btn-delete-circle {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        background: rgba(239, 68, 68, 0.08);
+        border: 1px solid rgba(239, 68, 68, 0.15);
+        color: #f87171;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .btn-delete-circle:hover {
+        background: #ef4444;
+        color: #fff;
+        transform: scale(1.05);
+        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+    }
+</style>
 
 <!-- Modal Create -->
 <div class="modal-overlay" id="createModal">
@@ -95,6 +163,24 @@ include '../includes/sidebar.php';
 </div>
 
 <script>
+// Utils para design Elite
+function stringToColor(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+        hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    let color = '#';
+    for (let i = 0; i < 3; i++) {
+        let value = (hash >> (i * 8)) & 0xFF;
+        color += ('00' + value.toString(16)).substr(-2);
+    }
+    return color;
+}
+
+function getInitials(name) {
+    return name.split(' ').map(n => n[0]).slice(0, 2).join('');
+}
+
 async function loadData() {
     try {
         const [resOp, resEv, resMod] = await Promise.all([
@@ -111,7 +197,7 @@ async function loadData() {
         populateSelects(dataEv.data, dataMod.data);
     } catch (e) {
         console.error(e);
-        Toast.error('Erro ao conectar com o servidor');
+        Toast.error('Erro de conexão crítica');
     }
 }
 
@@ -120,32 +206,50 @@ function renderTable(operators) {
     tbody.innerHTML = '';
     
     if (!operators || operators.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 4rem; color: var(--text-secondary);">Nenhum operador vinculado a esta secretaria.</td></tr>';
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="4" style="text-align: center; padding: 6rem 2rem;">
+                    <div style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;">🧤</div>
+                    <div style="font-weight: 500; font-size: 1.1rem; color: var(--text-secondary);">Equipe ainda não formada</div>
+                    <div style="font-size: 0.9rem; color: var(--text-muted); margin-top: 0.5rem;">Os operadores cadastrados aparecerão aqui para gestão rápida.</div>
+                </td>
+            </tr>
+        `;
         return;
     }
     
     operators.forEach(op => {
+        const color = stringToColor(op.name);
+        const initials = getInitials(op.name);
         const row = document.createElement('tr');
+        row.className = 'row-hover';
+        row.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
+        
         row.innerHTML = `
-            <td style="padding-left: 2rem;">
-                <span class="operator-name">${op.name}</span>
-            </td>
-            <td>
-                <span class="operator-email">${op.email}</span>
-            </td>
-            <td>
-                <span class="badge badge-info" style="font-weight: 500;">🏆 ${op.event_name}</span>
-            </td>
-            <td>
-                <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;">
-                    ${op.modality_name ? `<span class="badge badge-modality">⚽ ${op.modality_name}</span>` : '<span class="badge" style="background: rgba(255,255,255,0.05);">Tudo</span>'}
-                    ${op.assigned_venue ? `<span class="badge badge-venue">📍 ${op.assigned_venue}</span>` : ''}
+            <td style="padding: 1.25rem 2rem;">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <div class="avatar-circle" style="background: ${color}20; color: ${color}; border: 1px solid ${color}30;">${initials}</div>
+                    <div class="user-meta">
+                        <span style="font-weight: 600; color: #fff; font-size: 1rem;">${op.name}</span>
+                        <span style="font-size: 0.85rem; color: var(--text-muted);">${op.email}</span>
+                    </div>
                 </div>
             </td>
-            <td style="text-align: center; padding-right: 2rem;">
-                <button class="btn btn-sm btn-danger" onclick="deleteOperator(${op.id})" style="padding: 0.5rem 0.75rem; display: inline-flex; align-items: center; gap: 0.35rem;">
-                    <span>🗑️</span> Remover
-                </button>
+            <td style="padding: 1.25rem 1rem;">
+                <span class="badge-pill badge-event-elite">⭐ ${op.event_name}</span>
+            </td>
+            <td style="padding: 1.25rem 1rem;">
+                <div style="display: flex; flex-wrap: wrap; gap: 0.65rem;">
+                    ${op.modality_name ? \`<span class="badge-pill badge-modality-elite">⚽ \${op.modality_name}</span>\` : '<span class="badge-pill" style="background: rgba(255,255,255,0.05); color: var(--text-muted);">Acesso Global</span>'}
+                    ${op.assigned_venue ? \`<span class="badge-pill badge-venue-elite">📍 \${op.assigned_venue}</span>\` : ''}
+                </div>
+            </td>
+            <td style="padding: 1.25rem 2rem; text-align: right;">
+                <div style="display: flex; justify-content: flex-end;">
+                    <button class="btn-delete-circle" onclick="deleteOperator(\${op.id})" title="Remover operador">
+                        <span style="font-size: 1.1rem;">🗑️</span>
+                    </button>
+                </div>
             </td>
         `;
         tbody.appendChild(row);
@@ -194,8 +298,6 @@ async function handleCreate(e) {
 async function deleteOperator(id) {
     if (!confirm('Remover acesso deste operador?')) return;
     try {
-        const res = await fetch(`../api/competition-operators-api.php?action=list&id=${id}`, { method: 'DELETE' }); // Note: GET params on DELETE is standard, but some servers block body
-        // Actually fetch implementation uses $_GET['id'] for delete logic so we append query string.
         const delRes = await fetch('../api/competition-operators-api.php?id=' + id, { method: 'DELETE' });
         
         if ((await delRes.json()).success) {
