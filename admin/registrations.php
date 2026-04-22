@@ -8,9 +8,9 @@ requireAdmin();
 $pageTitle = 'Aprovar Inscrições';
 
 // Get counts
-$pendingCount = queryOne("SELECT COUNT(*) as count FROM registrations WHERE status = 'pending'")['count'] ?? 0;
-$approvedCount = queryOne("SELECT COUNT(*) as count FROM registrations WHERE status = 'approved'")['count'] ?? 0;
-$rejectedCount = queryOne("SELECT COUNT(*) as count FROM registrations WHERE status = 'rejected'")['count'] ?? 0;
+$pendingCount = queryOne("SELECT COUNT(*) as count FROM registrations WHERE status = 'pending' AND secretaria_id = ?", [CURRENT_TENANT_ID])['count'] ?? 0;
+$approvedCount = queryOne("SELECT COUNT(*) as count FROM registrations WHERE status = 'approved' AND secretaria_id = ?", [CURRENT_TENANT_ID])['count'] ?? 0;
+$rejectedCount = queryOne("SELECT COUNT(*) as count FROM registrations WHERE status = 'rejected' AND secretaria_id = ?", [CURRENT_TENANT_ID])['count'] ?? 0;
 
 include '../includes/header.php';
 include '../includes/sidebar.php';

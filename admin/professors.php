@@ -8,7 +8,7 @@ requireAdmin();
 $pageTitle = 'Gerenciar Professores';
 
 // Get pending requests count (inactive professors)
-$pendingCount = queryOne("SELECT COUNT(*) as count FROM users WHERE role = 'professor' AND is_active = 0")['count'] ?? 0;
+$pendingCount = queryOne("SELECT COUNT(*) as count FROM users WHERE role = 'professor' AND is_active = 0 AND secretaria_id = ?", [CURRENT_TENANT_ID])['count'] ?? 0;
 
 include '../includes/header.php';
 include '../includes/sidebar.php';
