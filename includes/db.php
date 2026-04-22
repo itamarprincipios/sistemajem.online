@@ -23,30 +23,37 @@ function getConnection() {
             $pdo = new PDO($dsn, DB_USER, DB_PASS, $options);
             
             // Load tenant context
-            // Priority 1: URL Slug (for deep links and routing)
             if (defined('CURRENT_TENANT_SLUG') && CURRENT_TENANT_SLUG) {
+                // Priority 1: URL Slug
                 $stmt = $pdo->prepare("SELECT id, nome FROM secretarias WHERE slug = ? AND is_active = 1");
                 $stmt->execute([CURRENT_TENANT_SLUG]);
                 $tenant = $stmt->fetch();
                 if ($tenant) {
                     if (!defined('CURRENT_TENANT_ID')) define('CURRENT_TENANT_ID', $tenant['id']);
                     if (!defined('CURRENT_TENANT_NAME')) define('CURRENT_TENANT_NAME', $tenant['nome']);
-                } else {
-                    // Redirect or error if tenant not found from slug
-                    if (!strpos($_SERVER['REQUEST_URI'], 'superadmin')) {
-                        header("Location: /");
-                        exit;
-                    }
                 }
             } 
-            // Priority 2: Session (for unified login at root)
-            elseif (isset($_SESSION['secretaria_id']) && $_SESSION['secretaria_id']) {
+            
+            // Priority 2: Session (if not already defined by slug)
+            if (!defined('CURRENT_TENANT_ID') && isset($_SESSION['secretaria_id']) && $_SESSION['secretaria_id']) {
                 $stmt = $pdo->prepare("SELECT id, nome FROM secretarias WHERE id = ? AND is_active = 1");
                 $stmt->execute([$_SESSION['secretaria_id']]);
                 $tenant = $stmt->fetch();
                 if ($tenant) {
-                    if (!defined('CURRENT_TENANT_ID')) define('CURRENT_TENANT_ID', $tenant['id']);
-                    if (!defined('CURRENT_TENANT_NAME')) define('CURRENT_TENANT_NAME', $tenant['nome']);
+                    define('CURRENT_TENANT_ID', $tenant['id']);
+                    define('CURRENT_TENANT_NAME', $tenant['nome']);
+                }
+            }
+
+            // SAFETY CHECK: If we are not in Super Admin context and still have no tenant, throw error
+            $isSuperAdminPath = strpos($_SERVER['REQUEST_URI'], 'superadmin') !== false;
+            $isPublicAsset = strpos($_SERVER['REQUEST_URI'], 'assets') !== false || strpos($_SERVER['REQUEST_URI'], 'uploads') !== false;
+            $isLoginPath = strpos($_SERVER['REQUEST_URI'], 'login.php') !== false || strpos($_SERVER['REQUEST_URI'], 'logout.php') !== false;
+
+            if (!defined('CURRENT_TENANT_ID') && !$isSuperAdminPath && !$isPublicAsset && !$isLoginPath && $_SERVER['REQUEST_URI'] !== '/') {
+                // If we are logged in but don't have a tenant context, something is wrong with the session
+                if (isset($_SESSION['logged_in']) && $_SESSION['logged_in']) {
+                    throw new Exception("Erro de Identificação: Sua sessão expirou ou a secretaria não foi reconhecida. Por favor, faça login novamente.");
                 }
             }
         } catch (PDOException $e) {

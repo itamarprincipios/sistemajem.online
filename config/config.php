@@ -45,6 +45,17 @@ ini_set('error_log', BASE_PATH . '/logs/php-errors.log');
 // Start session if not already started
 if (session_status() === PHP_SESSION_NONE) {
     session_name(SESSION_NAME);
+    
+    // Ensure session cookie is available across all paths
+    session_set_cookie_params([
+        'lifetime' => SESSION_LIFETIME,
+        'path' => '/',
+        'domain' => '', // Default to current domain
+        'secure' => true,
+        'httponly' => true,
+        'samesite' => 'Lax'
+    ]);
+    
     session_start();
     
     // Set session timeout
