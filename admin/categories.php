@@ -13,44 +13,38 @@ include '../includes/sidebar.php';
 
 <div class="main-content">
     <div class="top-bar">
-        <h1 class="top-bar-title">Categorias</h1>
-        <div class="user-menu">
-            <div class="user-info">
-                <div class="user-name"><?php echo htmlspecialchars(getCurrentUserName()); ?></div>
-                <div class="user-role">Administrador</div>
-            </div>
-        </div>
+        <h1 class="top-bar-title">Categorias Étarias</h1>
     </div>
     
-    <div class="content-wrapper">
-        <!-- Header com botão -->
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <div class="content-wrapper" style="max-width: 1400px; margin: 0 auto;">
+        <!-- Header Elite Hero -->
+        <div class="glass-card" style="margin-bottom: 2.5rem; border: none; background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%); display: flex; justify-content: space-between; align-items: center; padding: 2.5rem; box-shadow: 0 20px 40px rgba(0,0,0,0.2);">
             <div>
-                <p style="color: var(--text-secondary);">
-                    Gerencie as categorias por ano de nascimento para as competições
-                </p>
+                <h2 style="font-size: 1.75rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 0.5rem; color: #fff;">Configuração de Categorias</h2>
+                <p style="color: var(--text-secondary); font-size: 1rem; max-width: 500px; line-height: 1.5;">Defina os limites de idade e anos de nascimento para cada grupo competitivo.</p>
             </div>
-            <button class="btn btn-primary" onclick="openModal()">
-                <span>➕</span>
-                <span>Nova Categoria</span>
+            <button class="btn btn-primary" onclick="openModal()" style="height: 54px; padding: 0 1.75rem; border-radius: 14px; font-weight: 600; box-shadow: 0 10px 20px rgba(59, 130, 246, 0.25);">
+                <span style="font-size: 1.4rem; margin-right: 8px;">+</span> Nova Categoria
             </button>
         </div>
-        
-        <!-- Tabela -->
-        <div class="glass-card">
+
+        <!-- Tabela Elite -->
+        <div class="glass-card" style="padding: 0; overflow: hidden; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05);">
             <div class="table-container">
-                <table class="table" id="categoriesTable">
+                <table class="table" id="categoriesTable" style="margin: 0; border-collapse: separate; border-spacing: 0;">
                     <thead>
-                        <tr>
-                            <th>Nome</th>
-                            <th>Anos de Nascimento</th>
-                            <th>Ações</th>
+                        <tr style="background: rgba(255,255,255,0.02);">
+                            <th style="padding: 1.5rem 2rem; width: 350px;">Categoria</th>
+                            <th style="padding: 1.5rem 1rem;">Janela de Nascimento</th>
+                            <th style="padding: 1.5rem 1rem; text-align: center;">Vigência</th>
+                            <th style="padding: 1.5rem 2rem; text-align: right;">Ações</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="categoriesBody">
                         <tr>
-                            <td colspan="3" style="text-align: center; padding: 2rem;">
-                                Carregando...
+                            <td colspan="4" style="text-align: center; padding: 6rem; color: var(--text-secondary);">
+                                <div style="font-size: 2.5rem; margin-bottom: 1rem;">📋</div>
+                                Sincronizando categorias étarias...
                             </td>
                         </tr>
                     </tbody>
@@ -59,6 +53,55 @@ include '../includes/sidebar.php';
         </div>
     </div>
 </div>
+
+<style>
+    .avatar-cat {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        font-size: 0.9rem;
+        color: #fff;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .badge-year {
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.1);
+        color: var(--text-primary);
+        padding: 6px 14px;
+        border-radius: 8px;
+        font-weight: 700;
+        font-family: monospace;
+        font-size: 1rem;
+    }
+    .badge-pill-elite {
+        padding: 5px 12px;
+        border-radius: 50px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .btn-action-circle {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: 1px solid rgba(255,255,255,0.1);
+        background: rgba(255,255,255,0.05);
+        color: var(--text-secondary);
+    }
+    .btn-action-circle:hover { background: var(--primary); color: #fff; border-color: var(--primary); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); }
+    .btn-delete-elite:hover { background: #f87171 !important; color: #fff; border-color: #f87171 !important; }
+</style>
 
 <!-- Modal -->
 <div class="modal-overlay" id="categoryModal">
@@ -70,238 +113,146 @@ include '../includes/sidebar.php';
         <div class="modal-body">
             <form id="categoryForm">
                 <input type="hidden" id="categoryId">
-                
                 <div class="form-group">
                     <label class="form-label">Nome da Categoria *</label>
-                    <input 
-                        type="text" 
-                        id="name" 
-                        class="form-input" 
-                        placeholder="Ex: Fraldinha, Pré Mirin, Mirin"
-                        required
-                    >
-                    <small style="color: var(--text-secondary); font-size: 0.875rem;">
-                        Nome da categoria conforme regulamento
-                    </small>
+                    <input type="text" id="name" class="form-input" placeholder="Ex: Fraldinha, Sub-11, Sub-13" required>
                 </div>
-                
-                <div class="form-group">
-                    <label class="form-label">Ano de Nascimento Mínimo *</label>
-                    <input 
-                        type="number" 
-                        id="minBirthYear" 
-                        class="form-input" 
-                        min="2000" 
-                        max="2030"
-                        placeholder="Ex: 2010"
-                        required
-                    >
-                    <small style="color: var(--text-secondary); font-size: 0.875rem;">
-                        Ano de nascimento mais antigo permitido
-                    </small>
-                </div>
-                
-                <div class="form-group">
-                    <label class="form-label">Ano de Nascimento Máximo *</label>
-                    <input 
-                        type="number" 
-                        id="maxBirthYear" 
-                        class="form-input" 
-                        min="2000" 
-                        max="2030"
-                        placeholder="Ex: 2011"
-                        required
-                    >
-                    <small style="color: var(--text-secondary); font-size: 0.875rem;">
-                        Ano de nascimento mais recente permitido
-                    </small>
+                <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label class="form-label">Ano de Nascimento Mínimo *</label>
+                        <input type="number" id="minBirthYear" class="form-input" min="2000" max="2030" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Ano de Nascimento Máximo *</label>
+                        <input type="number" id="maxBirthYear" class="form-input" min="2000" max="2030" required>
+                    </div>
                 </div>
             </form>
         </div>
         <div class="modal-footer">
             <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
-            <button class="btn btn-primary" onclick="saveCategory()">Salvar</button>
+            <button class="btn btn-primary" onclick="saveCategory()">Salvar Categoria</button>
         </div>
     </div>
 </div>
 
 <script>
-// Carregar categorias
+// Utils Design Elite
+function stringToColor(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) { hash = str.charCodeAt(i) + ((hash << 5) - hash); }
+    let color = '#';
+    for (let i = 0; i < 3; i++) {
+        let value = (hash >> (i * 8)) & 0xFF;
+        color += ('00' + value.toString(16)).substr(-2);
+    }
+    return color;
+}
+function getInitials(name) { return name.split(' ').map(n => n[0]).slice(0, 2).join(''); }
+
 async function loadCategories() {
     try {
         const response = await fetch('../api/categories-api.php');
         const data = await response.json();
-        
-        if (data.success) {
-            renderTable(data.data);
-        } else {
-            Toast.error('Erro ao carregar categorias');
-        }
-    } catch (error) {
-        console.error('Error:', error);
-        Toast.error('Erro ao carregar categorias');
-    }
+        if (data.success) renderTable(data.data);
+    } catch (error) { Toast.error('Erro de sincronização'); }
 }
 
-// Renderizar tabela
 function renderTable(categories) {
-    const tbody = document.querySelector('#categoriesTable tbody');
+    const tbody = document.getElementById('categoriesBody');
     tbody.innerHTML = '';
-    
     if (categories.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 2rem; color: var(--text-secondary);">Nenhuma categoria encontrada</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 4rem; color: var(--text-muted);">Nenhuma categoria cadastrada.</td></tr>';
         return;
     }
-    
-    // Ordenar por ano de nascimento (mais recente primeiro)
     categories.sort((a, b) => b.min_birth_year - a.min_birth_year);
-    
-    categories.forEach(category => {
+    categories.forEach(cat => {
+        const color = stringToColor(cat.name);
+        const initials = getInitials(cat.name);
         const row = document.createElement('tr');
+        row.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
         row.innerHTML = `
-            <td><strong>${category.name}</strong></td>
-            <td>${category.min_birth_year} - ${category.max_birth_year}</td>
+            <td style="padding: 1.25rem 2rem;">
+                <div style="display: flex; align-items: center; gap: 1.25rem;">
+                    <div class="avatar-cat" style="background: ${color}20; color: ${color}; border: 1px solid ${color}30;">${initials}</div>
+                    <span style="font-weight: 600; color: #fff; font-size: 1.05rem;">${cat.name}</span>
+                </div>
+            </td>
             <td>
-                <button class="btn btn-sm btn-secondary" onclick="editCategory(${category.id})" style="margin-right: 0.5rem;">Editar</button>
-                <button class="btn btn-sm btn-danger" onclick="deleteCategory(${category.id})">Excluir</button>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <span class="badge-year">${cat.min_birth_year}</span>
+                    <span style="opacity: 0.3;">➔</span>
+                    <span class="badge-year">${cat.max_birth_year}</span>
+                </div>
+            </td>
+            <td style="text-align: center;">
+                <span class="badge-pill-elite" style="background: rgba(34, 197, 94, 0.1); color: #4ade80;">Ativo</span>
+            </td>
+            <td style="padding: 1.25rem 2rem; text-align: right;">
+                <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+                    <button class="btn-action-circle" onclick="editCategory(${cat.id})" title="Editar">✏️</button>
+                    <button class="btn-action-circle btn-delete-elite" onclick="deleteCategory(${cat.id})" title="Excluir">🗑️</button>
+                </div>
             </td>
         `;
         tbody.appendChild(row);
     });
 }
 
-// Abrir modal
 function openModal(id = null) {
     const modal = document.getElementById('categoryModal');
     const form = document.getElementById('categoryForm');
     form.reset();
-    
-    if (id) {
-        document.getElementById('modalTitle').textContent = 'Editar Categoria';
-        loadCategory(id);
-    } else {
-        document.getElementById('modalTitle').textContent = 'Nova Categoria';
-        document.getElementById('categoryId').value = '';
-    }
-    
+    if (id) { document.getElementById('modalTitle').textContent = 'Editar Categoria'; loadCategory(id); }
+    else { document.getElementById('modalTitle').textContent = 'Nova Categoria'; document.getElementById('categoryId').value = ''; }
     modal.classList.add('active');
 }
+function closeModal() { document.getElementById('categoryModal').classList.remove('active'); }
 
-// Fechar modal
-function closeModal() {
-    document.getElementById('categoryModal').classList.remove('active');
-}
-
-// Carregar categoria para edição
 async function loadCategory(id) {
     try {
         const response = await fetch('../api/categories-api.php');
         const data = await response.json();
-        
         if (data.success) {
-            const category = data.data.find(c => c.id == id);
-            if (category) {
-                document.getElementById('categoryId').value = category.id;
-                document.getElementById('name').value = category.name;
-                document.getElementById('minBirthYear').value = category.min_birth_year;
-                document.getElementById('maxBirthYear').value = category.max_birth_year;
+            const cat = data.data.find(c => c.id == id);
+            if (cat) {
+                document.getElementById('categoryId').value = cat.id;
+                document.getElementById('name').value = cat.name;
+                document.getElementById('minBirthYear').value = cat.min_birth_year;
+                document.getElementById('maxBirthYear').value = cat.max_birth_year;
             }
         }
-    } catch (error) {
-        console.error('Error:', error);
-        Toast.error('Erro ao carregar categoria');
-    }
+    } catch (e) {}
 }
 
-// Editar categoria
-function editCategory(id) {
-    openModal(id);
-}
-
-// Salvar categoria
 async function saveCategory() {
     const id = document.getElementById('categoryId').value;
     const name = document.getElementById('name').value.trim();
     const minBirthYear = parseInt(document.getElementById('minBirthYear').value);
     const maxBirthYear = parseInt(document.getElementById('maxBirthYear').value);
-    
-    if (!name || !minBirthYear || !maxBirthYear) {
-        Toast.error('Por favor, preencha todos os campos obrigatórios');
-        return;
-    }
-    
-    if (minBirthYear < 2000 || maxBirthYear > 2030) {
-        Toast.error('Os anos de nascimento devem estar entre 2000 e 2030');
-        return;
-    }
-    
-    if (minBirthYear > maxBirthYear) {
-        Toast.error('O ano mínimo não pode ser maior que o ano máximo');
-        return;
-    }
-    
-    const data = {
-        id: id || undefined,
-        name: name,
-        min_birth_year: minBirthYear,
-        max_birth_year: maxBirthYear
-    };
-    
+    if (!name || !minBirthYear || !maxBirthYear) { Toast.error('Preencha os campos obrigatórios'); return; }
+    const data = { id: id || undefined, name, min_birth_year: minBirthYear, max_birth_year: maxBirthYear };
     try {
         const response = await fetch('../api/categories-api.php', {
             method: id ? 'PUT' : 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         });
-        
         const result = await response.json();
-        
-        if (result.success) {
-            Toast.success(id ? 'Categoria atualizada com sucesso!' : 'Categoria criada com sucesso!');
-            closeModal();
-            loadCategories();
-        } else {
-            Toast.error(result.error || 'Erro ao salvar categoria');
-        }
-    } catch (error) {
-        console.error('Error:', error);
-        Toast.error('Erro ao salvar categoria');
-    }
+        if (result.success) { Toast.success('Operação concluída!'); closeModal(); loadCategories(); }
+        else { Toast.error(result.error); }
+    } catch (e) { Toast.error('Erro ao salvar'); }
 }
 
-// Excluir categoria
 async function deleteCategory(id) {
-    if (!confirm('Tem certeza que deseja excluir esta categoria? Esta ação não pode ser desfeita.')) {
-        return;
-    }
-    
+    if (!confirm('Tem certeza?')) return;
     try {
-        const response = await fetch(`../api/categories-api.php?id=${id}`, {
-            method: 'DELETE'
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            Toast.success('Categoria excluída com sucesso!');
-            loadCategories();
-        } else {
-            Toast.error(result.error || 'Erro ao excluir categoria');
-        }
-    } catch (error) {
-        console.error('Error:', error);
-        Toast.error('Erro ao excluir categoria');
-    }
+        const response = await fetch(`../api/categories-api.php?id=${id}`, { method: 'DELETE' });
+        if ((await response.json()).success) { Toast.success('Removido!'); loadCategories(); }
+    } catch (e) { Toast.error('Erro ao remover'); }
 }
 
-// Fechar modal ao clicar fora
-document.getElementById('categoryModal').addEventListener('click', (e) => {
-    if (e.target.id === 'categoryModal') {
-        closeModal();
-    }
-});
-
-// Carregar ao iniciar
+document.getElementById('categoryModal').addEventListener('click', (e) => { if (e.target.id === 'categoryModal') closeModal(); });
 loadCategories();
 </script>
 
