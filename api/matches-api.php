@@ -44,6 +44,11 @@ try {
                     LEFT JOIN competition_events ce ON m.competition_event_id = ce.id
                     WHERE m.secretaria_id = ?
                 ";
+
+                if (!defined('CURRENT_TENANT_ID') || !CURRENT_TENANT_ID) {
+                    throw new Exception('Secretaria não identificada. Verifique o link de acesso.');
+                }
+                
                 $params[] = CURRENT_TENANT_ID;
 
                 if (isset($_GET['event_id']) && $_GET['event_id']) {
