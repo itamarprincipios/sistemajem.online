@@ -13,6 +13,12 @@ RewriteRule ^(admin|superadmin|assets|includes|api|config|database|professor|ope
 # Exemplo: /boavista/ -> index.php?tenant=boavista
 RewriteRule ^([a-zA-Z0-9_-]+)/?$ index.php?tenant=$1 [QSA,L]
 
+# Tenant Routing for Public Results
+RewriteRule ^([a-zA-Z0-9_-]+)/results/?$ results/index.php?tenant=$1 [QSA,L]
+
+# Tenant Routing for Admin
+RewriteRule ^([a-zA-Z0-9_-]+)/admin/(.*)$ admin/$2?tenant=$1 [QSA,L]
+
 # Capturar tenant e arquivo interno
 # Exemplo: /boavista/contato.php -> contato.php?tenant=boavista
 RewriteRule ^([a-zA-Z0-9_-]+)/(.*)$ $2?tenant=$1 [QSA,L]

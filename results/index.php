@@ -2,18 +2,28 @@
 require_once '../config/config.php';
 require_once '../includes/db.php';
 
-$activeEvents = query("SELECT * FROM competition_events WHERE active_flag = 1");
+// Determine Tenant and Events
+$tenantClause = "";
+$params = [];
+
+if (defined('CURRENT_TENANT_ID')) {
+    $tenantClause = " AND secretaria_id = ?";
+    $params[] = CURRENT_TENANT_ID;
+}
+
+$activeEvents = query("SELECT * FROM competition_events WHERE active_flag = 1" . $tenantClause, $params);
 if (empty($activeEvents)) {
-    $activeEvents = query("SELECT * FROM competition_events ORDER BY created_at DESC LIMIT 1");
+    $activeEvents = query("SELECT * FROM competition_events " . (defined('CURRENT_TENANT_ID') ? "WHERE secretaria_id = ?" : "") . " ORDER BY created_at DESC LIMIT 1", defined('CURRENT_TENANT_ID') ? [CURRENT_TENANT_ID] : []);
 }
 
 $eventIds = array_map(function($e) { return $e['id']; }, $activeEvents);
 $eventIdsStr = implode(',', $eventIds);
 
 // Determine Main Title
-$mainTitle = "Jogos Escolares 2026";
+$tenantSuffix = defined('CURRENT_TENANT_NAME') ? " - " . CURRENT_TENANT_NAME : "";
+$mainTitle = "Jogos Escolares 2026" . $tenantSuffix;
 if (count($activeEvents) === 1) {
-    $mainTitle = $activeEvents[0]['name'];
+    $mainTitle = $activeEvents[0]['name'] . $tenantSuffix;
 }
 ?>
 <!DOCTYPE html>
