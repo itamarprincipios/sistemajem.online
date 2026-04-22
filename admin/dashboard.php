@@ -8,12 +8,12 @@ requireAdmin();
 $pageTitle = 'Dashboard - Admin';
 
 // Get statistics
-$totalSchools = queryOne("SELECT COUNT(*) as count FROM schools")['count'] ?? 0;
-$totalProfessors = queryOne("SELECT COUNT(*) as count FROM users WHERE role = 'professor'")['count'] ?? 0;
-$totalStudents = queryOne("SELECT COUNT(*) as count FROM students")['count'] ?? 0;
-$totalRegistrations = queryOne("SELECT COUNT(*) as count FROM registrations")['count'] ?? 0;
-$pendingRegistrations = queryOne("SELECT COUNT(*) as count FROM registrations WHERE status = 'pending'")['count'] ?? 0;
-$approvedRegistrations = queryOne("SELECT COUNT(*) as count FROM registrations WHERE status = 'approved'")['count'] ?? 0;
+$totalSchools = queryOne("SELECT COUNT(*) as count FROM schools WHERE secretaria_id = ?", [CURRENT_TENANT_ID])['count'] ?? 0;
+$totalProfessors = queryOne("SELECT COUNT(*) as count FROM users WHERE role = 'professor' AND secretaria_id = ?", [CURRENT_TENANT_ID])['count'] ?? 0;
+$totalStudents = queryOne("SELECT COUNT(*) as count FROM students WHERE secretaria_id = ?", [CURRENT_TENANT_ID])['count'] ?? 0;
+$totalRegistrations = queryOne("SELECT COUNT(*) as count FROM registrations WHERE secretaria_id = ?", [CURRENT_TENANT_ID])['count'] ?? 0;
+$pendingRegistrations = queryOne("SELECT COUNT(*) as count FROM registrations WHERE status = 'pending' AND secretaria_id = ?", [CURRENT_TENANT_ID])['count'] ?? 0;
+$approvedRegistrations = queryOne("SELECT COUNT(*) as count FROM registrations WHERE status = 'approved' AND secretaria_id = ?", [CURRENT_TENANT_ID])['count'] ?? 0;
 
 // Get recent registrations
 $recentRegistrations = query("
@@ -22,19 +22,21 @@ $recentRegistrations = query("
     JOIN schools s ON r.school_id = s.id
     JOIN modalities m ON r.modality_id = m.id
     JOIN categories c ON r.category_id = c.id
+    WHERE r.secretaria_id = ?
     ORDER BY r.created_at DESC
     LIMIT 5
-");
+", [CURRENT_TENANT_ID]);
 
 // Get school summary (Logistics)
 $schoolSummary = query("
     SELECT 
         s.name as school_name,
-        (SELECT COUNT(*) FROM registrations r WHERE r.school_id = s.id) as team_count,
-        (SELECT COUNT(*) FROM students st WHERE st.school_id = s.id) as student_count
+        (SELECT COUNT(*) FROM registrations r WHERE r.school_id = s.id AND r.secretaria_id = s.secretaria_id) as team_count,
+        (SELECT COUNT(*) FROM students st WHERE st.school_id = s.id AND st.secretaria_id = s.secretaria_id) as student_count
     FROM schools s
+    WHERE s.secretaria_id = ?
     ORDER BY s.name ASC
-");
+", [CURRENT_TENANT_ID]);
 
 include '../includes/header.php';
 include '../includes/sidebar.php';

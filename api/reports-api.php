@@ -17,10 +17,10 @@ try {
     if ($action === 'stats') {
         // 1. General Totals
         $totals = [
-            'schools' => queryOne("SELECT COUNT(*) as count FROM schools")['count'],
-            'professors' => queryOne("SELECT COUNT(*) as count FROM users WHERE role = 'professor' AND is_active = 1")['count'],
-            'students' => queryOne("SELECT COUNT(*) as count FROM students")['count'],
-            'teams' => queryOne("SELECT COUNT(*) as count FROM registrations WHERE status = 'approved'")['count']
+            'schools' => queryOne("SELECT COUNT(*) as count FROM schools WHERE secretaria_id = ?", [CURRENT_TENANT_ID])['count'],
+            'professors' => queryOne("SELECT COUNT(*) as count FROM users WHERE role = 'professor' AND is_active = 1 AND secretaria_id = ?", [CURRENT_TENANT_ID])['count'],
+            'students' => queryOne("SELECT COUNT(*) as count FROM students WHERE secretaria_id = ?", [CURRENT_TENANT_ID])['count'],
+            'teams' => queryOne("SELECT COUNT(*) as count FROM registrations WHERE status = 'approved' AND secretaria_id = ?", [CURRENT_TENANT_ID])['count']
         ];
         
         // 2. Registrations by Modality
@@ -28,24 +28,26 @@ try {
             SELECT 
                 m.name,
                 COUNT(r.id) as team_count,
-                (SELECT COUNT(*) FROM enrollments e JOIN registrations r2 ON e.registration_id = r2.id WHERE r2.modality_id = m.id AND r2.status = 'approved') as student_count
+                (SELECT COUNT(*) FROM enrollments e JOIN registrations r2 ON e.registration_id = r2.id WHERE r2.modality_id = m.id AND r2.status = 'approved' AND r2.secretaria_id = ?) as student_count
             FROM modalities m
-            LEFT JOIN registrations r ON m.id = r.modality_id AND r.status = 'approved'
+            LEFT JOIN registrations r ON m.id = r.modality_id AND r.status = 'approved' AND r.secretaria_id = ?
+            WHERE m.secretaria_id = ?
             GROUP BY m.id, m.name
             ORDER BY team_count DESC
-        ");
+        ", [CURRENT_TENANT_ID, CURRENT_TENANT_ID, CURRENT_TENANT_ID]);
         
         // 3. Registrations by School
         $bySchool = query("
             SELECT 
                 s.name,
                 COUNT(r.id) as team_count,
-                (SELECT COUNT(*) FROM enrollments e JOIN registrations r2 ON e.registration_id = r2.id WHERE r2.school_id = s.id AND r2.status = 'approved') as student_count
+                (SELECT COUNT(*) FROM enrollments e JOIN registrations r2 ON e.registration_id = r2.id WHERE r2.school_id = s.id AND r2.status = 'approved' AND r2.secretaria_id = ?) as student_count
             FROM schools s
-            LEFT JOIN registrations r ON s.id = r.school_id AND r.status = 'approved'
+            LEFT JOIN registrations r ON s.id = r.school_id AND r.status = 'approved' AND r.secretaria_id = ?
+            WHERE s.secretaria_id = ?
             GROUP BY s.id, s.name
             ORDER BY team_count DESC
-        ");
+        ", [CURRENT_TENANT_ID, CURRENT_TENANT_ID, CURRENT_TENANT_ID]);
         
         // 4. Registrations by Category
         $byCategory = query("
@@ -53,10 +55,11 @@ try {
                 c.name,
                 COUNT(r.id) as team_count
             FROM categories c
-            LEFT JOIN registrations r ON c.id = r.category_id AND r.status = 'approved'
+            LEFT JOIN registrations r ON c.id = r.category_id AND r.status = 'approved' AND r.secretaria_id = ?
+            WHERE c.secretaria_id = ?
             GROUP BY c.id, c.name
             ORDER BY c.min_birth_year DESC
-        ");
+        ", [CURRENT_TENANT_ID, CURRENT_TENANT_ID]);
         
         echo json_encode([
             'success' => true,
@@ -76,8 +79,8 @@ try {
         $gender = $_GET['gender'] ?? '';
         $status = $_GET['status'] ?? '';
 
-        $params = [];
-        $where = ["1=1"];
+        $params = [CURRENT_TENANT_ID];
+        $where = ["r.secretaria_id = ?"];
 
         if ($schoolId) {
             $where[] = "r.school_id = ?";
