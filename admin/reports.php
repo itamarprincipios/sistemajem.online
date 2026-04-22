@@ -110,7 +110,38 @@ include '../includes/sidebar.php';
                         <button class="btn btn-secondary" onclick="printReport()" disabled id="btnPrint">
                             🖨️ Imprimir
                         </button>
-                        <!-- Future: Export to Excel/PDF -->
+                    </div>
+                </div>
+
+                <!-- Logistics Summary Area (Hidden by default) -->
+                <div id="logisticsSummary" style="display: none; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
+                    <div class="glass-card" style="padding: 1.25rem; display: flex; align-items: center; gap: 1rem;">
+                        <div style="background: rgba(var(--primary-rgb), 0.1); color: var(--primary); width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">🚩</div>
+                        <div>
+                            <small style="color: var(--text-secondary); display: block;">Equipes</small>
+                            <strong style="font-size: 1.25rem;" id="sumTeams">0</strong>
+                        </div>
+                    </div>
+                    <div class="glass-card" style="padding: 1.25rem; display: flex; align-items: center; gap: 1rem;">
+                        <div style="background: rgba(var(--primary-rgb), 0.1); color: var(--success); width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">🏃</div>
+                        <div>
+                            <small style="color: var(--text-secondary); display: block;">Atletas Únicos</small>
+                            <strong style="font-size: 1.25rem;" id="sumAthletes">0</strong>
+                        </div>
+                    </div>
+                    <div class="glass-card" style="padding: 1.25rem; display: flex; align-items: center; gap: 1rem;">
+                        <div style="background: rgba(var(--primary-rgb), 0.1); color: var(--warning); width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">👔</div>
+                        <div>
+                            <small style="color: var(--text-secondary); display: block;">Comissão Tec.</small>
+                            <strong style="font-size: 1.25rem;" id="sumStaff">0</strong>
+                        </div>
+                    </div>
+                    <div class="glass-card" style="padding: 1.25rem; border-left: 4px solid var(--primary); display: flex; align-items: center; gap: 1rem;">
+                        <div style="background: var(--primary); color: white; width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">🚌</div>
+                        <div>
+                            <small style="color: var(--text-secondary); display: block;">Total Transporte</small>
+                            <strong style="font-size: 1.25rem;" id="sumGrandTotal">0</strong>
+                        </div>
                     </div>
                 </div>
 
@@ -192,6 +223,18 @@ include '../includes/sidebar.php';
     .content-wrapper > div {
         display: block !important;
     }
+
+    #logisticsSummary {
+        display: grid !important;
+        grid-template-columns: repeat(4, 1fr) !important;
+        background: #f9f9f9 !important;
+        border: 1px solid #ddd !important;
+        padding: 10px !important;
+    }
+    
+    #logisticsSummary .glass-card {
+        border: 1px solid #eee !important;
+    }
 }
 </style>
 
@@ -258,7 +301,7 @@ async function generateReport() {
         const data = await response.json();
 
         if (data.success) {
-            renderReport(data.data);
+            renderReport(data.data, data.summary);
         } else {
             Toast.error('Erro ao gerar relatório');
         }
@@ -288,16 +331,29 @@ function updatePrintHeader(schoolId) {
     }
 }
 
-function renderReport(data) {
+function renderReport(data, summary) {
     const tbody = document.querySelector('#reportTable tbody');
     const resultCount = document.getElementById('resultsCount');
     const btnPrint = document.getElementById('btnPrint');
+    const logisticsPanel = document.getElementById('logisticsSummary');
 
     if (data.length === 0) {
         tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 3rem; color: var(--text-secondary);">Nenhum registro encontrado com os filtros selecionados.</td></tr>';
         resultCount.textContent = '0 resultados encontrados';
         btnPrint.disabled = true;
+        logisticsPanel.style.display = 'none';
         return;
+    }
+
+    // Update Logistics Summary
+    if (summary) {
+        logisticsPanel.style.display = 'grid';
+        document.getElementById('sumTeams').textContent = summary.total_teams;
+        document.getElementById('sumAthletes').textContent = summary.total_athletes;
+        document.getElementById('sumStaff').textContent = summary.total_staff;
+        document.getElementById('sumGrandTotal').textContent = summary.grand_total;
+    } else {
+        logisticsPanel.style.display = 'none';
     }
 
     resultCount.textContent = `${data.length} resultados encontrados`;
@@ -337,6 +393,9 @@ function resetFilters() {
     document.querySelector('#reportTable tbody').innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 3rem; color: var(--text-secondary);">Selecione os filtros e clique em "Gerar Relatório".</td></tr>';
     document.getElementById('resultsCount').textContent = 'Filtros limpos';
     document.getElementById('btnPrint').disabled = true;
+    
+    // Reset Logistics Panel
+    document.getElementById('logisticsSummary').style.display = 'none';
     
     // Reset Print Header
     updatePrintHeader('');

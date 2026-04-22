@@ -123,7 +123,33 @@ try {
 
         $results = query($sql, $params);
 
-        echo json_encode(['success' => true, 'data' => $results]);
+        // Add Logistics Summary if school is selected
+        $summary = null;
+        if ($schoolId) {
+            $totalTeams = queryOne("SELECT COUNT(*) as c FROM registrations WHERE school_id = ? AND status = 'approved' AND secretaria_id = ?", [$schoolId, CURRENT_TENANT_ID])['c'];
+            
+            $totalAthletes = queryOne("
+                SELECT COUNT(DISTINCT e.student_id) as c 
+                FROM enrollments e 
+                JOIN registrations r ON e.registration_id = r.id 
+                WHERE r.school_id = ? AND r.status = 'approved' AND r.secretaria_id = ?
+            ", [$schoolId, CURRENT_TENANT_ID])['c'];
+
+            $totalStaff = queryOne("
+                SELECT COUNT(DISTINCT r.created_by_user_id) as c 
+                FROM registrations r 
+                WHERE r.school_id = ? AND r.status = 'approved' AND r.secretaria_id = ?
+            ", [$schoolId, CURRENT_TENANT_ID])['c'];
+
+            $summary = [
+                'total_teams' => (int)$totalTeams,
+                'total_athletes' => (int)$totalAthletes,
+                'total_staff' => (int)$totalStaff,
+                'grand_total' => (int)$totalAthletes + (int)$totalStaff
+            ];
+        }
+
+        echo json_encode(['success' => true, 'data' => $results, 'summary' => $summary]);
 
     } else {
         throw new Exception('Ação inválida');
