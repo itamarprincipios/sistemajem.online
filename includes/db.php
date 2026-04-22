@@ -22,20 +22,31 @@ function getConnection() {
             ];
             $pdo = new PDO($dsn, DB_USER, DB_PASS, $options);
             
-            // Load tenant context if slug is present
+            // Load tenant context
+            // Priority 1: URL Slug (for deep links and routing)
             if (defined('CURRENT_TENANT_SLUG') && CURRENT_TENANT_SLUG) {
                 $stmt = $pdo->prepare("SELECT id, nome FROM secretarias WHERE slug = ? AND is_active = 1");
                 $stmt->execute([CURRENT_TENANT_SLUG]);
                 $tenant = $stmt->fetch();
                 if ($tenant) {
-                    define('CURRENT_TENANT_ID', $tenant['id']);
-                    define('CURRENT_TENANT_NAME', $tenant['nome']);
+                    if (!defined('CURRENT_TENANT_ID')) define('CURRENT_TENANT_ID', $tenant['id']);
+                    if (!defined('CURRENT_TENANT_NAME')) define('CURRENT_TENANT_NAME', $tenant['nome']);
                 } else {
-                    // Redirect or error if tenant not found
+                    // Redirect or error if tenant not found from slug
                     if (!strpos($_SERVER['REQUEST_URI'], 'superadmin')) {
                         header("Location: /");
                         exit;
                     }
+                }
+            } 
+            // Priority 2: Session (for unified login at root)
+            elseif (isset($_SESSION['secretaria_id']) && $_SESSION['secretaria_id']) {
+                $stmt = $pdo->prepare("SELECT id, nome FROM secretarias WHERE id = ? AND is_active = 1");
+                $stmt->execute([$_SESSION['secretaria_id']]);
+                $tenant = $stmt->fetch();
+                if ($tenant) {
+                    if (!defined('CURRENT_TENANT_ID')) define('CURRENT_TENANT_ID', $tenant['id']);
+                    if (!defined('CURRENT_TENANT_NAME')) define('CURRENT_TENANT_NAME', $tenant['nome']);
                 }
             }
         } catch (PDOException $e) {
