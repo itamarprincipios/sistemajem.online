@@ -269,8 +269,8 @@ if (count($activeEvents) === 1) {
             try {
                 console.log('Loading matches for events:', EVENT_IDS);
                 const [matchRes, awardRes] = await Promise.all([
-                    fetch(`../api/matches-api.php?action=list&event_id=${EVENT_IDS}&_t=${Date.now()}`),
-                    fetch(`../api/awards-api.php?event_id=${EVENT_IDS.split(',')[0]}&modality_id=${state.modality || 0}&category_id=0&_t=${Date.now()}`) // Basic fetch to warm up
+                    fetch(`/api/matches-api.php?action=list&event_id=${EVENT_IDS}&_t=${Date.now()}`),
+                    fetch(`/api/awards-api.php?event_id=${EVENT_IDS.split(',')[0]}&modality_id=${state.modality || 0}&category_id=0&_t=${Date.now()}`) // Basic fetch to warm up
                 ]);
                 const matchData = await matchRes.json();
                 matches = matchData.data || [];
@@ -396,7 +396,7 @@ if (count($activeEvents) === 1) {
                 try {
                     // Extract event_id from the first match of this category if possible, or use fallback
                     const catEventId = cat.matches[0]?.competition_event_id || EVENT_IDS.split(',')[0];
-                    const res = await fetch(`../api/awards-api.php?event_id=${catEventId}&modality_id=${state.modality}&category_id=${catId}&gender=${gender}&_t=${Date.now()}`);
+                    const res = await fetch(`/api/awards-api.php?event_id=${catEventId}&modality_id=${state.modality}&category_id=${catId}&gender=${gender}&_t=${Date.now()}`);
                     const data = await res.json();
                     awards = data.data || [];
                     
